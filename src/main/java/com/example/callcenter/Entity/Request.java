@@ -52,7 +52,7 @@ public class Request implements Serializable {
     @ManyToMany
     private Set<Contact> contacts = new HashSet<>();
 
-    @ManyToMany
+    @ManyToMany(cascade = CascadeType.PERSIST)
     private Set<Question> questions = new HashSet<>();
     @ManyToOne
     @JoinColumn(name = "agent_id")

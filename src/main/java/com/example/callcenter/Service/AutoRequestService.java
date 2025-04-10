@@ -7,6 +7,8 @@ import org.springframework.http.RequestEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -20,8 +22,9 @@ public class AutoRequestService {
     private RestTemplate restTemplate;
 
     // Appelé tous les jours à 2h du matin (cron configurable)
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(cron = "0 0 0 * * MON")
     public void generateAutomaticRequests() {
+
         List<Contact> contacts = fetchContactsFromSales(); // ou SAV
         List<Question> questions = fetchPredefinedQuestions();
 
@@ -30,11 +33,10 @@ public class AutoRequestService {
             request.setDescription("Demande automatique générée");
             request.setStatus(Status.AUTO_GENERATED);
             request.setRequestType(RequestType.STATISTICS);
-            request.setCatgoryRequest(CatgoryRequest.PRODUIT);
+            request.setCatgoryRequest(CatgoryRequest.INTERVENTION);
             request.setPriority(Priority.URGENT);
-            request.setContacts((Set<Contact>) List.of(contact));
-            request.setQuestions((Set<Question>) questions);
-
+            request.setContacts(new HashSet<>(List.of(contact)));       // ✅ ici
+            request.setQuestions(new HashSet<>(questions));
             requestRepository.save(request);
         }
 
@@ -42,15 +44,28 @@ public class AutoRequestService {
     }
 
     private List<Contact> fetchContactsFromSales() {
-        String url = "http://localhost:8081/api/contacts"; // Modifie l’URL selon ton projet
-        Contact[] response = restTemplate.getForObject(url, Contact[].class);
-        return List.of(response);
+        Contact contact1 = new Contact();
+        contact1.setIdC(1L);
+        contact1.setName("Ali Ben Salah");
+        contact1.setPhoneNumber("98765432");
+
+        Contact contact2 = new Contact();
+        contact2.setIdC(2L);
+        contact2.setName("Sara Meftah");
+        contact2.setPhoneNumber("12345678");
+
+        return List.of(contact1, contact2);
     }
 
+
     private List<Question> fetchPredefinedQuestions() {
-        // Simuler avec des données mockées ou appeler un service
-        Question q1 = new Question("Le produit est-il satisfaisant ?", QuestionType.YES_OR_NO);
-        Question q2 = new Question("Quelle est votre note ?", QuestionType.NUMBER);
-        return List.of(q1, q2);
+        Question q1 = new Question("L'intervention a-t-elle été effectuée dans les délais prévus ?", QuestionType.YES_OR_NO);
+        Question q2 = new Question("Le technicien a-t-il été courtois et professionnel ?", QuestionType.YES_OR_NO);
+        Question q3 = new Question("Le problème a-t-il été complètement résolu ?", QuestionType.YES_OR_NO);
+        Question q4 = new Question("Quelle note donneriez-vous à l'intervention ?", QuestionType.NUMBER); // e.g., 1 à 10
+
+
+        return List.of(q1, q2, q3, q4);
     }
+
 }
