@@ -6,7 +6,6 @@ import com.example.callcenter.Repository.QuestionRepository;
 import com.example.callcenter.Repository.RequestRepository;
 import com.example.callcenter.Repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,7 +38,7 @@ public class RequestService {
     public Request submitRequest(Long userId, RequestType requestType, List<Long> contactIds,
                                  String description, CatgoryRequest category,
                                  List<Long> questionIds, List<String> newQuestions,
-                                 Priority priorityLevel, QuestionType defaultQuestionType,
+                                 Priority priorityLevel, QuestionType defaultQuestionType, LocalDate deadline,
                                  MultipartFile file) {
 
         // Retrieve the user who is submitting the request
@@ -53,7 +53,7 @@ public class RequestService {
         request.setDescription(description);
         request.setPriority(priorityLevel);
         request.setCatgoryRequest(category);
-
+        request.setDeadline(deadline);
         // Define questions set
         Set<Question> questions = new HashSet<>();
 
@@ -126,6 +126,42 @@ public class RequestService {
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         return filePath.toString(); // Return saved file path
+    }
+    @Transactional
+    public Request updateRequestByRequester(Long requestId, UpdateRequestDTO dto, Long requesterId) {
+        Request existingRequest = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (!existingRequest.getUser().getIdUser().equals(requesterId)) {
+            throw new IllegalArgumentException("You are not allowed to modify this request.");
+        }
+
+        if (existingRequest.getStatus() != Status.PENDING) {
+            throw new IllegalStateException("Only pending requests can be modified.");
+        }
+
+        // ✅ Basic fields
+        existingRequest.setDescription(dto.getDescription());
+        existingRequest.setPriority(dto.getPriority());
+        existingRequest.setCatgoryRequest(dto.getCatgoryRequest());
+
+        if (dto.getDeadline() != null) {
+            existingRequest.setDeadline(dto.getDeadline());
+        }
+
+        // ✅ Set Contacts
+        if (dto.getContactIds() != null && !dto.getContactIds().isEmpty()) {
+            List<Contact> contacts = contactRepository.findAllById(dto.getContactIds());
+            existingRequest.setContacts(new HashSet<>(contacts));
+        }
+
+        // ✅ Set Questions
+        if (dto.getQuestionIds() != null && !dto.getQuestionIds().isEmpty()) {
+            List<Question> questions = questionRepository.findAllById(dto.getQuestionIds());
+            existingRequest.setQuestions(new HashSet<>(questions));
+        }
+
+        return requestRepository.save(existingRequest);
     }
 
     public List<Request> getAllRequests() {

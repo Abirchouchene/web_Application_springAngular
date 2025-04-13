@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -28,10 +29,13 @@ public class Request implements Serializable {
     private String description;
     private String note;
     private String attachmentPath;
+    private LocalDate deadline;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
     @CreationTimestamp
     private LocalDateTime createdAt;
+
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -42,7 +46,7 @@ public class Request implements Serializable {
     private CatgoryRequest catgoryRequest;
 
     @Enumerated(EnumType.STRING)
-    private Priority priority;  // ✅ Ensure this field exists
+    private Priority priority;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
