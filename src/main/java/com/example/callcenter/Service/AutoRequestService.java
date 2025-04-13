@@ -26,14 +26,14 @@ public class AutoRequestService {
     public void generateAutomaticRequests() {
 
         List<Contact> contacts = fetchContactsFromSales(); // ou SAV
-        List<Question> questions = fetchPredefinedQuestions();
+        List<Question> questions = fetchFeedbackQuestionsForSAV();
 
         for (Contact contact : contacts) {
             Request request = new Request();
             request.setDescription("Demande automatique générée");
             request.setStatus(Status.AUTO_GENERATED);
             request.setRequestType(RequestType.STATISTICS);
-            request.setCatgoryRequest(CatgoryRequest.INTERVENTION);
+            request.setCatgoryRequest(CatgoryRequest.RECALAMATION);
             request.setPriority(Priority.URGENT);
             request.setContacts(new HashSet<>(List.of(contact)));       // ✅ ici
             request.setQuestions(new HashSet<>(questions));
@@ -58,13 +58,11 @@ public class AutoRequestService {
     }
 
 
-    private List<Question> fetchPredefinedQuestions() {
-        Question q1 = new Question("L'intervention a-t-elle été effectuée dans les délais prévus ?", QuestionType.YES_OR_NO);
-        Question q2 = new Question("Le technicien a-t-il été courtois et professionnel ?", QuestionType.YES_OR_NO);
-        Question q3 = new Question("Le problème a-t-il été complètement résolu ?", QuestionType.YES_OR_NO);
-        Question q4 = new Question("Quelle note donneriez-vous à l'intervention ?", QuestionType.NUMBER); // e.g., 1 à 10
-
-
+    private List<Question> fetchFeedbackQuestionsForSAV() {
+        Question q1 = new Question("Êtes-vous satisfait du produit reçu ?", QuestionType.YES_OR_NO);
+        Question q2 = new Question("L'intervenant était-il professionnel ?", QuestionType.YES_OR_NO);
+        Question q3 = new Question("La réclamation a-t-elle été bien traitée ?", QuestionType.YES_OR_NO);
+        Question q4 = new Question("Notez votre satisfaction globale (1 à 10)", QuestionType.NUMBER);
         return List.of(q1, q2, q3, q4);
     }
 
