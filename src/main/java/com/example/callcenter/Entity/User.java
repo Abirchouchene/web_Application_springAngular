@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 
 @NoArgsConstructor
@@ -29,4 +30,6 @@ public class User implements Serializable {
     @OneToMany(mappedBy = "agent")
     @JsonBackReference
     private Set<Request> assignedRequests;
+    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL)
+    private Set<AgentLeave> leaves = new HashSet<>();
 }

@@ -24,11 +24,11 @@ public class Question implements Serializable {
     @Enumerated(EnumType.STRING)
 
     private QuestionType questionType;
-    @ManyToMany
+    @ManyToMany(mappedBy = "questions")
     private Set<Request>requests;
-    @ManyToMany
-    private Set<Tag> tags = new HashSet<>();
 
+    @ManyToMany(mappedBy = "questions")
+    private Set<Response>responses;
     public Question(String s, QuestionType questionType) {
     }
 }

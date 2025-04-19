@@ -21,12 +21,8 @@ public class Contact implements Serializable {
     private Long idC;
     private String name;
     private String phoneNumber;
-    private String tag; // Example: "RESELLER", "USER", "PRODUCT"
-
-    private String reference; // For reclamations (Product Reference from SAV)
-
-    @ManyToMany
+    @ManyToMany(mappedBy = "contacts")
     private Set<Request>requests;
-    @ElementCollection
-    private Set<String> tags = new HashSet<>();
+    @ManyToMany(mappedBy = "contacts")
+    private Set<Tag> tags = new HashSet<>();
 }

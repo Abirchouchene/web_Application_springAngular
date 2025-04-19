@@ -1,5 +1,7 @@
-package com.example.callcenter.Entity;
+package com.example.callcenter.DTO;
 
+import com.example.callcenter.Entity.CatgoryRequest;
+import com.example.callcenter.Entity.Priority;
 import lombok.Data;
 
 import java.time.LocalDate;

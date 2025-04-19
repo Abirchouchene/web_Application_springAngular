@@ -1,5 +1,6 @@
 package com.example.callcenter.Service;
 
+import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.ContactRepository;
 import com.example.callcenter.Repository.QuestionRepository;
@@ -177,27 +178,12 @@ public class RequestService {
         return requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
     }
-    public Contact addTagToContact(Long contactId, String tag) {
-        Optional<Contact> contact = contactRepository.findById(contactId);
-        if (contact.isPresent()) {
-            Contact existingContact = contact.get();
-
-            // Ensure the tags set is initialized
-            if (existingContact.getTags() == null) {
-                existingContact.setTags(new HashSet<>()); // Initialize if null
-            }
-
-            existingContact.getTags().add(tag);  // Now it's safe to add the tag
-            return contactRepository.save(existingContact);
-        }
-        return null; // Return null if contact not found
-    }
 
 
 
-    public List<Contact> searchContactsByTag(String tag) {
+  /*public List<Contact> searchContactsByTag(String tag) {
         return contactRepository.findByTagsContaining(tag);
-    }
+    }*/
 
 
     public Request approveRequest(Long requestId, Status status) {
@@ -265,6 +251,19 @@ public class RequestService {
 
         return requestRepository.save(request);
     }
+    @Transactional
+    public void deleteRequest(Long id) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        // Break association
+        request.getQuestions().clear();
+        requestRepository.save(request); // optional but safe
+
+        // Now delete
+        requestRepository.delete(request);
+    }
+
 
 }
 

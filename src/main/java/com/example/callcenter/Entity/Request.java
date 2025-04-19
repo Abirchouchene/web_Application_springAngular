@@ -57,13 +57,22 @@ public class Request implements Serializable {
     private Set<Contact> contacts = new HashSet<>();
 
     @ManyToMany(cascade = CascadeType.PERSIST)
+    @JoinTable(
+            name = "request_questions",
+            joinColumns = @JoinColumn(name = "request_idr"),
+            inverseJoinColumns = @JoinColumn(name = "question_id")
+    )
     private Set<Question> questions = new HashSet<>();
     @ManyToOne
     @JoinColumn(name = "agent_id")
     // This will store the assigned agent
     private User agent;
-    @ElementCollection
-    private Set<String> tags = new HashSet<>();
+
+    @ManyToMany
+    private  Set<Logs>logs;
+    @ManyToMany
+    private  Set<Report>reports;
+
 }
 
 

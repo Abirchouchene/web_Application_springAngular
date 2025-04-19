@@ -1,5 +1,6 @@
 package com.example.callcenter.Controller;
 
+import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Service.RequestService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/requests")
@@ -53,22 +53,13 @@ public class RequestController {
     public List<Request> getRequestsByType(@PathVariable RequestType type) {
         return requestService.getRequestsByType(type);
     }
-    @PostMapping("/{contactId}/addTag")
-    public ResponseEntity<Contact> addTagToContact(@PathVariable Long contactId, @RequestParam String tag) {
-        Contact contact = requestService.addTagToContact(contactId, tag);
-        if (contact != null) {
-            return ResponseEntity.ok(contact);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
 
-    @GetMapping("/searchByTag")
+
+    /*@GetMapping("/searchByTag")
     public ResponseEntity<List<Contact>> searchContactsByTag(@RequestParam String tag) {
         List<Contact> contacts = requestService.searchContactsByTag(tag);
         return ResponseEntity.ok(contacts);
-    }
-    // Endpoint to approve or reject a request
+    }*/
     @PutMapping("/{requestId}/approve")
     public ResponseEntity<Request> approveRequest(@PathVariable Long requestId,
                                                   @RequestParam Status status) {
