@@ -1,5 +1,6 @@
 package com.example.callcenter.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,5 +21,7 @@ public class Tag {
     private String name;
 
     @ManyToMany
+    @JsonIgnore
+
     private List<Contact> contacts;
 }

@@ -1,5 +1,6 @@
 package com.example.callcenter.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class Contact implements Serializable {
     private String name;
     private String phoneNumber;
     @ManyToMany(mappedBy = "contacts")
+    @JsonBackReference
     private Set<Request>requests;
     @ManyToMany(mappedBy = "contacts")
     private Set<Tag> tags = new HashSet<>();

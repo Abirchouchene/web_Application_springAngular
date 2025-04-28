@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,7 +14,6 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -43,7 +43,7 @@ public class Request implements Serializable {
     private RequestType requestType;
 
     @Enumerated(EnumType.STRING)
-    private CatgoryRequest catgoryRequest;
+    private CategoryRequest categoryRequest;
 
     @Enumerated(EnumType.STRING)
     private Priority priority;
@@ -56,13 +56,14 @@ public class Request implements Serializable {
     @ManyToMany
     private Set<Contact> contacts = new HashSet<>();
 
-    @ManyToMany(cascade = CascadeType.PERSIST)
+    @ManyToMany(cascade = CascadeType.ALL)
     @JoinTable(
             name = "request_questions",
             joinColumns = @JoinColumn(name = "request_idr"),
             inverseJoinColumns = @JoinColumn(name = "question_id")
     )
     private Set<Question> questions = new HashSet<>();
+
     @ManyToOne
     @JoinColumn(name = "agent_id")
     // This will store the assigned agent

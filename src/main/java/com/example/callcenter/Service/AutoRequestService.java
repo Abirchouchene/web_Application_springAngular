@@ -3,14 +3,12 @@ package com.example.callcenter.Service;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.RequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.RequestEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class AutoRequestService {
@@ -33,7 +31,7 @@ public class AutoRequestService {
             request.setDescription("Demande automatique générée");
             request.setStatus(Status.AUTO_GENERATED);
             request.setRequestType(RequestType.STATISTICS);
-            request.setCatgoryRequest(CatgoryRequest.RECALAMATION);
+            request.setCategoryRequest(CategoryRequest.RECLAMATION);
             request.setPriority(Priority.URGENT);
             request.setContacts(new HashSet<>(List.of(contact)));       // ✅ ici
             request.setQuestions(new HashSet<>(questions));

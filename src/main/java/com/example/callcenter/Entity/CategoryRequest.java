@@ -1,8 +1,8 @@
 package com.example.callcenter.Entity;
 
-public enum CatgoryRequest {
+public enum CategoryRequest {
 
-    RECALAMATION,
+    RECLAMATION,
     PRODUIT,
     DEVIS,
     COMMANDE,

@@ -37,7 +37,7 @@ public class RequestService {
     private String UPLOAD_DIR;
 
     public Request submitRequest(Long userId, RequestType requestType, List<Long> contactIds,
-                                 String description, CatgoryRequest category,
+                                 String description, CategoryRequest category,
                                  List<Long> questionIds, List<String> newQuestions,
                                  Priority priorityLevel, QuestionType defaultQuestionType, LocalDate deadline,
                                  MultipartFile file) {
@@ -53,7 +53,7 @@ public class RequestService {
         request.setStatus(Status.PENDING);
         request.setDescription(description);
         request.setPriority(priorityLevel);
-        request.setCatgoryRequest(category);
+        request.setCategoryRequest(category);
         request.setDeadline(deadline);
         // Define questions set
         Set<Question> questions = new HashSet<>();
@@ -144,7 +144,7 @@ public class RequestService {
         // ✅ Basic fields
         existingRequest.setDescription(dto.getDescription());
         existingRequest.setPriority(dto.getPriority());
-        existingRequest.setCatgoryRequest(dto.getCatgoryRequest());
+        existingRequest.setCategoryRequest(dto.getCategoryRequest());
 
         if (dto.getDeadline() != null) {
             existingRequest.setDeadline(dto.getDeadline());
@@ -179,11 +179,15 @@ public class RequestService {
                 .orElseThrow(() -> new RuntimeException("Request not found"));
     }
 
+    public List<Request> getRequestsByUserId(Long userId) {
+        return requestRepository.findByUserIdUser(userId);
+    }
 
 
-  /*public List<Contact> searchContactsByTag(String tag) {
-        return contactRepository.findByTagsContaining(tag);
-    }*/
+    public List<Contact> searchContactsByTag(String tag) {
+        return contactRepository.findByTagNameLike(tag);
+    }
+
 
 
     public Request approveRequest(Long requestId, Status status) {
@@ -242,7 +246,7 @@ public class RequestService {
 
         return requestRepository.save(request);
     }
-    public Request updateRequestStatus(Long requestId, String status, String note) {
+   /* public Request updateRequestStatus(Long requestId, String status, String note) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
@@ -250,7 +254,7 @@ public class RequestService {
         request.setNote(note);
 
         return requestRepository.save(request);
-    }
+    }*/
     @Transactional
     public void deleteRequest(Long id) {
         Request request = requestRepository.findById(id)

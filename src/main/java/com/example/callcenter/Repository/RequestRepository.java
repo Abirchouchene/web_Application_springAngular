@@ -10,4 +10,6 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
 
     List<Request> findByRequestType(RequestType requestType);
     List<Request> findByAgent_IdUser(Long agentId);
+    List<Request> findByUserIdUser(Long userId);
+
 }

@@ -1,5 +1,6 @@
 package com.example.callcenter.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class Question implements Serializable {
 
     private QuestionType questionType;
     @ManyToMany(mappedBy = "questions")
+    @JsonIgnore
     private Set<Request>requests;
 
     @ManyToMany(mappedBy = "questions")

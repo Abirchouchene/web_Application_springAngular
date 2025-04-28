@@ -27,7 +27,7 @@ public class RequestController {
             @RequestParam RequestType requestType,
             @RequestParam List<Long> contactIds,
             @RequestParam String description,
-            @RequestParam CatgoryRequest category,
+            @RequestParam CategoryRequest category,
             @RequestParam(required = false) List<Long> questionIds,
             @RequestParam(required = false) List<String> newQuestions,
             @RequestParam Priority priorityLevel, @RequestParam LocalDate deadline,
@@ -48,6 +48,10 @@ public class RequestController {
     public Request getRequestById(@PathVariable Long id) {
         return requestService.getRequestById(id);
     }
+    @GetMapping("/user/{userId}")
+    public List<Request> getRequestsByUserId(@PathVariable Long userId) {
+        return requestService.getRequestsByUserId(userId);
+    }
 
     @GetMapping("/type/{type}")
     public List<Request> getRequestsByType(@PathVariable RequestType type) {
@@ -55,11 +59,11 @@ public class RequestController {
     }
 
 
-    /*@GetMapping("/searchByTag")
+    @GetMapping("/searchByTag")
     public ResponseEntity<List<Contact>> searchContactsByTag(@RequestParam String tag) {
         List<Contact> contacts = requestService.searchContactsByTag(tag);
         return ResponseEntity.ok(contacts);
-    }*/
+    }
     @PutMapping("/{requestId}/approve")
     public ResponseEntity<Request> approveRequest(@PathVariable Long requestId,
                                                   @RequestParam Status status) {
@@ -93,7 +97,11 @@ public class RequestController {
         Request updated = requestService.updateRequestByRequester(requestId, dto, requesterId);
         return ResponseEntity.ok(updated);
     }
-
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteRequest(@PathVariable Long id) {
+        requestService.deleteRequest(id);
+        return ResponseEntity.ok("Request deleted successfully");
+    }
     @GetMapping("/Contacts")
     public  List<Contact>getAllContacts(){
         return requestService.getAllContacts();
