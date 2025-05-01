@@ -1,0 +1,115 @@
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+    <ng-container *ngIf="requestData">
+      <div class="row m-b-24">
+        <div class="col-sm-4 d-flex align-items-center">
+          <h4 class="f-s-14 f-s-18 f-w-600">Request #{{ requestData.idR }}</h4>
+        </div>
+        <div class="col-sm-8 text-right">
+          <a routerLink="/apps/ticket" mat-stroked-button class="m-r-10">Back to Tickets</a>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- General Information -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15">Status:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.status || 'N/A' }}</h6>
+        </div>
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15">Deadline:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.deadline| date: 'fullDate' }}</h6>
+        </div>
+      </div>
+
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15">Requester:</span>
+<h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+  {{ requestData.user ? requestData.user.fullName : 'Unknown' }}
+</h6>
+        </div>
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15">Type:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.requestType }}</h6>
+        </div>
+      </div>
+
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15">Priority:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.priority }}</h6>
+        </div>
+        
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15">Categorie:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.categoryRequest || 'No category provided.'}}</h6>
+        </div>
+      </div>
+
+      <div class="row p-y-24">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15">Note:</span>
+          <p class="m-t-5 f-s-14">{{ requestData.note || 'No note provided.' }}</p>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- STATISTICS: Show Questions -->
+      <div *ngIf="requestData.requestType === 'STATISTICS'" class="m-t-20">
+        <h5 class="f-s-16 f-w-600 m-b-15">Questions:</h5>
+
+        <div *ngFor="let question of requestData.questions" class="m-b-20">
+          <label class="f-w-500 f-s-14">{{ question.question }}</label>
+          
+          <!-- YES_NO type -->
+          <ng-container *ngIf="question.questionType === 'YES_NO'">
+            <mat-radio-group [(ngModel)]="question.response" class="d-block m-t-5">
+              <mat-radio-button value="YES" class="m-r-20">Yes</mat-radio-button>
+              <mat-radio-button value="NO">No</mat-radio-button>
+            </mat-radio-group>
+          </ng-container>
+
+          <!-- NUMBER type -->
+          <ng-container *ngIf="question.questionType === 'NUMBER'">
+            <mat-form-field class="w-100 m-t-5">
+              <input matInput type="number" [(ngModel)]="question.response" placeholder="Enter number" />
+            </mat-form-field>
+          </ng-container>
+
+          <!-- TEXT type -->
+          <ng-container *ngIf="question.questionType === 'TEXT'">
+            <mat-form-field class="w-100 m-t-5">
+              <textarea matInput [(ngModel)]="question.response" placeholder="Enter your response"></textarea>
+            </mat-form-field>
+          </ng-container>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Update Status -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <mat-form-field class="w-100">
+            <mat-label>Update Status</mat-label>
+            <mat-select [(ngModel)]="status">
+              <mat-option *ngFor="let s of ['PENDING', 'IN_PROGRESS', 'CLOSED']" [value]="s">
+                {{ s }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <div class="col-sm-6 d-flex align-items-end justify-content-end">
+          <button mat-flat-button color="primary" (click)="updateRequest()" [disabled]="isLoading">
+            Update Request
+            <mat-progress-spinner *ngIf="isLoading" diameter="20" mode="indeterminate"></mat-progress-spinner>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </mat-card-content>
+</mat-card>

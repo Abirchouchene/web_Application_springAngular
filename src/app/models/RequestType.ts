@@ -1,0 +1,4 @@
+export enum RequestType {
+  RECLAMATION = 'RECLAMATION',
+  STATISTICS = 'STATISTICS'
+}

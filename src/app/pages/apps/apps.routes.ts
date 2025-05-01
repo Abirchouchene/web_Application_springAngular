@@ -14,12 +14,15 @@ import { AppTodoComponent } from './todo/todo.component';
 import { AppPermissionComponent } from './permission/permission.component';
 import { AppKanbanComponent } from './kanban/kanban.component';
 import { AppFullcalendarComponent } from './fullcalendar/fullcalendar.component';
-import { AppTicketlistComponent } from './tickets/tickets.component';
 import { AppInvoiceListComponent } from './invoice/invoice-list/invoice-list.component';
-import { AppAddInvoiceComponent } from './invoice/add-invoice/add-invoice.component';
+import { AppAddRequestComponent } from './invoice/add-invoice/add-request.component';
 import { AppInvoiceViewComponent } from './invoice/invoice-view/invoice-view.component';
 import { AppEditInvoiceComponent } from './invoice/edit-invoice/edit-invoice.component';
 import { AppContactListComponent } from './contact-list/contact-list.component';
+import { AppTicketlistComponent } from './Requests/TicketList/tickets.component';
+import { TicketdetailsComponent } from './Requests/TicketDetails/ticketdetails.component';
+import { RequestManagerViewComponent } from './RequestManager/request-manager-view/request-manager-view.component';
+import { RequestManagerListComponent } from './RequestManager/request-manager-view/request-manager-list/request-manager-list.component';
 
 
 export const AppsRoutes: Routes = [
@@ -117,6 +120,7 @@ export const AppsRoutes: Routes = [
           ],
         },
       },
+      
       {
         path: 'tickets',
         component: AppTicketlistComponent,
@@ -128,6 +132,21 @@ export const AppsRoutes: Routes = [
           ],
         },
       },
+      {
+        path: 'ticket/:id',
+        component: TicketdetailsComponent,
+        data: {
+          title: 'Ticket Details',
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Tickets', url: '/apps/tickets' },
+            { title: 'Ticket Details' },
+          ],
+        },
+      },
+      
+      
+
       {
         path: 'contacts',
         component: AppContactComponent,
@@ -206,6 +225,29 @@ export const AppsRoutes: Routes = [
         },
       },
       {
+        path: 'request-manager',
+        component: RequestManagerListComponent,
+        data: {
+          title: 'Request Manager',
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Request Manager' },
+          ],
+        },
+      },
+      {
+        path: 'request-manager/viewRequest/:id',
+        component: RequestManagerViewComponent,
+        data: {
+          title: 'View Request',
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Request Manager', url: '/apps/request-manager' },
+            { title: 'View Request' },
+          ],
+        },
+      },
+      {
         path: 'invoice',
         component: AppInvoiceListComponent,
         data: {
@@ -218,7 +260,7 @@ export const AppsRoutes: Routes = [
       },
       {
         path: 'addInvoice',
-        component: AppAddInvoiceComponent,
+        component: AppAddRequestComponent,
         data: {
           title: 'Add Invoice',
           urls: [
@@ -251,4 +293,7 @@ export const AppsRoutes: Routes = [
       },
     ],
   },
+
+  
+
 ];

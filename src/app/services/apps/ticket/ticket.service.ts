@@ -1,69 +1,81 @@
-import { Injectable, signal } from '@angular/core';
-import { TicketElement } from 'src/app/pages/apps/tickets/ticket';
-import { tickets } from 'src/app/pages/apps/tickets/ticketsData';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { AgentAvailabilityDTO } from 'src/app/models/AgentAvailabilityDTO';
+import { User } from 'src/app/models/User';
+
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
-export class TicketService {
-  //  track ticket data
-  private ticketsData = signal<TicketElement[]>(tickets);
+export class RequestService {
+   private apiUrl = 'http://localhost:8082/api/requests';
 
-  get tickets$() {
-    return this.ticketsData();
+  constructor(private http: HttpClient) { }
+  
+
+  submitRequest(requestData: FormData): Observable<any> {
+    return this.http.post(`${this.apiUrl}/submit`, requestData);
   }
 
-  public users = [
-    { id: 1, name: 'Alice', photo: '/assets/images/profile/user-1.jpg' },
-    { id: 2, name: 'Jonathan', photo: '/assets/images/profile/user-2.jpg' },
-    { id: 3, name: 'Smith', photo: '/assets/images/profile/user-3.jpg' },
-    { id: 4, name: 'Vincent', photo: '/assets/images/profile/user-4.jpg' },
-    { id: 5, name: 'Chris', photo: '/assets/images/profile/user-5.jpg' },
-  ];
-
-  getUsers(): any[] {
-    return this.users;
+  getAllRequests(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/All`);
   }
 
-  constructor() {}
-
-  addTicket(ticket: TicketElement): void {
-    const today = new Date();
-
-    // Get the current list of tickets
-    const currentTickets = this.ticketsData();
-
-    // Find the highest ID currently in use
-    const maxId =
-      currentTickets.length > 0
-        ? Math.max(...currentTickets.map((t) => t.id))
-        : 0; // Default to 0 if no tickets exist
-
-    const newTicket: TicketElement = {
-      id: maxId + 1, // Set new ID
-      title: ticket.title,
-      subtext: ticket.subtext,
-      assignee: ticket.assignee,
-      imgSrc: '/assets/images/profile/user-1.jpg',
-      status: 'open',
-      date: today.toISOString().split('T')[0],
-    };
-
-    // Update the tickets data with the new ticket
-    this.ticketsData.update((currentTickets) => [...currentTickets, newTicket]);
+  getContacts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/Contacts`);
   }
-
-  updateTicket(updatedTicket: TicketElement): void {
-    this.ticketsData.update((currentTickets) =>
-      currentTickets.map((ticket) =>
-        ticket.id === updatedTicket.id ? updatedTicket : ticket
-      )
-    );
+  getContactsByTag(tag: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/searchByTag?tag=${encodeURIComponent(tag)}`);
   }
-
-  deleteTicket(id: number): void {
-    this.ticketsData.update((currentTickets) =>
-      currentTickets.filter((ticket) => ticket.id !== id)
-    );
+ 
+  // Fetch a request by its ID
+  getRequestById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
   }
+  getRequestsByUserId(userId: number): Observable<Request[]> {
+    return this.http.get<Request[]>(`${this.apiUrl}/user/${userId}`);
+  }
+  
+  approveRequest(requestId: number, status: 'APPROVED' | 'REJECTED'): Observable<Request> {
+    return this.http.put<Request>(`${this.apiUrl}/${requestId}/approve`, null, {
+      params: new HttpParams().set('status', status),
+    });
+  }
+  getAgents(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/agents`);  // Calling the backend API to get agents
+  }
+  
+  
+  assignAgentToRequest(requestId: number, agentId: number): Observable<Request> {
+    return this.http.put<Request>(`${this.apiUrl}/${requestId}/assign?agentId=${agentId}`, {});
+}
+
+getAssignedRequests(agentId: number): Observable<any[]> {
+  return this.http.get<any[]>(`${this.apiUrl}/assigned/${agentId}`);
+}
+/*updateRequestStatus(requestId: number, status: string, note: string): Observable<Request> {
+  return this.http.put<Request>(`${this.apiUrl}/${requestId}/update`, { status, note });
+}*/
+updateRequestStatus(requestId: number, newStatus: string): Observable<Request> {
+  const params = new HttpParams()
+    
+    .set('newStatus', newStatus);
+
+  return this.http.put<Request>(`${this.apiUrl}/${requestId}/update-status`, null, { params });
+}
+  // request.service.ts
+  getAvailableAgents(date?: string): Observable<AgentAvailabilityDTO[]> {
+    let url = `${this.apiUrl}/agent/availability`;
+    if (date) {
+      url += `?date=${date}`;
+    }
+    return this.http.get<AgentAvailabilityDTO[]>(url);
+  }
+  
+  deleteRequest(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`, { responseType: 'text' });
+  }
+  
+  
 }

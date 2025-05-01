@@ -6,6 +6,8 @@ import { MaterialModule } from 'src/app/material.module';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TablerIconsModule } from 'angular-tabler-icons';
+import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
+import { AgentAvailabilityDTO } from 'src/app/models/AgentAvailabilityDTO';
 
 @Component({
     selector: 'app-invoice-view',
@@ -21,24 +23,75 @@ import { TablerIconsModule } from 'angular-tabler-icons';
 })
 export class AppInvoiceViewComponent {
   id = signal<number>(0);
-  invoiceDetail = signal<InvoiceList | null>(null);
-  displayedColumns: string[] = ['itemName', 'unitPrice', 'unit', 'total'];
+  requestDetail = signal<any | null>(null);
+  agents = signal<any[]>([]);
+  selectedAgentId = signal<number | null>(null);
+  availableAgents = signal<AgentAvailabilityDTO[]>([]);
+  showAllAgents = signal<boolean>(false);
+
 
   constructor(
     private activatedRouter: ActivatedRoute,
-    private invoiceService: InvoiceService
+    private requestService: RequestService,
   ) {}
-
   ngOnInit(): void {
-    this.id.set(+this.activatedRouter.snapshot.paramMap.get('id')!);
+    // Subscribe to the route params
+    this.activatedRouter.params.subscribe((params) => {
+      this.id.set(+params['id']); 
+  
+      this.loadRequestDetail();
+      this.availableAgents();
+    });
+  }
+  
 
-    this.loadInvoiceDetail();
+  public loadRequestDetail(): void {
+    const requestId = this.id();
+    this.requestService.getRequestById(requestId).subscribe({
+      next: (res) => this.requestDetail.set(res),
+      error: (err) => console.error('Error fetching request', err),
+    });
   }
 
-  private loadInvoiceDetail(): void {
-    const invoiceList = this.invoiceService.getInvoiceList(); // Get the list of invoices
-    const invoiceId = this.id();
-    const invoice = invoiceList.find((x) => x.id === invoiceId);
-    this.invoiceDetail.set(invoice || null);
+   public loadAgents(): void {
+    this.requestService.getAgents().subscribe({
+      next: (res) => this.agents.set(res),
+      error: (err) => console.error('Error fetching agents', err),
+    });
   }
+
+  assignAgent() {
+    const agentId = this.selectedAgentId();
+    const requestId = this.id();
+    if (agentId) {
+      this.requestService.assignAgentToRequest(requestId, agentId).subscribe({
+        next: () => {
+          alert('Agent assigned successfully!');
+          this.loadRequestDetail(); // Refresh details if needed
+        },
+        error: (err) => console.error('Error assigning agent', err),
+      });
+    }
+  }
+   loadAvailableAgents(): void {
+    this.requestService.getAvailableAgents()
+      .subscribe({
+        next: (agents) => {
+          this.availableAgents.set(agents);
+          this.agents.set(agents); // <-- update agents list as well
+        },
+        error: (err) => console.error('Error fetching agents', err)
+      });
+  }
+  
+
+  toggleAgentView() {
+    this.showAllAgents.update(value => !value);  // Flip true/false
+    if (this.showAllAgents()) {
+      this.loadAgents();
+    } else {
+      this.loadAvailableAgents();
+    }
+  }
+  
 }

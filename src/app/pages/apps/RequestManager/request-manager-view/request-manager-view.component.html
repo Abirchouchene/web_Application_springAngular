@@ -1,0 +1,172 @@
+<mat-card>
+    <mat-card-content>
+  
+      <!-- Description & Request Type -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15">Description:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.description || 'N/A' }}</h6>
+        </div>
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15">Request Type:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.requestType || 'N/A' }}</h6>
+        </div>
+      </div>
+  
+      <mat-divider></mat-divider>
+  
+      <!-- Priority & Category -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15">Priority:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.priority }}</h6>
+        </div>
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15">Category:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.categoryRequest }}</h6>
+        </div>
+      </div>
+  
+      <mat-divider></mat-divider>
+  
+      <!-- Deadline & Created At -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15">Deadline:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+            {{ requestDetail()?.deadline ? formatFullDate(requestDetail()?.deadline) : 'No deadline' }}
+          </h6>
+        </div>
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15">Created At:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+            {{ requestDetail()?.createdAt ? formatFullDate(requestDetail()?.createdAt) : 'Unknown' }}
+          </h6>
+        </div>
+      </div>
+  
+      <mat-divider></mat-divider>
+  
+      <!-- Attachment (Single row full width) -->
+      <div class="row p-y-24">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15">Attachment:</span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+            <a *ngIf="requestDetail()?.attachmentPath" [href]="requestDetail()?.attachmentPath" target="_blank">Download</a>
+            <span *ngIf="!requestDetail()?.attachmentPath">No attachment</span>
+          </h6>
+        </div>
+      </div>
+  
+      <mat-divider></mat-divider>
+  
+      <!-- Contacts -->
+      <div class="row p-y-24">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15">Contacts:</span>
+          <div *ngFor="let contact of requestDetail()?.contacts">
+            <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+              {{ contact.name }} - {{ contact.phoneNumber }}
+            </h6>
+          </div>
+        </div>
+      </div>
+  
+      <mat-divider></mat-divider>
+  
+      <!-- Questions (only for STATISTICS) -->
+      <div *ngIf="requestDetail()?.requestType === 'STATISTICS'" class="row p-y-24">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15">Questions:</span>
+          <div *ngIf="requestDetail()?.questions?.length; else noQuestions">
+            <div *ngFor="let question of requestDetail()?.questions">
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+                • {{ question.question || 'No question text' }} ({{ question.questionType || 'No type' }})
+              </h6>
+            </div>
+          </div>
+          <ng-template #noQuestions>
+            <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">No questions found</h6>
+          </ng-template>
+        </div>
+      </div>
+  
+      <mat-divider></mat-divider>
+  
+   <!-- Filter by Date -->
+<div class="row p-y-24">
+    <div class="col-sm-6">
+      <mat-form-field appearance="fill" class="w-100">
+        <mat-label>Filter by Date</mat-label>
+        <input matInput type="date" [value]="selectedDate()" (change)="onDateChange($event)" />
+
+      </mat-form-field>
+    </div>
+  </div>
+  
+  <!-- Agent Selection Section -->
+  <div class="row p-y-24">
+    <div class="col-sm-12">
+      <span class="f-w-600 f-s-15">Select Agent:</span>
+  
+      <table mat-table [dataSource]="agents()">
+        <ng-container matColumnDef="agentName">
+          <th mat-header-cell *matHeaderCellDef> Agent Name </th>
+          <td mat-cell *matCellDef="let agent"> {{ agent.agentName }} </td>
+        </ng-container>
+      
+        <ng-container matColumnDef="isAvailable">
+          <th mat-header-cell *matHeaderCellDef> Available </th>
+          <td mat-cell *matCellDef="let agent">
+            {{ getAvailabilityLabel(agent.available) }}
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="leaveStartDate">
+            <th mat-header-cell *matHeaderCellDef>Start Date</th>
+            <td mat-cell *matCellDef="let agent">
+              {{ agent.leaveStartDate ? (agent.leaveStartDate[0] + '/' + (agent.leaveStartDate[1] < 10 ? '0' : '') + agent.leaveStartDate[1] + '/' + (agent.leaveStartDate[2] < 10 ? '0' : '') + agent.leaveStartDate[2]) : '--' }}
+            </td>
+          </ng-container>
+          
+          <ng-container matColumnDef="leaveEndDate">
+            <th mat-header-cell *matHeaderCellDef>End Date</th>
+            <td mat-cell *matCellDef="let agent">
+              {{ agent.leaveEndDate ? (agent.leaveEndDate[0] + '/' + (agent.leaveEndDate[1] < 10 ? '0' : '') + agent.leaveEndDate[1] + '/' + (agent.leaveEndDate[2] < 10 ? '0' : '') + agent.leaveEndDate[2]) : '--' }}
+            </td>
+          </ng-container>
+          
+         
+
+        
+      
+        <ng-container matColumnDef="select">
+          <th mat-header-cell *matHeaderCellDef> Select </th>
+          <td mat-cell *matCellDef="let agent">
+            <button
+              mat-button
+              (click)="selectedAgentId.set(agent.agentId)"
+              [disabled]="!agent.available"  
+            >
+              Assign
+            </button>
+          </td>
+        </ng-container><tr mat-header-row *matHeaderRowDef="['agentName', 'isAvailable', 'leaveStartDate', 'leaveEndDate', 'select']"></tr>
+        <tr mat-row *matRowDef="let row; columns: ['agentName', 'isAvailable', 'leaveStartDate', 'leaveEndDate', 'select']"></tr>
+        
+        
+      </table>
+      
+      
+  
+      <!-- Assign Agent Button -->
+      <div class="text-right m-t-16">
+        <button mat-flat-button color="primary" (click)="assignAgent()" [disabled]="!selectedAgentId()">
+          Assign Selected Agent (ID: {{ selectedAgentId() || 'None' }})
+        </button>
+      </div>
+    </div>
+  </div>
+  
+    </mat-card-content>
+  </mat-card>
+  

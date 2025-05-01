@@ -10,12 +10,7 @@ export const navItems: NavItem[] = [
     bgcolor: 'primary',
     route: '/dashboards/dashboard1',
   },
-  {
-    displayName: 'Dashboard 2',
-    iconName: 'chart-bar',
-    bgcolor: 'secondary',
-    route: '/dashboards/dashboard2',
-  },
+  
   {
     navCap: 'Apps',
   },
@@ -71,10 +66,10 @@ export const navItems: NavItem[] = [
     route: 'apps/courses',
   },
   {
-    displayName: 'Employee',
+    displayName: 'Manager Requests ',
     iconName: 'brand-ctemplar',
     bgcolor: 'warning',
-    route: 'apps/employee',
+    route: 'apps/request-manager',
   },
   {
     displayName: 'Notes',
@@ -89,7 +84,7 @@ export const navItems: NavItem[] = [
     route: 'apps/tickets',
   },
   {
-    displayName: 'Invoice',
+    displayName: 'Request List',
     iconName: 'file-invoice',
     bgcolor: 'primary',
     route: '',

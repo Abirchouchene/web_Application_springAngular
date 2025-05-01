@@ -18,6 +18,7 @@ import { RouterModule } from '@angular/router';
 import { AppConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
 
 @Component({
     selector: 'app-invoice-list',
@@ -38,31 +39,85 @@ export class AppInvoiceListComponent implements AfterViewInit {
   allInvoices = signal<InvoiceList[]>([]);
   searchQuery = signal<string>('');
   displayedColumns: string[] = [
-    'chk',
-    'id',
-    'billFrom',
-    'billTo',
-    'totalCost',
+    'idR',
+    'createdAt',
+    'deadline',
+    'categoryRequest',
+    'priority',
     'status',
-    'action',
+    'requestType',
+    'description',
+    'fileAttachment',
+    'action'
   ];
+  dataSource = new MatTableDataSource<any>();
+  requests: Request[] = [];
+
 
   @ViewChild(MatSort) sort: MatSort = Object.create(null);
   @ViewChild(MatPaginator) paginator: MatPaginator = Object.create(null);
 
-  constructor(private invoiceService: InvoiceService,private dialog: MatDialog, private snackBar: MatSnackBar) {}
+  constructor( private requestService: RequestService
+    ,private dialog: MatDialog, private snackBar: MatSnackBar) {}
 
-  ngOnInit(): void {
-    // Fetch all invoices and initialize the data source
-    this.allInvoices.set(this.invoiceService.getInvoiceList());
-    this.invoiceList = new MatTableDataSource(this.allInvoices());
-  }
 
-  ngAfterViewInit(): void {
-    this.invoiceList.paginator = this.paginator;
-    this.invoiceList.sort = this.sort;
-  }
-
+    ngOnInit(): void {
+      this.fetchRequests();
+    }
+  
+    ngAfterViewInit(): void {
+      this.dataSource.sort = this.sort;
+      this.dataSource.paginator = this.paginator;
+    }
+    applyFilter(filterValue: string): void {
+      this.dataSource.filter = filterValue.trim().toLowerCase();
+    }
+    onKeyUp(event: KeyboardEvent): void {
+      const input = event.target as HTMLInputElement;
+      this.applyFilter(input.value);
+    }
+    
+    formatFullDate(date: any): string {
+      let parsedDate: Date;
+    
+      if (Array.isArray(date) && date.length >= 6) {
+        const [year, month, day, hour, minute, second] = date;
+        parsedDate = new Date(year, month - 1, day, hour, minute, second);
+      } else if (typeof date === 'string' || typeof date === 'number') {
+        parsedDate = new Date(date);
+      } else if (date instanceof Date) {
+        parsedDate = date;
+      } else {
+        return 'Invalid date';
+      }
+    
+      if (isNaN(parsedDate.getTime())) {
+        return 'Invalid date';
+      }
+    
+      const dayStr = parsedDate.getDate().toString().padStart(2, '0');
+      const monthStr = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
+      const year = parsedDate.getFullYear();
+      const hourStr = parsedDate.getHours().toString().padStart(2, '0');
+      const minuteStr = parsedDate.getMinutes().toString().padStart(2, '0');
+    
+      return `${dayStr}/${monthStr}/${year} ${hourStr}:${minuteStr}`;
+    }
+    
+    
+    fetchRequests(): void {
+      const userId = 2; 
+      this.requestService.getRequestsByUserId(userId).subscribe({
+        next: (data) => {
+          this.requests = data;
+          this.dataSource.data = data; 
+        },
+        error: (err) => {
+          console.error('Error fetching requests by user ID:', err);
+        }
+      });
+    }
+    
   handleTabClick(tab: string): void {
     this.activeTab.set(tab);
     this.filterInvoices(); // Filter when tab is clicked
@@ -117,19 +172,46 @@ export class AppInvoiceListComponent implements AfterViewInit {
   }
 
  
-  deleteInvoice(id: number): void {
-    const dialogRef = this.dialog.open(AppConfirmDeleteDialogComponent);
-  
-    dialogRef.afterClosed().subscribe((result: any) => {
-      if (result) {
-        this.invoiceService.deleteInvoice(id);
-        this.allInvoices.set(this.invoiceService.getInvoiceList()); 
-        this.filterInvoices(); 
-        this.showSnackbar('Invoice deleted successfully!');
+  deleteRequest(id: number): void {
+    this.requestService.deleteRequest(id).subscribe({
+      next: () => {
+        console.log('Request deleted successfully');
+        this.showSnackbar('Request deleted successfully!');
+
+      },
+      error: (err) => {
+        console.error('Failed to delete request:', err);
+      },
+      complete: () => {
+        this.fetchRequests(); // ✅ Always refresh
       }
     });
   }
-
+  
+  
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'bg-warning text-dark';
+      case 'APPROVED':
+        return 'bg-success text-white';
+      case 'REJECTED':
+        return 'bg-danger text-white';
+      case 'IN_PROGRESS':
+        return 'bg-primary text-white';
+      case 'ASSIGNED':
+        return 'bg-primary text-white';
+      case 'RESOLVED':
+        return 'bg-success text-white';
+      case 'CLOSED':
+        return 'bg-dark text-white';
+      case 'AUTO_GENERATED':
+        return 'bg-secondary text-white';
+      default:
+        return 'bg-light text-dark';
+    }
+  }
+    
   showSnackbar(message: string): void {
     this.snackBar.open(message, 'Close', {
       duration: 3000, 
