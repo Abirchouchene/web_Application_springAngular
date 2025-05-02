@@ -67,6 +67,7 @@ export class AppAddRequestComponent {
       priorityLevel: [null, Validators.required],
       description: ['', Validators.required],
       deadline: [null, Validators.required],
+      
     });
   }
 
@@ -178,11 +179,7 @@ export class AppAddRequestComponent {
     this.requestService.submitRequest(formData).subscribe({
       next: response => {
         console.log('Request submitted successfully!', response);
-        this.router.navigate(['/invoice']); 
-        console.log('Navigating to /invoice...');
-        this.router.navigate(['/invoice']).catch((err) => {
-          console.error('Navigation error:', err);
-        });
+        alert('Request submitted successfully!');
       },
       error: error => {
         console.error('Error submitting request:', error);

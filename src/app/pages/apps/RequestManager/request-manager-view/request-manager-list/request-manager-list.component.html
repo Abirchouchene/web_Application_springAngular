@@ -1,6 +1,7 @@
 <mat-card>
-    <mat-card-title>Request Manager List</mat-card-title>
-  
+  <mat-card-title class="title-centered">Request Manager List</mat-card-title>
+
+  <mat-card-content>
     <div class="table-toolbar">
       <mat-form-field appearance="outline">
         <mat-label>Search</mat-label>
@@ -87,10 +88,11 @@
       </table>
   
       <!-- Paginator -->
-      <mat-paginator [length]="totalCount"
-                     [pageSize]="10"
-                     [pageSizeOptions]="[5, 10, 20]">
-      </mat-paginator>
-    </div>
-  </mat-card>
-  
+      <mat-paginator
+      [length]="totalCount"
+      [pageSize]="10"
+      [pageSizeOptions]="[5, 10, 20]">
+    </mat-paginator>
+  </div>
+</mat-card-content>
+</mat-card>
