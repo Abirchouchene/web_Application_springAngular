@@ -11,16 +11,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import static com.alibou.security.user.Permission.ADMIN_CREATE;
-import static com.alibou.security.user.Permission.ADMIN_DELETE;
-import static com.alibou.security.user.Permission.ADMIN_READ;
-import static com.alibou.security.user.Permission.ADMIN_UPDATE;
-import static com.alibou.security.user.Permission.MANAGER_CREATE;
-import static com.alibou.security.user.Permission.MANAGER_DELETE;
-import static com.alibou.security.user.Permission.MANAGER_READ;
-import static com.alibou.security.user.Permission.MANAGER_UPDATE;
-import static com.alibou.security.user.Role.ADMIN;
-import static com.alibou.security.user.Role.MANAGER;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;

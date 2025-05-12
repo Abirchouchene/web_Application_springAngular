@@ -1,7 +1,6 @@
 package com.abirch.security.auth;
 
 import com.abirch.security.config.JwtService;
-import com.alibou.security.tfa.TwoFactorAuthenticationService;
 import com.abirch.security.user.User;
 import com.abirch.security.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +24,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final TwoFactorAuthenticationService tfaService;
+  //  private final TwoFactorAuthenticationService tfaService;
 
     public AuthenticationResponse register(RegisterRequest request) {
         var user = User.builder()
@@ -33,7 +32,7 @@ public class AuthenticationService {
                 .lastname(request.getLastname())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.ADMIN)
+             //   .role(Role.ADMIN)
                 .mfaEnabled(request.isMfaEnabled())
                 .build();
 
