@@ -1,5 +1,6 @@
 package com.abirch.security.auth;
 
+import com.abirch.security.user.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
