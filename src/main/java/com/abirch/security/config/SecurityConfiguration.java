@@ -1,4 +1,4 @@
-package com.alibou.security.config;
+package com.abirch.security.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

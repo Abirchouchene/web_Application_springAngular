@@ -1,4 +1,4 @@
-package com.alibou.security.auth;
+package com.abirch.security.auth;
 
 import lombok.Builder;
 import lombok.Data;

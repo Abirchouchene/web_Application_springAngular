@@ -1,4 +1,4 @@
-package com.alibou.security.auth;
+package com.abirch.security.auth;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

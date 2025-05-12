@@ -1,4 +1,4 @@
-package com.alibou.security.config;
+package com.abirch.security.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

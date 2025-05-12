@@ -1,4 +1,4 @@
-package com.alibou.security.user;
+package com.abirch.security.user;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

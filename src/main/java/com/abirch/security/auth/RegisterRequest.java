@@ -1,4 +1,4 @@
-package com.alibou.security.auth;
+package com.abirch.security.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AuthenticationRequest {
+public class RegisterRequest {
 
+  private String firstname;
+  private String lastname;
   private String email;
   private String password;
+  private Role role;
+  private boolean mfaEnabled;
 }
