@@ -22,9 +22,8 @@ public class AutoRequestService {
     // Appelé tous les jours à 2h du matin (cron configurable)
     @Scheduled(cron = "0 0 0 * * MON")
     public void generateAutomaticRequests() {
-
-        List<Contact> contacts = fetchContactsFromSales(); // ou SAV
-        List<Question> questions = fetchFeedbackQuestionsForSAV();
+        List<Contact> contacts = fetchContactsFromSales(); // or SAV
+        List<Question> questions = fetchQuestionsFromReclamationRequests(); // <== updated here
 
         for (Contact contact : contacts) {
             Request request = new Request();
@@ -33,14 +32,13 @@ public class AutoRequestService {
             request.setRequestType(RequestType.STATISTICS);
             request.setCategoryRequest(CategoryRequest.RECLAMATION);
             request.setPriority(Priority.URGENT);
-            request.setContacts(new HashSet<>(List.of(contact)));       // ✅ ici
+            request.setContacts(new HashSet<>(List.of(contact)));
             request.setQuestions(new HashSet<>(questions));
             requestRepository.save(request);
         }
 
         System.out.println("✅ Demandes automatiques générées avec succès.");
     }
-
     private List<Contact> fetchContactsFromSales() {
         Contact contact1 = new Contact();
         contact1.setIdC(1L);
@@ -56,12 +54,8 @@ public class AutoRequestService {
     }
 
 
-    private List<Question> fetchFeedbackQuestionsForSAV() {
-        Question q1 = new Question("Êtes-vous satisfait du produit reçu ?", QuestionType.YES_OR_NO);
-        Question q2 = new Question("L'intervenant était-il professionnel ?", QuestionType.YES_OR_NO);
-        Question q3 = new Question("La réclamation a-t-elle été bien traitée ?", QuestionType.YES_OR_NO);
-        Question q4 = new Question("Notez votre satisfaction globale (1 à 10)", QuestionType.NUMBER);
-        return List.of(q1, q2, q3, q4);
-    }
 
+    private List<Question> fetchQuestionsFromReclamationRequests() {
+        return requestRepository.findQuestionsByReclamationRequests();
+    }
 }

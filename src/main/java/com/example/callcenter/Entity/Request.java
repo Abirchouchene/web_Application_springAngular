@@ -56,7 +56,8 @@ public class Request implements Serializable {
     @ManyToMany
     private Set<Contact> contacts = new HashSet<>();
 
-    @ManyToMany(cascade = CascadeType.ALL)
+   @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+
     @JoinTable(
             name = "request_questions",
             joinColumns = @JoinColumn(name = "request_idr"),
@@ -66,7 +67,7 @@ public class Request implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "agent_id")
-    // This will store the assigned agent
+    @JsonIgnore
     private User agent;
 
     @ManyToMany

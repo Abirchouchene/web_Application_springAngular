@@ -1,11 +1,11 @@
 package com.example.callcenter.Service;
 
+import com.example.callcenter.DTO.AgentAvailabilityDTO;
+import com.example.callcenter.DTO.QuestionDTO;
+import com.example.callcenter.DTO.RequestDTO;
 import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
-import com.example.callcenter.Repository.ContactRepository;
-import com.example.callcenter.Repository.QuestionRepository;
-import com.example.callcenter.Repository.RequestRepository;
-import com.example.callcenter.Repository.UserRepository;
+import com.example.callcenter.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -29,82 +29,61 @@ public class RequestService {
     private final RequestRepository requestRepository;
 
     private final UserRepository userRepository;
-
     private  final ContactRepository contactRepository;
     private final QuestionRepository questionRepository;
+    private final AgentLeaveRepository agentLeaveRepository;
 
     @Value("${file.upload-dir}")
     private String UPLOAD_DIR;
 
-    public Request submitRequest(Long userId, RequestType requestType, List<Long> contactIds,
-                                 String description, CategoryRequest category,
-                                 List<Long> questionIds, List<String> newQuestions,
-                                 Priority priorityLevel, QuestionType defaultQuestionType, LocalDate deadline,
-                                 MultipartFile file) {
-
-        // Retrieve the user who is submitting the request
-        User user = userRepository.findById(userId)
+    // Inside RequestService.java
+    public Request submitRequest(RequestDTO requestDTO) {
+        // Retrieve the user from the database
+        User user = userRepository.findById(requestDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Create a new request instance
+        // Create a new Request entity
         Request request = new Request();
         request.setUser(user);
-        request.setRequestType(requestType);
+        request.setRequestType(requestDTO.getRequestType());
         request.setStatus(Status.PENDING);
-        request.setDescription(description);
-        request.setPriority(priorityLevel);
-        request.setCategoryRequest(category);
-        request.setDeadline(deadline);
-        // Define questions set
+        request.setDescription(requestDTO.getDescription());
+        request.setPriority(requestDTO.getPriorityLevel());
+        request.setCategoryRequest(requestDTO.getCategory());
+        request.setDeadline(requestDTO.getDeadline());
+
+        // Convert List<Contact> to Set<Contact>
+        Set<Contact> contactSet = new HashSet<>(contactRepository.findAllById(requestDTO.getContactIds()));
+
+        // Check if the result set matches the input size
+        if (contactSet.size() != requestDTO.getContactIds().size()) {
+            throw new RuntimeException("One or more contacts not found.");
+        }
+
+        // Set the contacts to the request
+        request.setContacts(contactSet);
+
+        // Handle existing and new questions
         Set<Question> questions = new HashSet<>();
 
-        if (requestType == RequestType.RECLAMATION) {
-            if (contactIds.size() != 1) {
-                throw new IllegalArgumentException("Only one contact can be associated with a Reclamation request.");
-            }
-            Contact contact = contactRepository.findById(contactIds.get(0))
-                    .orElseThrow(() -> new RuntimeException("Contact not found"));
-            request.getContacts().add(contact);
-
-        } else if (requestType == RequestType.STATISTICS) {
-            if (contactIds.isEmpty()) {
-                throw new IllegalArgumentException("At least one contact must be associated with a Statistics request.");
-            }
-            List<Contact> contacts = contactRepository.findAllById(contactIds);
-            if (contacts.size() != contactIds.size()) {
-                throw new RuntimeException("One or more contacts not found.");
-            }
-            request.getContacts().addAll(contacts);
-
-            // Handle existing questions
-            if (questionIds != null && !questionIds.isEmpty()) {
-                questions.addAll(questionRepository.findAllById(questionIds));
-            }
-
-            // Handle new questions
-            if (newQuestions != null && !newQuestions.isEmpty()) {
-                List<Question> newQuestionEntities = newQuestions.stream().map(q -> {
-                    Question question = new Question();
-                    question.setQuestion(q);
-                    question.setQuestionType(defaultQuestionType); // Use passed default type
-                    return question;
-                }).collect(Collectors.toList());
-
-                questions.addAll(questionRepository.saveAll(newQuestionEntities));
-            }
-
-            request.setQuestions(questions);
+        if (requestDTO.getQuestionIds() != null) {
+            questions.addAll(questionRepository.findAllById(requestDTO.getQuestionIds()));
         }
 
-        // Handle file upload (try-catch block to catch IOException)
-        if (file != null && !file.isEmpty()) {
-            try {
-                String attachmentPath = saveFile(file);
-                request.setAttachmentPath(attachmentPath); // Set the file path in the request
-            } catch (IOException e) {
-                throw new RuntimeException("File upload failed", e); // Handle the exception (e.g., log, rethrow)
-            }
+        if (requestDTO.getNewQuestions() != null && !requestDTO.getNewQuestions().isEmpty()) {
+            List<Question> newQuestionEntities = requestDTO.getNewQuestions().stream().map(dto -> {
+                Question question = new Question();
+                question.setText(dto.getText());
+                question.setQuestionType(dto.getType());
+                return question;
+            }).collect(Collectors.toList());
+
+            questions.addAll(questionRepository.saveAll(newQuestionEntities));
         }
+
+        request.setQuestions(questions);
+
+        // No file handling anymore
 
         return requestRepository.save(request);
     }
@@ -268,6 +247,37 @@ public class RequestService {
         requestRepository.delete(request);
     }
 
+    public List<AgentAvailabilityDTO> getAllAgentsWithAvailability(LocalDate selectedDate) {
+        List<AgentLeave> leavesOnDate = agentLeaveRepository.findByDate(selectedDate);
+        Map<Long, AgentLeave> leaveMap = leavesOnDate.stream()
+                .collect(Collectors.toMap(l -> l.getAgent().getIdUser(), l -> l)); // map agentId -> leave
+
+        List<User> allAgents = userRepository.findAllAgents();
+
+        return allAgents.stream()
+                .map(agent -> {
+                    AgentAvailabilityDTO dto = new AgentAvailabilityDTO();
+                    dto.setAgentId(agent.getIdUser());
+                    dto.setAgentName(agent.getFullName());
+
+                    AgentLeave leave = leaveMap.get(agent.getIdUser());
+                    boolean isAvailable = (leave == null);
+                    dto.setAvailable(isAvailable);
+
+                    if (leave != null) {
+                        dto.setLeaveStartDate(leave.getStartDate());
+                        dto.setLeaveEndDate(leave.getEndDate());
+                    }
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public Question createNewQuestion(String questionText, QuestionType questionType) {
+        Question question = new Question(questionText, questionType);
+        return questionRepository.save(question);
+    }
 
 }
 

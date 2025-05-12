@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,5 +28,7 @@ public class AgentLeave implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "agent_id")
+    @JsonIgnore
+
     private User agent;
 }

@@ -1,8 +1,16 @@
 package com.example.callcenter.Controller;
 
+import com.example.callcenter.DTO.AgentAvailabilityDTO;
+import com.example.callcenter.DTO.QuestionDTO;
+import com.example.callcenter.DTO.RequestDTO;
 import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Service.RequestService;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,26 +27,13 @@ import java.util.List;
 public class RequestController {
 
     private final RequestService requestService;
-
     @PostMapping("/submit")
-
-    public ResponseEntity<Request> submitRequest(
-            @RequestParam Long userId,
-            @RequestParam RequestType requestType,
-            @RequestParam List<Long> contactIds,
-            @RequestParam String description,
-            @RequestParam CategoryRequest category,
-            @RequestParam(required = false) List<Long> questionIds,
-            @RequestParam(required = false) List<String> newQuestions,
-            @RequestParam Priority priorityLevel, @RequestParam LocalDate deadline,
-            @RequestParam (required = false)QuestionType defaultQuestionType
-               , @RequestParam(value = "file",required = false) MultipartFile file
-    ) {
-        Request request = requestService.submitRequest(userId, requestType, contactIds, description,
-                        category, questionIds, newQuestions, priorityLevel,
-                defaultQuestionType, deadline, file);
-        return ResponseEntity.ok(request);
+    public ResponseEntity<Request> submitRequest(@RequestBody RequestDTO requestDTO) {
+        Request createdRequest = requestService.submitRequest(requestDTO);
+        return ResponseEntity.ok(createdRequest);
     }
+
+
     @GetMapping("/All")
     public List<Request> getAllRequests() {
         return requestService.getAllRequests();
@@ -58,6 +53,12 @@ public class RequestController {
         return requestService.getRequestsByType(type);
     }
 
+    @GetMapping("/agent/availability")
+    public List<AgentAvailabilityDTO> getAgentsWithAvailability(@RequestParam("date") String dateStr) {
+        LocalDate selectedDate = LocalDate.parse(dateStr);
+
+        return requestService.getAllAgentsWithAvailability(selectedDate);
+    }
 
     @GetMapping("/searchByTag")
     public ResponseEntity<List<Contact>> searchContactsByTag(@RequestParam String tag) {
@@ -133,4 +134,10 @@ public class RequestController {
         return ResponseEntity.ok(request);
     }
 */
+   /* @PostMapping("/questions")
+    public ResponseEntity<Question> createQuestion(@RequestBody Question question) {
+        Question savedQuestion = requestService.createNewQuestion(question.getQuestion(), question.getQuestionType());
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedQuestion);
+    }*/
+
 }

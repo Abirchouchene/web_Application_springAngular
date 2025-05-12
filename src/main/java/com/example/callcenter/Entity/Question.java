@@ -20,7 +20,7 @@ public class Question implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String question;
+    private String text;
 
     @Enumerated(EnumType.STRING)
 
@@ -31,6 +31,9 @@ public class Question implements Serializable {
 
     @ManyToMany(mappedBy = "questions")
     private Set<Response>responses;
-    public Question(String s, QuestionType questionType) {
+    public Question(String text, QuestionType questionType) {
+        this.text = text;
+        this.questionType = questionType;
     }
+
 }
