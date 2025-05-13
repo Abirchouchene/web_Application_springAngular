@@ -15,6 +15,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
+import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -24,21 +32,36 @@ import java.util.Collection;
 public class User implements UserDetails {
 
   @Id
-  @GeneratedValue
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Integer id;
+
   private String firstname;
   private String lastname;
+
+  @Column(unique = true, nullable = false)
   private String email;
+
   private String password;
+
+  @Column(name = "mfa_enabled")
   private boolean mfaEnabled;
+
   private String secret;
 
-  @Enumerated(EnumType.STRING)
+  @Column(name = "actif")
+  private boolean actif;
+
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "role_id")
   private Role role;
 
+  @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL)
+  private List<HistoriqueAction> actions;
+
+  // Spring Security UserDetails implementation
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return role.getAuthorities();
+    return role != null ? role.getAuthorities() : List.of();
   }
 
   @Override
@@ -53,21 +76,21 @@ public class User implements UserDetails {
 
   @Override
   public boolean isAccountNonExpired() {
-    return true;
+    return actif;
   }
 
   @Override
   public boolean isAccountNonLocked() {
-    return true;
+    return actif;
   }
 
   @Override
   public boolean isCredentialsNonExpired() {
-    return true;
+    return actif;
   }
 
   @Override
   public boolean isEnabled() {
-    return true;
+    return actif;
   }
 }
