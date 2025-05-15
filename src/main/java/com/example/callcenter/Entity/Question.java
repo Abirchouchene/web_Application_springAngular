@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,6 +31,7 @@ public class Question implements Serializable {
     private Set<Request>requests;
 
     @ManyToMany(mappedBy = "questions")
+    @JsonManagedReference
     private Set<Response>responses;
     public Question(String text, QuestionType questionType) {
         this.text = text;

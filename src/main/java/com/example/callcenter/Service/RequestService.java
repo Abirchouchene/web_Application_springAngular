@@ -1,7 +1,6 @@
 package com.example.callcenter.Service;
 
 import com.example.callcenter.DTO.AgentAvailabilityDTO;
-import com.example.callcenter.DTO.QuestionDTO;
 import com.example.callcenter.DTO.RequestDTO;
 import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
@@ -36,13 +35,10 @@ public class RequestService {
     @Value("${file.upload-dir}")
     private String UPLOAD_DIR;
 
-    // Inside RequestService.java
     public Request submitRequest(RequestDTO requestDTO) {
-        // Retrieve the user from the database
         User user = userRepository.findById(requestDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Create a new Request entity
         Request request = new Request();
         request.setUser(user);
         request.setRequestType(requestDTO.getRequestType());
@@ -52,18 +48,14 @@ public class RequestService {
         request.setCategoryRequest(requestDTO.getCategory());
         request.setDeadline(requestDTO.getDeadline());
 
-        // Convert List<Contact> to Set<Contact>
         Set<Contact> contactSet = new HashSet<>(contactRepository.findAllById(requestDTO.getContactIds()));
 
-        // Check if the result set matches the input size
         if (contactSet.size() != requestDTO.getContactIds().size()) {
             throw new RuntimeException("One or more contacts not found.");
         }
 
-        // Set the contacts to the request
         request.setContacts(contactSet);
 
-        // Handle existing and new questions
         Set<Question> questions = new HashSet<>();
 
         if (requestDTO.getQuestionIds() != null) {
@@ -83,7 +75,6 @@ public class RequestService {
 
         request.setQuestions(questions);
 
-        // No file handling anymore
 
         return requestRepository.save(request);
     }

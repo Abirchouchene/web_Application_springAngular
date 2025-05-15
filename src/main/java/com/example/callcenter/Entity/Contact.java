@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,6 +23,12 @@ public class Contact implements Serializable {
     private Long idC;
     private String name;
     private String phoneNumber;
+
+    @Enumerated(EnumType.STRING)
+    private ContactStatus callStatus = ContactStatus.NOT_CONTACTED;
+
+    private String callNote;
+    private LocalDateTime lastCallAttempt;
     @ManyToMany(mappedBy = "contacts")
     @JsonBackReference
     private Set<Request>requests;

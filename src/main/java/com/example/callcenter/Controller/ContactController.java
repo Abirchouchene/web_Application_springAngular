@@ -2,18 +2,22 @@ package com.example.callcenter.Controller;
 
 
 import com.example.callcenter.Entity.Contact;
+import com.example.callcenter.Entity.ContactStatus;
 import com.example.callcenter.Entity.Tag;
 import com.example.callcenter.Service.ContactService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 
-@RequestMapping("/api/contacts")
-@CrossOrigin(origins = "*")
+@RequestMapping("/contacts")
+@CrossOrigin(origins = "http://localhost:4200")
+
 public class ContactController {
 
     private final ContactService contactService;
@@ -23,12 +27,32 @@ public class ContactController {
         return contactService.getAllContacts();
     }
 
-    @GetMapping("/{id}")
-    public Contact getContactById(@PathVariable Long id) {
-        return contactService.getContactById(id)
-                .orElseThrow(() -> new RuntimeException("Contact not found"));
+
+    @GetMapping("/{contactId}")
+    public ResponseEntity<Contact> getContact(@PathVariable Long contactId) {
+        return ResponseEntity.ok(contactService.getContactById(contactId));
     }
 
+    @GetMapping("/{contactId}/status")
+    public ResponseEntity<ContactStatus> getContactStatus(@PathVariable Long contactId) {
+        return ResponseEntity.ok(contactService.getContactCallStatus(contactId));
+    }
+
+    @PutMapping("/{contactId}/status")
+    public ResponseEntity<Contact> updateContactStatus(
+            @PathVariable Long contactId,
+            @RequestParam ContactStatus status,
+            @RequestParam(required = false) String note) {
+        return ResponseEntity.ok(contactService.updateContactCallStatus(contactId, status, note));
+    }
+
+    @PutMapping("/{contactId}/last-call")
+    public ResponseEntity<Void> updateLastCallAttempt(
+            @PathVariable Long contactId,
+            @RequestParam(required = false) LocalDateTime timestamp) {
+        contactService.updateLastCallAttempt(contactId, timestamp != null ? timestamp : LocalDateTime.now());
+        return ResponseEntity.ok().build();
+    }
     @PostMapping
     public Contact createContact(@RequestBody Contact contact) {
         return contactService.createContact(contact);

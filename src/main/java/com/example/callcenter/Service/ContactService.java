@@ -1,12 +1,14 @@
 package com.example.callcenter.Service;
 
 import com.example.callcenter.Entity.Contact;
+import com.example.callcenter.Entity.ContactStatus;
 import com.example.callcenter.Entity.Tag;
 import com.example.callcenter.Repository.ContactRepository;
 import com.example.callcenter.Repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 @Service
@@ -45,9 +47,6 @@ public class ContactService {
         return contactRepository.findAll();
     }
 
-    public Optional<Contact> getContactById(Long id) {
-        return contactRepository.findById(id);
-    }
 
     public Contact createContact(Contact contact) {
         return contactRepository.save(contact);
@@ -67,7 +66,34 @@ public class ContactService {
         contactRepository.deleteById(id);
     }
 
+    public Contact updateContactCallStatus(Long contactId, ContactStatus status, String note) {
+        Contact contact = getContactById(contactId);
+        if (contact != null) {
+            contact.setCallStatus(status);
+            contact.setCallNote(note);
+            contact.setLastCallAttempt(LocalDateTime.now());
+            return contactRepository.save(contact);
+        }
+        throw new RuntimeException("Contact not found with id: " + contactId);
+    }
 
+    public Contact getContactById(Long contactId) {
+        return contactRepository.findById(contactId)
+                .orElseThrow(() -> new RuntimeException("Contact not found with id: " + contactId));
+    }
+
+
+    public ContactStatus getContactCallStatus(Long contactId) {
+        Contact contact = getContactById(contactId);
+        return contact.getCallStatus();
+    }
+
+
+    public void updateLastCallAttempt(Long contactId, LocalDateTime timestamp) {
+        Contact contact = getContactById(contactId);
+        contact.setLastCallAttempt(timestamp);
+        contactRepository.save(contact);
+    }
 }
 
 
