@@ -5,6 +5,7 @@ import com.example.callcenter.DTO.RequestDTO;
 import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -216,15 +217,7 @@ public class RequestService {
 
         return requestRepository.save(request);
     }
-   /* public Request updateRequestStatus(Long requestId, String status, String note) {
-        Request request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        request.setStatus(Status.valueOf(status));
-        request.setNote(note);
-
-        return requestRepository.save(request);
-    }*/
     @Transactional
     public void deleteRequest(Long id) {
         Request request = requestRepository.findById(id)
@@ -269,6 +262,14 @@ public class RequestService {
         Question question = new Question(questionText, questionType);
         return questionRepository.save(question);
     }
+    public Request updateNote(Long id, String note) {
+        Request request = requestRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Request not found with id: " + id));
+
+        request.setNote(note);
+        return requestRepository.save(request);
+    }
+
 
 }
 

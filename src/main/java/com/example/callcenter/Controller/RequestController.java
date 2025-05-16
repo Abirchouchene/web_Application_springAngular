@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/requests")
@@ -122,22 +123,11 @@ public class RequestController {
 ,                                       @RequestParam Status newStatus) {
         return requestService.updateRequestStatus(requestId, newStatus);
     }
-    /*@PutMapping("/{requestId}/update")
-    public ResponseEntity<Request> updateRequestStatus(
-            @PathVariable Long requestId,
-            @RequestBody Map<String, String> updateData) {
-
-        String status = updateData.get("status");
-        String note = updateData.get("note");
-
-        Request request = requestService.updateRequestStatus(requestId, status, note);
-        return ResponseEntity.ok(request);
+    @PutMapping("/{id}/update-note")
+    public ResponseEntity<Request> updateNote(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String note = body.get("note");
+        Request updatedRequest = requestService.updateNote(id, note);
+        return ResponseEntity.ok(updatedRequest);
     }
-*/
-   /* @PostMapping("/questions")
-    public ResponseEntity<Question> createQuestion(@RequestBody Question question) {
-        Question savedQuestion = requestService.createNewQuestion(question.getQuestion(), question.getQuestionType());
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedQuestion);
-    }*/
 
 }

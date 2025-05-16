@@ -13,7 +13,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -54,6 +56,8 @@ public class Request implements Serializable {
     private User user;
 
     @ManyToMany
+    @JsonManagedReference
+
     private Set<Contact> contacts = new HashSet<>();
 
    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
@@ -74,7 +78,11 @@ public class Request implements Serializable {
     private  Set<Logs>logs;
     @ManyToMany
     private  Set<Report>reports;
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
 
+    private List<Callback> callbacks = new ArrayList<>();
 }
+
+
 
 
