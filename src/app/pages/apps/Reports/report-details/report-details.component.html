@@ -1,0 +1,124 @@
+<div class="report-details">
+  <div class="header">
+    <h2>Report Details</h2>
+    <div class="actions">
+      <button mat-button (click)="close()">
+        <mat-icon>close</mat-icon>
+        Close
+      </button>
+      <button mat-raised-button color="primary" (click)="generatePdf()" [disabled]="isGeneratingPdf">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Generate PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="content" *ngIf="!isLoading && reportDetails">
+    <!-- Request Information -->
+    <mat-card class="section">
+      <mat-card-header>
+        <mat-card-title>Request Information</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Request ID:</span>
+            <span class="value">{{reportDetails.request.idR}}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Type:</span>
+            <span class="value">{{reportDetails.request.requestType}}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Status:</span>
+            <span class="value">{{reportDetails.request.status}}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Created Date:</span>
+            <span class="value">{{reportDetails.request.createdAt | date:'medium'}}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Statistics Section (for STATISTICS type requests) -->
+    <mat-card class="section" *ngIf="reportDetails.request.requestType === RequestType.STATISTICS && reportDetails.statistics">
+      <mat-card-header>
+        <mat-card-title>Statistics</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="statistics-grid">
+          <div class="stat-item">
+            <span class="label">Total Contacts:</span>
+            <span class="value">{{reportDetails.statistics.totalContacts}}</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Contacted Contacts:</span>
+            <span class="value">{{reportDetails.statistics.contactedContacts}}</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Contact Rate:</span>
+            <span class="value">
+              {{(reportDetails.statistics.contactedContacts / reportDetails.statistics.totalContacts * 100) | number:'1.0-1'}}%
+            </span>
+          </div>
+        </div>
+
+        <!-- Question Responses -->
+        <div class="question-responses" *ngIf="reportDetails.statistics.questionResponses.length > 0">
+          <h3>Question Responses</h3>
+          <div class="question-card" *ngFor="let question of reportDetails.statistics.questionResponses">
+            <h4>{{question.questionText}}</h4>
+            <div class="response-chart">
+              <div class="response-bar" *ngFor="let response of question.responses | keyvalue">
+                <div class="bar-label">{{response.key}}</div>
+                <div class="bar-container">
+                  <div class="bar" [style.width.%]="(response.value / reportDetails.statistics.totalContacts * 100)">
+                    {{response.value}}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Information Section (for RECLAMATION type requests) -->
+    <mat-card class="section" *ngIf="reportDetails.request.requestType === RequestType.INFORMATION">
+      <mat-card-header>
+        <mat-card-title>Contact Information</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="contacts-grid">
+          <div class="contact-card" *ngFor="let contact of reportDetails.request.contacts">
+            <div class="contact-header">
+              <h4>{{contact.name}}</h4>
+              <mat-chip [color]="contact.callStatus === ContactStatus.CONTACTED_AVAILABLE ? 'accent' : 'primary'" selected>
+                {{getContactStatusLabel(contact.callStatus || ContactStatus.NOT_CONTACTED)}}
+              </mat-chip>
+            </div>
+            <div class="contact-details">
+              <p><strong>Phone:</strong> {{contact.phoneNumber}}</p>
+              <p><strong>Full Name:</strong> {{contact.name}}</p>
+              <p><strong>Last Call:</strong> {{contact.lastCallAttempt | date:'medium'}}</p>
+              <p *ngIf="contact.callNote"><strong>Notes:</strong> {{contact.callNote}}</p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p>Loading report details...</p>
+  </div>
+
+  <!-- PDF Generation Loading State -->
+  <div class="loading-container" *ngIf="isGeneratingPdf">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p>Generating PDF...</p>
+  </div>
+</div> 

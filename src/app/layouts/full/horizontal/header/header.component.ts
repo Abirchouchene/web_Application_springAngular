@@ -11,6 +11,7 @@ import { AppSettings } from 'src/app/config';
 import { FormsModule } from '@angular/forms';
 import { NgScrollbarModule } from 'ngx-scrollbar';
 import { KeycloakService } from 'keycloak-angular';
+import { NotificationsComponent } from 'src/app/components/notifications/notifications.component';
 
 interface notifications {
   id: number;
@@ -50,6 +51,8 @@ interface quicklinks {
     MaterialModule,
     BrandingComponent,
     NgScrollbarModule,
+    NotificationsComponent
+     
   ],
   templateUrl: './header.component.html',
 })

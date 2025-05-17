@@ -16,15 +16,17 @@ import { MaterialModule } from 'src/app/material.module';
 import { CommonModule } from '@angular/common';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
-import {  Request} from 'src/app/models/Request';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
+import { Request } from 'src/app/models/Request';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterModule } from '@angular/router';
+import { CallbackService } from 'src/app/services/apps/callback.service';
+import { Callback, CallbackStatus } from 'src/app/models/Callback';
 
 @Component({
   selector: 'app-ticket-list',
   templateUrl: './tickets.component.html',
-  imports: [MaterialModule, CommonModule, TablerIconsModule,RouterModule],
+  imports: [MaterialModule, CommonModule, TablerIconsModule, RouterModule],
 })
 export class AppTicketlistComponent implements OnInit, AfterViewInit {
   @ViewChild(MatTable, { static: true }) table: MatTable<any>;
@@ -50,14 +52,80 @@ export class AppTicketlistComponent implements OnInit, AfterViewInit {
   'action'
   ];
   tickets: any[] = [];
+  upcomingCallbacks: Callback[] = [];
 
   dataSource = new MatTableDataSource<Request>([]);
 
-  constructor(private requestService: RequestService, public dialog: MatDialog) {}
+  constructor(
+    private requestService: RequestService, 
+    private callbackService: CallbackService,
+    public dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
   ngOnInit(): void {
     this.loadAssignedTickets(); // Load the initial tickets
+    this.loadUpcomingCallbacks(); // Load upcoming callbacks
   }
+  
+  loadUpcomingCallbacks() {
+    const agentId = 1; // Replace with current agent ID from auth service
+    this.callbackService.getUpcomingCallbacks(agentId).subscribe({
+      next: (callbacks) => {
+        this.upcomingCallbacks = callbacks;
+        console.log('Upcoming callbacks:', callbacks);
+      },
+      error: (error) => {
+        console.error('Error loading callbacks:', error);
+        // Display a more user-friendly error message based on the error type
+        let errorMessage = 'Failed to load upcoming callbacks';
+        if (error.status === 0) {
+          errorMessage += ': Server not reachable';
+        } else if (error.status === 401) {
+          errorMessage += ': Authentication required';
+        } else if (error.status === 403) {
+          errorMessage += ': Access denied';
+        } else if (error.status === 404) {
+          errorMessage += ': API endpoint not found';
+        } else if (error.error && error.error.message) {
+          errorMessage += `: ${error.error.message}`;
+        }
+        this.showMessage(errorMessage);
+        // Still initialize to empty array to prevent UI errors
+        this.upcomingCallbacks = [];
+      }
+    });
+  }
+  
+  markCallbackAsCompleted(callbackId: number): void {
+    this.callbackService.updateCallbackStatus(callbackId, CallbackStatus.COMPLETED).subscribe({
+      next: () => {
+        this.showMessage('Callback marked as completed');
+        this.loadUpcomingCallbacks(); // Refresh the callbacks
+      },
+      error: (error) => {
+        console.error('Error updating callback:', error);
+        this.showMessage('Failed to update callback status');
+      }
+    });
+  }
+
+  showMessage(message: string): void {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000,
+      horizontalPosition: 'center',
+      verticalPosition: 'top',
+    });
+  }
+  
+  // Format date for displaying in the UI
+  formatCallbackDate(date: Date | string): string {
+    if (!date) return '';
+    
+    const callbackDate = typeof date === 'string' ? new Date(date) : date;
+    return callbackDate.toLocaleString();
+  }
+  
   loadAssignedTickets() {
     const agentId = 1; // 👈 Replace this with dynamic value if needed
   
@@ -72,10 +140,24 @@ export class AppTicketlistComponent implements OnInit, AfterViewInit {
         return item;
       });
   
+      // Sort data by createdAt in descending order (newest first)
+      data.sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
       this.tickets = data;
       this.dataSource.data = data;
+      
+      // Set up sorting
+      if (this.dataSource.sort) {
+        this.dataSource.sort.active = 'createdAt';
+        this.dataSource.sort.direction = 'desc';
+      }
+      
       console.log("Assigned requests only:", this.tickets);
-      this.updateCounts(); // Optional: update status counts
+      this.updateCounts();
     });
   }
   

@@ -144,6 +144,46 @@
     </mat-menu>
 
     <!-- --------------------------------------------------------------- -->
+    <!-- Notifications -->
+    <!-- --------------------------------------------------------------- -->
+    <button
+      mat-icon-button
+      [matMenuTriggerFor]="notificationMenu"
+      aria-label="Notifications"
+      class="d-none d-lg-block align-items-center justify-content-center m-x-2"
+    >
+      <i-tabler name="bell" class="d-flex"></i-tabler>
+      <div class="pulse">
+        <span class="heartbit border-primary"></span>
+        <span class="point bg-primary"></span>
+      </div>
+    </button>
+    <mat-menu #notificationMenu="matMenu" xPosition="before" class="topbar-dd cardWithShadow">
+      <div class="d-flex align-items-center p-x-32 p-y-16">
+        <h6 class="f-s-16 f-w-600 m-0">Notifications</h6>
+        <span class="m-l-16">
+          <span class="bg-warning text-white p-x-8 p-y-4 f-w-500 rounded f-s-12">5 new</span>
+        </span>
+      </div>
+
+      @for(notification of notifications; track notification.title) {
+      <button mat-menu-item class="p-x-32 p-y-16">
+        <div class="d-flex align-items-center">
+          <img [src]="notification.img" class="rounded-circle" width="48" />
+          <div class="m-l-16">
+            <h5 class="f-s-14 f-w-600 m-0">{{ notification.title }}</h5>
+            <span>{{ notification.subtitle }}</span>
+          </div>
+        </div>
+      </button>
+      }
+
+      <div class="p-y-12 p-x-32">
+        <button mat-flat-button color="primary" class="w-100">See All Notifications</button>
+      </div>
+    </mat-menu>
+
+    <!-- --------------------------------------------------------------- -->
     <!-- light / dark icon -->
     <!-- --------------------------------------------------------------- -->
     @if(options.theme=='light'){
@@ -203,6 +243,8 @@
             <span class="point bg-success"></span>
           </div>
         </button>
+        <app-notifications></app-notifications>
+
 
         <!-- --------------------------------------------------------------- -->
         <!-- Messages Dropdown -->
@@ -303,9 +345,9 @@
       mat-icon-button
       [matMenuTriggerFor]="notificationMenu"
       aria-label="Notifications"
-      class="d-none d-lg-block align-items-center justify-content-center m-x-2"
-    >
-      <i-tabler class="d-flex" name="layout-grid-add"></i-tabler>
+      class="align-items-center justify-content-center m-x-2"
+      >
+      <mat-icon>notifications</mat-icon>
       <div class="pulse">
         <span class="heartbit border-success"></span>
         <span class="point bg-success"></span>

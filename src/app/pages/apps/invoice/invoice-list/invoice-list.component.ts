@@ -18,7 +18,7 @@ import { RouterModule } from '@angular/router';
 import { AppConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
 
 @Component({
     selector: 'app-invoice-list',
@@ -53,71 +53,86 @@ export class AppInvoiceListComponent implements AfterViewInit {
   dataSource = new MatTableDataSource<any>();
   requests: Request[] = [];
 
-
   @ViewChild(MatSort) sort: MatSort = Object.create(null);
   @ViewChild(MatPaginator) paginator: MatPaginator = Object.create(null);
 
-  constructor( private requestService: RequestService
-    ,private dialog: MatDialog, private snackBar: MatSnackBar) {}
+  constructor(
+    private requestService: RequestService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
 
+  ngOnInit() {
+    this.loadRequests();
+  }
 
-    ngOnInit(): void {
-      this.fetchRequests();
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
+
+  loadRequests() {
+    this.requestService.getAllRequests().subscribe({
+      next: (data) => {
+        // Convert string dates to Date objects
+        data = data.map(item => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+          deadline: item.deadline ? new Date(item.deadline) : null
+        }));
+
+        this.dataSource.data = data;
+
+        // Set default sorting
+        if (this.sort) {
+          this.sort.active = 'createdAt';
+          this.sort.direction = 'desc';
+          this.dataSource.sort = this.sort;
+        }
+      },
+      error: (error) => {
+        console.error('Error loading requests:', error);
+        this.snackBar.open('Error loading requests', 'Close', {
+          duration: 3000,
+          horizontalPosition: 'center',
+          verticalPosition: 'top',
+        });
+      }
+    });
+  }
+
+  onKeyUp(event: KeyboardEvent) {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  formatFullDate(date: any): string {
+    let parsedDate: Date;
+  
+    if (Array.isArray(date) && date.length >= 6) {
+      const [year, month, day, hour, minute, second] = date;
+      parsedDate = new Date(year, month - 1, day, hour, minute, second);
+    } else if (typeof date === 'string' || typeof date === 'number') {
+      parsedDate = new Date(date);
+    } else if (date instanceof Date) {
+      parsedDate = date;
+    } else {
+      return 'Invalid date';
     }
   
-    ngAfterViewInit(): void {
-      this.dataSource.sort = this.sort;
-      this.dataSource.paginator = this.paginator;
+    if (isNaN(parsedDate.getTime())) {
+      return 'Invalid date';
     }
-    applyFilter(filterValue: string): void {
-      this.dataSource.filter = filterValue.trim().toLowerCase();
-    }
-    onKeyUp(event: KeyboardEvent): void {
-      const input = event.target as HTMLInputElement;
-      this.applyFilter(input.value);
-    }
-    
-    formatFullDate(date: any): string {
-      let parsedDate: Date;
-    
-      if (Array.isArray(date) && date.length >= 6) {
-        const [year, month, day, hour, minute, second] = date;
-        parsedDate = new Date(year, month - 1, day, hour, minute, second);
-      } else if (typeof date === 'string' || typeof date === 'number') {
-        parsedDate = new Date(date);
-      } else if (date instanceof Date) {
-        parsedDate = date;
-      } else {
-        return 'Invalid date';
-      }
-    
-      if (isNaN(parsedDate.getTime())) {
-        return 'Invalid date';
-      }
-    
-      const dayStr = parsedDate.getDate().toString().padStart(2, '0');
-      const monthStr = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
-      const year = parsedDate.getFullYear();
-      const hourStr = parsedDate.getHours().toString().padStart(2, '0');
-      const minuteStr = parsedDate.getMinutes().toString().padStart(2, '0');
-    
-      return `${dayStr}/${monthStr}/${year} ${hourStr}:${minuteStr}`;
-    }
-    
-    
-    fetchRequests(): void {
-      const userId = 2; 
-      this.requestService.getRequestsByUserId(userId).subscribe({
-        next: (data) => {
-          this.requests = data;
-          this.dataSource.data = data; 
-        },
-        error: (err) => {
-          console.error('Error fetching requests by user ID:', err);
-        }
-      });
-    }
-    
+  
+    const dayStr = parsedDate.getDate().toString().padStart(2, '0');
+    const monthStr = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = parsedDate.getFullYear();
+    const hourStr = parsedDate.getHours().toString().padStart(2, '0');
+    const minuteStr = parsedDate.getMinutes().toString().padStart(2, '0');
+  
+    return `${dayStr}/${monthStr}/${year} ${hourStr}:${minuteStr}`;
+  }
+  
   handleTabClick(tab: string): void {
     this.activeTab.set(tab);
     this.filterInvoices(); // Filter when tab is clicked
@@ -171,23 +186,20 @@ export class AppInvoiceListComponent implements AfterViewInit {
       .length;
   }
 
- 
   deleteRequest(id: number): void {
     this.requestService.deleteRequest(id).subscribe({
       next: () => {
         console.log('Request deleted successfully');
         this.showSnackbar('Request deleted successfully!');
-
       },
       error: (err) => {
         console.error('Failed to delete request:', err);
       },
       complete: () => {
-        this.fetchRequests(); // ✅ Always refresh
+        this.loadRequests(); // ✅ Always refresh
       }
     });
   }
-  
   
   getStatusClass(status: string): string {
     switch (status) {
@@ -219,5 +231,4 @@ export class AppInvoiceListComponent implements AfterViewInit {
       verticalPosition: 'top',
     });
   }
-  
 }

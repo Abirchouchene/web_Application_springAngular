@@ -1,0 +1,249 @@
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+      <div class="row justify-content-center">
+        <div class="col-12">
+          <form [formGroup]="requestForm" (ngSubmit)="onSubmit()" class="position-relative">
+            
+            <!-- Request Info Section -->
+            <div class="section-container mb-5">
+              <div class="d-flex align-items-center mb-4">
+                <div class="section-icon me-3">
+                  <i-tabler name="file-description" class="icon-28"></i-tabler>
+                </div>
+                <h3 class="section-title m-0">Request Information</h3>
+              </div>
+              
+              <div class="row g-4">
+                <div class="col-md-4">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Request Type</mat-label>
+                    <mat-select formControlName="requestType">
+                      <mat-option *ngFor="let type of requestTypes" [value]="type">{{ type }}</mat-option>
+                    </mat-select>
+                    <mat-hint>Select the type of request</mat-hint>
+                  </mat-form-field>
+                </div>
+
+                <div class="col-md-4">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Category</mat-label>
+                    <mat-select formControlName="category">
+                      <mat-option *ngFor="let category of categoryRequests" [value]="category">{{ category }}</mat-option>
+                    </mat-select>
+                    <mat-hint>Choose a category for your request</mat-hint>
+                  </mat-form-field>
+                </div>
+
+                <div class="col-md-4">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Priority Level</mat-label>
+                    <mat-select formControlName="priorityLevel">
+                      <mat-option *ngFor="let priority of priorityLevels" [value]="priority">{{ priority }}</mat-option>
+                    </mat-select>
+                    <mat-hint>Set the urgency level</mat-hint>
+                  </mat-form-field>
+                </div>
+
+                <div class="col-md-6">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Deadline</mat-label>
+                    <input matInput [matDatepicker]="picker" formControlName="deadline" placeholder="Choose a date" />
+                    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                    <mat-datepicker #picker></mat-datepicker>
+                    <mat-hint>Select the completion deadline</mat-hint>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description Section -->
+            <div class="section-container mb-5">
+              <div class="d-flex align-items-center mb-4">
+                <div class="section-icon me-3">
+                  <i-tabler name="notes" class="icon-28"></i-tabler>
+                </div>
+                <h3 class="section-title m-0">Description</h3>
+              </div>
+              
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label>Description</mat-label>
+                <textarea matInput formControlName="description" rows="4" placeholder="Provide detailed information about your request"></textarea>
+                <mat-hint>Be specific and include all relevant details</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Statistics Questions Section -->
+            <div *ngIf="requestForm.get('requestType')?.value === 'STATISTICS'" class="section-container mb-5">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                  <div class="section-icon me-3">
+                    <i-tabler name="list-numbers" class="icon-28"></i-tabler>
+                  </div>
+                  <h3 class="section-title m-0">Statistics Questions</h3>
+                </div>
+                <button mat-flat-button color="primary" type="button" (click)="addNewQuestion()">
+                  <i-tabler name="plus" class="icon-20 me-2"></i-tabler>
+                  Add Question
+                </button>
+              </div>
+
+              <div formArrayName="newQuestions" class="questions-container">
+                <div *ngFor="let questionCtrl of newQuestions.controls; let i = index" 
+                     [formGroupName]="i" 
+                     class="question-item mat-elevation-z1 p-4 mb-3 rounded">
+                  <div class="row g-3">
+                    <div class="col-md-8">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Question {{ i + 1 }}</mat-label>
+                        <input matInput formControlName="text" readonly />
+                      </mat-form-field>
+                    </div>
+
+                    <div class="col-md-3">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Type</mat-label>
+                        <input matInput formControlName="type" readonly />
+                      </mat-form-field>
+                    </div>
+
+                    <div class="col-md-1 d-flex align-items-center justify-content-end">
+                      <button mat-icon-button color="warn" type="button" (click)="removeNewQuestion(i)"
+                              matTooltip="Remove Question">
+                        <i-tabler name="trash" class="icon-20"></i-tabler>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contacts Section -->
+            <div class="section-container mb-5">
+              <div class="d-flex align-items-center mb-4">
+                <div class="section-icon me-3">
+                  <i-tabler name="users" class="icon-28"></i-tabler>
+                </div>
+                <h3 class="section-title m-0">Select Contacts</h3>
+              </div>
+
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Search Contacts by Tag</mat-label>
+                    <input matInput [(ngModel)]="searchTag" 
+                           (keyup.enter)="fetchContactsByTag()" 
+                           [ngModelOptions]="{ standalone: true }"
+                           placeholder="Enter tag and press Enter" />
+                    <mat-icon matSuffix>search</mat-icon>
+                  </mat-form-field>
+                </div>
+
+                <div class="col-md-6 d-flex gap-3">
+                  <button mat-flat-button color="primary" type="button" (click)="fetchContactsByTag()"
+                          class="flex-grow-1">
+                    <i-tabler name="search" class="icon-20 me-2"></i-tabler>
+                    Search
+                  </button>
+
+                  <button mat-flat-button color="accent" type="button" (click)="openAddContactDialog()"
+                          class="flex-grow-1">
+                    <i-tabler name="user-plus" class="icon-20 me-2"></i-tabler>
+                    Add New Contact
+                  </button>
+                </div>
+              </div>
+
+              <div class="contacts-list mat-elevation-z1 rounded p-3" *ngIf="contacts.length > 0">
+                <mat-selection-list #contactList 
+                                  (selectionChange)="onContactsSelected(contactList.selectedOptions.selected)"
+                                  class="contacts-selection">
+                  <mat-list-option *ngFor="let contact of contacts" [value]="contact.idC"
+                                 class="mb-2 rounded hover:bg-light">
+                    <div class="d-flex align-items-center">
+                      <i-tabler name="user" class="icon-24 me-3 text-primary"></i-tabler>
+                      <div>
+                        <div class="fw-medium">{{ contact.name }}</div>
+                        <small class="text-muted">{{ contact.phoneNumber }}</small>
+                      </div>
+                    </div>
+                  </mat-list-option>
+                </mat-selection-list>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-flex justify-content-end mt-5">
+              <button mat-flat-button color="primary" type="submit" 
+                      [disabled]="requestForm.invalid"
+                      class="px-5">
+                <i-tabler name="send" class="icon-20 me-2"></i-tabler>
+                Submit Request
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .section-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #2c3e50;
+  }
+
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background-color: #f8f9fa;
+    color: #3f51b5;
+  }
+
+  .questions-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+  }
+
+  .question-item {
+    background-color: #ffffff;
+    transition: all 0.3s ease;
+  }
+
+  .question-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .contacts-selection {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .contacts-list {
+    background-color: #ffffff;
+  }
+
+  mat-form-field {
+    margin-bottom: 8px;
+  }
+
+  ::ng-deep .mat-form-field-wrapper {
+    margin-bottom: 0;
+  }
+</style>

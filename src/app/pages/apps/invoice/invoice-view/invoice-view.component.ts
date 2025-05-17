@@ -6,7 +6,7 @@ import { MaterialModule } from 'src/app/material.module';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TablerIconsModule } from 'angular-tabler-icons';
-import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { AgentAvailabilityDTO } from 'src/app/models/AgentAvailabilityDTO';
 
 @Component({

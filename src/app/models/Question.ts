@@ -1,7 +1,9 @@
+import { QuestionType } from "./QuestionType";
+
 export interface Question {
     id: number;
-    question: string;
-    questionType: 'YES_NO' | 'NUMBER' | 'TEXT'; 
+    text: string;
+    questionType: QuestionType; 
     responses?: Response[]; 
     response?: string; 
   }

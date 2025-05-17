@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+/*import { Component } from '@angular/core';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MaterialModule } from 'src/app/material.module';
 import { FormsModule } from '@angular/forms';
@@ -79,3 +79,4 @@ export class ContactFormDialogComponent {
     );
   }
 }
+*/

@@ -12,7 +12,7 @@ export class KeycloakInitService {
     // Retourner la promesse retournée par Keycloak
     return this.keycloakService.init({
       config: {
-        url: 'https://authen.uptech.tn', // L'URL de ton serveur Keycloak
+        url: 'http://192.168.10.161:8080/', // L'URL de ton serveur Keycloak
         realm: 'Portal',  // Le nom de ton realm
         clientId: 'uptech-rest-api', // Le client ID
       },

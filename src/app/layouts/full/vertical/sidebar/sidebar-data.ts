@@ -15,6 +15,26 @@ export const navItems: NavItem[] = [
     navCap: 'Apps',
   },
   {
+    displayName: 'Reports',
+    iconName: 'file-report',
+    bgcolor: 'info',
+    route: 'apps/reports',
+    children: [
+      {
+        displayName: 'Report List',
+        iconName: 'point',
+        bgcolor: 'tranparent',
+        route: 'apps/reports/list',
+      },
+      {
+        displayName: 'Generate Report',
+        iconName: 'point',
+        bgcolor: 'tranparent',
+        route: 'apps/reports/generate',
+      }
+    ],
+  },
+  {
     displayName: 'Chat',
     iconName: 'message-2',
     bgcolor: 'warning',
@@ -82,6 +102,12 @@ export const navItems: NavItem[] = [
     iconName: 'ticket',
     bgcolor: 'error',
     route: 'apps/tickets',
+  },
+  {
+    displayName: 'Callbacks',
+    iconName: 'phone-calling',
+    bgcolor: 'success',
+    route: 'apps/callbacks',
   },
   {
     displayName: 'Request List',

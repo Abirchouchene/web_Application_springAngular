@@ -8,7 +8,7 @@ import { AppCourseDetailComponent } from './courses/course-detail/course-detail.
 import { AppEmployeeComponent } from './employee/employee.component';
 import { AppBlogsComponent } from './blogs/blogs.component';
 import { AppBlogDetailsComponent } from './blogs/details/details.component';
-import { AppContactComponent } from './contact/contact.component';
+/*import { AppContactComponent } from './contact/contact.component';*/
 import { AppNotesComponent } from './notes/notes.component';
 import { AppTodoComponent } from './todo/todo.component';
 import { AppPermissionComponent } from './permission/permission.component';
@@ -18,11 +18,14 @@ import { AppInvoiceListComponent } from './invoice/invoice-list/invoice-list.com
 import { AppAddRequestComponent } from './invoice/add-invoice/add-request.component';
 import { AppInvoiceViewComponent } from './invoice/invoice-view/invoice-view.component';
 import { AppEditInvoiceComponent } from './invoice/edit-invoice/edit-invoice.component';
-import { AppContactListComponent } from './contact-list/contact-list.component';
+/*import { AppContactListComponent } from './contact-list/contact-list.component';*/
 import { AppTicketlistComponent } from './Requests/TicketList/tickets.component';
 import { TicketdetailsComponent } from './Requests/TicketDetails/ticketdetails.component';
 import { RequestManagerViewComponent } from './RequestManager/request-manager-view/request-manager-view.component';
 import { RequestManagerListComponent } from './RequestManager/request-manager-view/request-manager-list/request-manager-list.component';
+import { CallbacksComponent } from './Callbacks/callbacks.component';
+import { ReportListComponent } from './Reports/report-list/report-list.component';
+import { ReportDetailsComponent } from './Reports/report-details/report-details.component';
 
 
 export const AppsRoutes: Routes = [
@@ -144,10 +147,18 @@ export const AppsRoutes: Routes = [
           ],
         },
       },
-      
-      
-
       {
+        path: 'callbacks',
+        component: CallbacksComponent,
+        data: {
+          title: 'Callbacks',
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Callbacks' },
+          ],
+        },
+      },
+     /* {
         path: 'contacts',
         component: AppContactComponent,
         data: {
@@ -157,7 +168,7 @@ export const AppsRoutes: Routes = [
             { title: 'Contacts' },
           ],
         },
-      },
+      },*/
       {
         path: 'courses',
         component: AppCoursesComponent,
@@ -169,7 +180,7 @@ export const AppsRoutes: Routes = [
           ],
         },
       },
-      {
+      /*{
         path: 'contact-list',
         component: AppContactListComponent,
         data: {
@@ -179,7 +190,7 @@ export const AppsRoutes: Routes = [
             { title: 'Contact List' },
           ],
         },
-      },
+      },*/
       {
         path: 'courses/coursesdetail/:id',
         component: AppCourseDetailComponent,
@@ -251,10 +262,10 @@ export const AppsRoutes: Routes = [
         path: 'invoice',
         component: AppInvoiceListComponent,
         data: {
-          title: 'Invoice',
+          title: 'Request List',
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
-            { title: 'Invoice' },
+            { title: 'Request List' },
           ],
         },
       },
@@ -262,10 +273,10 @@ export const AppsRoutes: Routes = [
         path: 'addInvoice',
         component: AppAddRequestComponent,
         data: {
-          title: 'Add Invoice',
+          title: 'Add Request',
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
-            { title: 'Add Invoice' },
+            { title: 'Add Request' },
           ],
         },
       },
@@ -290,6 +301,35 @@ export const AppsRoutes: Routes = [
             { title: 'Edit Invoice' },
           ],
         },
+      },
+      {
+        path: 'reports',
+        children: [
+          {
+            path: 'list',
+            component: ReportListComponent,
+            data: {
+              title: 'Report List',
+              urls: [
+                { title: 'Dashboard', url: '/dashboards/dashboard1' },
+                { title: 'Reports', url: '/apps/reports/list' },
+                { title: 'Report List' },
+              ],
+            },
+          },
+          {
+            path: 'details/:id',
+            component: ReportDetailsComponent,
+            data: {
+              title: 'Report Details',
+              urls: [
+                { title: 'Dashboard', url: '/dashboards/dashboard1' },
+                { title: 'Reports', url: '/apps/reports/list' },
+                { title: 'Report Details' },
+              ],
+            },
+          },
+        ],
       },
     ],
   },

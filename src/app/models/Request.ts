@@ -4,6 +4,7 @@ import { Question } from "./Question";
 import { RequestType } from "./RequestType";
 import { Status } from "./Status";
 import { User } from "./User";
+import { Contact } from "./Contact";
 
 export interface Request {
   idR: number;
@@ -14,6 +15,7 @@ export interface Request {
   priority: Priority;
   categoryRequest: CategoryRequest;
   contactIds: number[];
+  contacts?: Contact[];
   note?: string;
   questions?: Question[];
   questionIds?: number[];

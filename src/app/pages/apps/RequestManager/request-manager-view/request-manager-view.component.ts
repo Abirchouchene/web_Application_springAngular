@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { MaterialModule } from 'src/app/material.module';
 import { AgentAvailabilityDTO } from 'src/app/models/AgentAvailabilityDTO';
-import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { signal } from '@angular/core'; // Or another correct import for signals
 
 
@@ -16,7 +16,7 @@ import { signal } from '@angular/core'; // Or another correct import for signals
   imports: [
     MaterialModule,
     CommonModule,
-          FormsModule,
+    FormsModule,
     ReactiveFormsModule,
     TablerIconsModule
   ],

@@ -4,53 +4,52 @@ import {
   UntypedFormBuilder,
   Validators,
   UntypedFormArray,
-  FormsModule,
   ReactiveFormsModule,
+  FormsModule,
 } from '@angular/forms';
-import { order, InvoiceList } from '../invoice';
-import { InvoiceService } from 'src/app/services/apps/invoice/invoice.service';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { Router, RouterModule } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
-import { AddedDialogComponent } from './added-dialog/added-dialog.component';
-import { MaterialModule } from 'src/app/material.module';
-import { CommonModule } from '@angular/common';
-import { TablerIconsModule } from 'angular-tabler-icons';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
-import { MatCheckboxChange } from '@angular/material/checkbox';
 import { RequestType } from 'src/app/models/RequestType';
 import { CategoryRequest } from 'src/app/models/CategoryRequest';
 import { Priority } from 'src/app/models/Priority';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
 import { Contact } from 'src/app/models/Contact';
+import { AddContactDialogComponent } from '../add-contact-dialog/add-contact-dialog.component';
+import { AddQuestionDialogComponent } from '../add-question-dialog/add-question-dialog.component';
+import { MatListOption } from '@angular/material/list';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { TablerIconsModule } from 'angular-tabler-icons';
+import { CommonModule } from '@angular/common';
+import { MaterialModule } from 'src/app/material.module';
 
 @Component({
-    selector: 'app-add-invoice',
-    templateUrl: './add-invoice.component.html',
-    imports: [
-        MaterialModule,
-        CommonModule,
-        RouterModule,
-        FormsModule,
-        ReactiveFormsModule,
-        TablerIconsModule,
-        MatDatepickerModule, 
-    MatNativeDateModule, 
-    ]
+  selector: 'app-add-request',
+  
+  templateUrl: './add-request.component.html',
+  imports: [
+    MaterialModule,
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TablerIconsModule,
+    MatDatepickerModule, 
+MatNativeDateModule, 
+],
 })
 export class AppAddRequestComponent {
+  currentStep: number = 1;  // Add this line to track the current step
+
   requestForm: UntypedFormGroup;
-  selectedFile: File | null = null;
   contacts: Contact[] = [];
-    selectedContacts: number[] = [];
+  selectedContacts: number[] = [];
   questionInput = '';
   searchTag = '';
-  newQuestions = signal<string[]>([]);
   requestTypes = Object.values(RequestType);
   categoryRequests = Object.values(CategoryRequest);
   priorityLevels = Object.values(Priority);
-  selectedFileName: string = '';
 
   constructor(
     private fb: UntypedFormBuilder,
@@ -67,20 +66,20 @@ export class AppAddRequestComponent {
       priorityLevel: [null, Validators.required],
       description: ['', Validators.required],
       deadline: [null, Validators.required],
-      
+      newQuestions: this.fb.array([]),
     });
   }
 
+  goToStep(step: number): void {
+    this.currentStep = step;
+  }
+  
   // Fetch contacts by tag
   fetchContactsByTag() {
     if (this.searchTag.trim()) {
       this.requestService.getContactsByTag(this.searchTag.trim()).subscribe(
         (data) => {
           this.contacts = data;
-          console.log('Fetched contacts:', this.contacts); // Log contacts array
-          this.contacts.forEach(contact => {
-            console.log('Contact ID:', contact.idC); // Log contact's 'idC' field
-          });
         },
         (error) => {
           console.error('Error fetching contacts by tag:', error);
@@ -91,9 +90,8 @@ export class AppAddRequestComponent {
       this.contacts = [];
     }
   }
-  
 
-  updateSelectedContacts(contactId: number, event: MatCheckboxChange) {
+  updateSelectedContacts(contactId: number, event: any) {
     if (event.checked) {
       this.selectedContacts.push(contactId);
     } else {
@@ -103,9 +101,11 @@ export class AppAddRequestComponent {
       }
     }
   }
-  
 
-  // Update question IDs from input
+  onContactsSelected(selected: MatListOption[]) {
+    this.selectedContacts = selected.map((opt) => opt.value as number);
+  }
+
   updateQuestionIds(): number[] {
     return this.questionInput
       .split(',')
@@ -113,94 +113,81 @@ export class AppAddRequestComponent {
       .filter((id) => !isNaN(id));
   }
 
-  // Add a new question input
-  addNewQuestion() {
-    this.newQuestions.update((list) => [...list, '']);
+  get newQuestions(): UntypedFormArray {
+    return this.requestForm.get('newQuestions') as UntypedFormArray;
   }
 
-  // Remove a question input
   removeNewQuestion(index: number) {
-    this.newQuestions.update((list) => list.filter((_, i) => i !== index));
+    this.newQuestions.removeAt(index);
   }
 
-  // Handle file selection
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
-      this.selectedFileName = this.selectedFile.name;
-      console.log('Selected file:', this.selectedFileName);
-    } else {
-      this.selectedFile = null;
-      this.selectedFileName = '';
-      console.warn('No file selected.');
-    }
-  }
-  
   onSubmit() {
-    const formData = new FormData();
-  
-    formData.append('userId', this.requestForm.get('userId')?.value);
-    formData.append('requestType', this.requestForm.get('requestType')?.value);
-    if (this.selectedContacts.length > 0) {
-      this.selectedContacts.forEach((id) => {
-        formData.append('contactIds', id.toString());
-      });
-    }
-        formData.append('description', this.requestForm.get('description')?.value);
-    formData.append('category', this.requestForm.get('category')?.value);
-    formData.append('priorityLevel', this.requestForm.get('priorityLevel')?.value);
-    const rawDeadline = this.requestForm.get('deadline')?.value;
-    if (rawDeadline) {
-      const formattedDeadline = this.formatDate(rawDeadline);
-      formData.append('deadline', formattedDeadline);
-    }
-      
-    const questionIds = this.requestForm.get('questionIds')?.value;
-    if (questionIds) {
-      formData.append('questionIds', JSON.stringify(questionIds));
-    }
-  
-    const newQuestions = this.requestForm.get('newQuestions')?.value;
-    if (newQuestions) {
-      formData.append('newQuestions', JSON.stringify(newQuestions));
-    }
-  
-    const defaultQuestionType = this.requestForm.get('defaultQuestionType')?.value;
-    if (defaultQuestionType) {
-      formData.append('defaultQuestionType', defaultQuestionType);
-    }
-  
-    if (this.selectedFile) {
-      formData.append('file', this.selectedFile, this.selectedFile.name);
-    }
-    
-    // Send the FormData to the backend API
-    this.requestService.submitRequest(formData).subscribe({
-      next: response => {
+    const requestData = {
+      userId: this.requestForm.get('userId')?.value,
+      requestType: this.requestForm.get('requestType')?.value,
+      category: this.requestForm.get('category')?.value,
+      priorityLevel: this.requestForm.get('priorityLevel')?.value,
+      description: this.requestForm.get('description')?.value,
+      deadline: this.formatDate(this.requestForm.get('deadline')?.value),
+      contactIds: this.selectedContacts,
+      questionIds: this.updateQuestionIds(),
+      newQuestions: this.newQuestions.value,
+    };
+
+    // Send the request as JSON without the file
+    this.requestService.submitRequest(requestData).subscribe({
+      next: (response) => {
         console.log('Request submitted successfully!', response);
         alert('Request submitted successfully!');
       },
-      error: error => {
+      error: (error) => {
         console.error('Error submitting request:', error);
-      }
+      },
     });
   }
-  
-  
-  
 
   private formatDate(date: any): string {
     const d = new Date(date);
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    return `${d.getFullYear()}-${(d.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
   }
-  
 
   showSnackbar(message: string) {
     this.snackBar.open(message, 'Close', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'top',
+    });
+  }
+
+  openAddContactDialog(): void {
+    const dialogRef = this.dialog.open(AddContactDialogComponent, {
+      width: '600px',
+      data: {},
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.fetchContactsByTag(); // Optional: refresh contact list if tag still applies
+      }
+    });
+  }
+
+  addNewQuestion() {
+    const dialogRef = this.dialog.open(AddQuestionDialogComponent, {
+      width: '400px',
+    });
+
+    dialogRef.afterClosed().subscribe((q: { text: string; type: string }) => {
+      if (q) {
+        this.newQuestions.push(
+          this.fb.group({
+            text: [q.text, Validators.required],
+            type: [q.type, Validators.required],
+          })
+        );
+      }
     });
   }
 }

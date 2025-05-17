@@ -1,31 +1,47 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common'; // <-- Add this
-import { MatTableDataSource, MatTableModule } from '@angular/material/table'; // <-- Add MatTableModule
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'; // <-- Add MatPaginatorModule
-import { RequestService } from 'src/app/services/apps/ticket/ticket.service';
-import { MatButtonModule } from '@angular/material/button'; // If you're using buttons
-import { MatIconModule } from '@angular/material/icon'; // If you're using icons
+import { CommonModule, DatePipe } from '@angular/common';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { RouterModule } from '@angular/router';
+import { MatSort, MatSortModule } from '@angular/material/sort';
+
+interface RequestData {
+  idR: number;
+  requestType: string;
+  description: string;
+  status: string;
+  priority: string;
+  categoryRequest: string;
+  createdAt: string | Date;
+  deadline: string | Date | null;
+  note: string;
+  user?: { name: string };
+}
 
 @Component({
   selector: 'app-request-manager-list',
-  standalone: true, // If you are using standalone components
+  standalone: true,
   imports: [
-    RouterModule,
+    CommonModule,
     MatTableModule,
-  MatPaginatorModule,
-  MatIconModule,
-  MatButtonModule,
-  MatFormFieldModule,
-  MatInputModule,
-  MatCardModule,
-  DatePipe
+    MatPaginatorModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatCardModule,
+    RouterModule,
+    MatSortModule,
+    DatePipe
   ],
   templateUrl: './request-manager-list.component.html',
-  styleUrls: ['./request-manager-list.component.scss'] // <-- fix styleUrls
+  styleUrls: ['./request-manager-list.component.scss']
 })
 export class RequestManagerListComponent implements OnInit {
   displayedColumns: string[] = [
@@ -36,36 +52,54 @@ export class RequestManagerListComponent implements OnInit {
     'status',
     'priority',
     'categoryRequest',
-    'note',
+    'createdAt',
     'deadline',
+    'note',
     'action'
   ];
-
-  dataSource = new MatTableDataSource<Request>([]);
-  totalCount: number = 0;
+  
+  dataSource = new MatTableDataSource<RequestData>();
+  totalCount = 0;
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   constructor(private requestService: RequestService) {}
 
-  ngOnInit(): void {
-    this.getRequests();
+  ngOnInit() {
+    this.loadRequests();
   }
 
-  getRequests(): void {
+  ngAfterViewInit() {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
+
+  loadRequests() {
     this.requestService.getAllRequests().subscribe({
-      next: (data: Request[]) => {
+      next: (data: RequestData[]) => {
+        // Convert string dates to Date objects
+        data = data.map(item => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+          deadline: item.deadline ? new Date(item.deadline) : null
+        }));
+
         this.dataSource.data = data;
         this.totalCount = data.length;
-        this.dataSource.paginator = this.paginator;
+
+        // Set default sorting
+        if (this.sort) {
+          this.sort.active = 'createdAt';
+          this.sort.direction = 'desc';
+          this.dataSource.sort = this.sort;
+        }
       },
       error: (error) => {
-        console.error('Error fetching requests', error);
+        console.error('Error loading requests:', error);
       }
     });
   }
-
-  
 
   btnCategoryClick(status: string): void {
     if (status) {
@@ -75,12 +109,12 @@ export class RequestManagerListComponent implements OnInit {
     }
   }
 
-  onKeyup(event: any): void {
+  onKeyup(event: KeyboardEvent): void {
     const filterValue = (event.target as HTMLInputElement).value;
     this.dataSource.filter = filterValue.trim().toLowerCase();
   }
 
-  openDialog(action: string, element: Request): void {
-    console.log(`${action} clicked for`, element);
+  openDialog(action: string, element: RequestData): void {
+    console.log(`${action} clicked for request ${element.idR}`);
   }
 }

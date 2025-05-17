@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>Add New Contact</h2>
+<mat-dialog-content>
+  <form [formGroup]="contactForm">
+    <mat-form-field appearance="fill" class="w-full">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="w-full">
+      <mat-label>Phone Number</mat-label>
+      <input matInput formControlName="phoneNumber" />
+    </mat-form-field>
+    <div class="my-3">
+        <label>Select Tags:</label>
+        <div class="custom-chip-container">
+          <span
+            *ngFor="let tag of tags"
+            (click)="toggleTagSelection(tag)"
+            [class.selected]="isTagSelected(tag)"
+            class="custom-chip"
+          >
+            {{ tag.name }}
+          </span>
+        </div>
+      </div>
+      
+
+    <div class="my-3">
+      <mat-form-field appearance="outline">
+        <mat-label>New Tag</mat-label>
+        <input matInput formControlName="newTagName" />
+        <button mat-icon-button matSuffix (click)="addNewTag()" type="button">
+          <mat-icon>add</mat-icon>
+        </button>
+      </mat-form-field>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="saveContact()">Save</button>
+</mat-dialog-actions>

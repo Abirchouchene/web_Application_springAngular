@@ -96,13 +96,6 @@ export class FullComponent implements OnInit {
       link: '/apps/chat',
     },
     {
-      id: 111,
-      img: '/assets/images/svgs/icon-dd-chat.svg',
-      title: 'Chat Application',
-      subtitle: 'Messages & Emails',
-      link: '/apps/chat',
-    },
-    {
       id: 2,
       img: '/assets/images/svgs/icon-dd-cart.svg',
       title: 'eCommerce App',
@@ -150,7 +143,7 @@ export class FullComponent implements OnInit {
       title: 'Courses',
       subtitle: 'Create new course',
       link: '/apps/courses',
-    },
+    }
   ];
 
   quicklinks: quicklinks[] = [
