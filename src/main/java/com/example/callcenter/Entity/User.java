@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,7 +9,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @NoArgsConstructor
@@ -32,4 +35,8 @@ public class User implements Serializable {
     private Set<Request> assignedRequests;
     @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL)
     private Set<AgentLeave> leaves = new HashSet<>();
+    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+
+    private List<Callback> callbacks = new ArrayList<>();
 }
