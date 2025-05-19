@@ -44,7 +44,7 @@ unit_tests:
 sca_owasp:
   stage: test
   script:
-    - mvn $MAVEN_CLI_OPTS verify -Pdependency-check -Dformat=ALL -DoutputDirectory=target
+    - mvn $MAVEN_CLI_OPTS org.owasp:dependency-check-maven:check -Pdependency-check -Dformat=ALL -DoutputDirectory=target
   artifacts:
     paths:
       - target/dependency-check-report.xml
@@ -59,6 +59,7 @@ sca_owasp:
 sonarqube_analysis:
   stage: test
   script:
+    - mvn compile
     - >
       mvn sonar:sonar
       -Dsonar.projectKey=callcenter-service
