@@ -34,7 +34,7 @@ public class AuthenticationService {
     private final RoleRepository roleRepository;
 
     public AuthenticationResponse register(RegisterRequest request) {
-        Role userRole = roleRepository.findByNom("USER")
+        Role userRole = roleRepository.findByNom("Admin")
                 .orElseThrow(() -> new RuntimeException("Role USER not found"));
 
         User user = User.builder()
