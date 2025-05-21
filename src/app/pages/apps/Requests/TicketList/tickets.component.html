@@ -6,7 +6,7 @@
       (click)="btnCategoryClick('')"
     >
       <h3 class="f-s-24 text-primary f-w-600 m-b-4">{{ totalCount }}</h3>
-      <h6 class="text-primary f-w-600 m-0 f-s-16">Total Tickets</h6>
+      <h6 class="text-primary f-w-600 m-0 f-s-16">Total des Tickets</h6>
     </mat-card>
   </div>
   <div class="col-sm-6 col-lg-3">
@@ -17,7 +17,7 @@
       <h3 class="f-s-24 text-warning m-b-4">
         {{ countTicketsByStatus("Inprogress") }}
       </h3>
-      <h6 class="text-warning f-w-600 m-0 f-s-16">In Progress</h6>
+      <h6 class="text-warning f-w-600 m-0 f-s-16">En Cours</h6>
     </mat-card>
   </div>
   <div class="col-sm-6 col-lg-3">
@@ -28,7 +28,7 @@
       <h3 class="f-s-24 text-success m-b-4">
         {{ countTicketsByStatus("Open") }}
       </h3>
-      <h6 class="text-success f-w-600 m-0 f-s-16">Open</h6>
+      <h6 class="text-success f-w-600 m-0 f-s-16">Ouvert</h6>
     </mat-card>
   </div>
   <div class="col-sm-6 col-lg-3">
@@ -39,7 +39,7 @@
       <h3 class="f-s-24 text-error m-b-4">
         {{ countTicketsByStatus("Closed") }}
       </h3>
-      <h6 class="text-error f-w-600 m-0 f-s-16">Closed</h6>
+      <h6 class="text-error f-w-600 m-0 f-s-16">Fermé</h6>
     </mat-card>
   </div>
 </div>
@@ -54,7 +54,7 @@
           <input
             matInput
             (keyup)="onKeyup($event)"
-            placeholder="Search Tickets"
+            placeholder="Rechercher Tickets"
           />
 
           <mat-icon matSuffix>
@@ -102,7 +102,7 @@
 
         <!-- Status -->
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef> Status </th>
+          <th mat-header-cell *matHeaderCellDef> Statut </th>
           <td mat-cell *matCellDef="let element"> {{ element.status }} </td>
         </ng-container>
 
@@ -114,13 +114,13 @@
 
         <!-- Category -->
         <ng-container matColumnDef="categoryRequest">
-          <th mat-header-cell *matHeaderCellDef> Categorie </th>
+          <th mat-header-cell *matHeaderCellDef> Catégorie </th>
           <td mat-cell *matCellDef="let element"> {{ element.categoryRequest }} </td>
         </ng-container>
 
         <!-- Note -->
         <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef> Created at </th>
+          <th mat-header-cell *matHeaderCellDef> Créé le </th>
           <td mat-cell *matCellDef="let element"> {{ formatFullDate(element.createdAt) }} </td>
         </ng-container>
         
@@ -128,7 +128,7 @@
           
         <!-- Deadline -->
         <ng-container matColumnDef="deadline">
-          <th mat-header-cell *matHeaderCellDef class="f-s-16 f-w-600"> Deadline </th>
+          <th mat-header-cell *matHeaderCellDef class="f-s-16 f-w-600"> Date Limite </th>
           <td mat-cell *matCellDef="let element" class="f-s-14">
             {{ element.deadline ? (element.deadline | date:'dd/MM/yyyy') : 'N/A' }}
           </td>

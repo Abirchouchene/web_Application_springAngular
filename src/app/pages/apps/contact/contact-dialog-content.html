@@ -1,6 +1,6 @@
 <mat-dialog-content class="mat-typography">
   <div class="d-flex align-items-center justify-content-between m-b-16">
-    <h4 class="f-s-16 f-w-600 m-b-16">Add New Contact</h4>
+    <h4 class="f-s-16 f-w-600 m-b-16">Ajouter un Nouveau Contact</h4>
     <button
       mat-icon-button
       mat-dialog-close
@@ -11,12 +11,12 @@
   </div>
 
   <form #userForm="ngForm">
-    <mat-label class="f-w-600 m-b-8 d-block">Upload Image</mat-label>
+    <mat-label class="f-w-600 m-b-8 d-block">Télécharger une Image</mat-label>
     <div class="file-input-container m-b-16">
       @if(local_data.contactimg){
       <img
         [src]="local_data.contactimg"
-        alt="Selected Image"
+        alt="Image Sélectionnée"
         class="m-r-16"
         height="100"
         width="100"
@@ -24,7 +24,7 @@
       }
       <input type="file" (change)="onFileSelected($event)" accept="image/*" />
     </div>
-    <mat-label class="f-w-600 m-b-8 d-block">Name</mat-label>
+    <mat-label class="f-w-600 m-b-8 d-block">Nom</mat-label>
     <mat-form-field appearance="outline" class="w-100">
       <input
         type="text"
@@ -33,22 +33,22 @@
         id="contactname"
         name="name"
         [(ngModel)]="local_data.Contactname"
-        placeholder="Name"
+        placeholder="Nom"
       />
     </mat-form-field>
-    <mat-label class="f-w-600 m-b-8 d-block">Post</mat-label>
+    <mat-label class="f-w-600 m-b-8 d-block">Poste</mat-label>
     <mat-form-field appearance="outline" class="w-100">
       <mat-select [(value)]="local_data.ContactPost" name="post" required>
-        <mat-option value="Web Designer">Web Designer</mat-option>
-        <mat-option value="Theme Designer">Theme Designer</mat-option>
-        <mat-option value="Front End Developer">Front End Developer</mat-option>
+        <mat-option value="Web Designer">Concepteur Web</mat-option>
+        <mat-option value="Theme Designer">Concepteur de Thèmes</mat-option>
+        <mat-option value="Front End Developer">Développeur Front-End</mat-option>
         <mat-option value="Hacker">Hacker</mat-option>
-        <mat-option value="Back End Developer">Back End Developer</mat-option>
-        <mat-option value="Graphics Designer">Graphics Designer</mat-option>
+        <mat-option value="Back End Developer">Développeur Back-End</mat-option>
+        <mat-option value="Graphics Designer">Designer Graphique</mat-option>
       </mat-select>
     </mat-form-field>
 
-    <mat-label class="f-w-600 m-b-8 d-block">Address</mat-label>
+    <mat-label class="f-w-600 m-b-8 d-block">Adresse</mat-label>
     <mat-form-field appearance="outline" class="w-100">
       <input
         type="text"
@@ -57,11 +57,11 @@
         id="contactadd"
         name="address"
         [(ngModel)]="local_data.Contactadd"
-        placeholder="Address"
+        placeholder="Adresse"
       />
     </mat-form-field>
 
-    <mat-label class="f-w-600 m-b-8 d-block">Contact Number</mat-label>
+    <mat-label class="f-w-600 m-b-8 d-block">Numéro de Contact</mat-label>
     <mat-form-field appearance="outline" class="w-100">
       <input
         type="text"
@@ -73,13 +73,13 @@
         [(ngModel)]="local_data.Contactno"
         pattern="[0-9]*"
         maxlength="15"
-        placeholder="Contact Number"
+        placeholder="Numéro de Contact"
       />
     </mat-form-field>
 
     <div class="row">
       <div class="col-md-4">
-        <mat-label class="f-w-600 m-b-8 d-block">Instagram Followers</mat-label>
+        <mat-label class="f-w-600 m-b-8 d-block">Abonnés Instagram</mat-label>
         <mat-form-field appearance="outline" class="w-100">
           <input
             type="text"
@@ -89,12 +89,12 @@
             (input)="validateNumber($event)"
             name="insta"
             [(ngModel)]="local_data.Contactinstagram"
-            placeholder="Followers"
+            placeholder="Abonnés"
           />
         </mat-form-field>
       </div>
       <div class="col-md-4">
-        <mat-label class="f-w-600 m-b-8 d-block">Linkedin Followers</mat-label>
+        <mat-label class="f-w-600 m-b-8 d-block">Abonnés LinkedIn</mat-label>
         <mat-form-field appearance="outline" class="w-100">
           <input
             type="text"
@@ -104,12 +104,12 @@
             (input)="validateNumber($event)"
             name="linkedin"
             [(ngModel)]="local_data.Contactlinkedin"
-            placeholder="Followers"
+            placeholder="Abonnés"
           />
         </mat-form-field>
       </div>
       <div class="col-md-4">
-        <mat-label class="f-w-600 m-b-8 d-block">Facebook Followers</mat-label>
+        <mat-label class="f-w-600 m-b-8 d-block">Abonnés Facebook</mat-label>
         <mat-form-field appearance="outline" class="w-100">
           <input
             type="text"
@@ -119,7 +119,7 @@
             (input)="validateNumber($event)"
             name="facebook"
             [(ngModel)]="local_data.Contactfacebook"
-            placeholder="Followers"
+            placeholder="Abonnés"
           />
         </mat-form-field>
       </div>
@@ -135,9 +135,9 @@
     color="primary"
     (click)="doAction();"
   >
-    Add Contact
+    Ajouter Contact
   </button>
   <button mat-flat-button class="bg-error text-white" mat-dialog-close>
-    Cancel
+    Annuler
   </button>
 </mat-dialog-actions>

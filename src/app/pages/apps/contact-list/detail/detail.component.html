@@ -4,13 +4,13 @@
   <!-- ------------------------------------------------------------------ -->
   @if( selectedContact()) {
   <div class="d-flex align-items-center justify-content-between p-x-24 p-y-16">
-    <h5 class="f-w-600 f-s-18">Contact Details</h5>
+    <h5 class="f-w-600 f-s-18">Détails du Contact</h5>
 
     <!-- contact actions -->
     <div class="d-flex align-items-center">
       <button
         class="d-flex align-items-center justify-content-center"
-        [matTooltip]="contact()?.starred ? 'Unstar' : 'Star'"
+        [matTooltip]="contact()?.starred ? 'Retirer l\'étoile' : 'Mettre en favori'"
         mat-icon-button
         (click)="toggleStarred(contact(), $event)"
       >
@@ -28,7 +28,7 @@
       </button>
       <button
         class="d-flex align-items-center justify-content-center"
-        [matTooltip]="isEditing() ? 'Save' : 'Edit'"
+        [matTooltip]="isEditing() ? 'Enregistrer' : 'Modifier'"
         mat-icon-button
         (click)="isEditing() ? saveContact() : editContact()"
       >
@@ -41,7 +41,7 @@
         class="d-flex align-items-center justify-content-center"
         mat-icon-button
         (click)="deleteContact(contact())"
-        matTooltip="Delete"
+        matTooltip="Supprimer"
       >
         <i-tabler
           name="trash"
@@ -83,31 +83,31 @@
       </div>
       <div class="row">
         <div class="col-lg-6 m-t-32">
-          <span class="f-s-12">Phone Number</span>
+          <span class="f-s-12">Numéro de Téléphone</span>
           <h5 class="f-w-600 lh-sm f-s-14">
             {{ contact().phone }}
           </h5>
         </div>
         <div class="col-lg-6 m-t-32">
-          <span class="f-s-12">Email address</span>
+          <span class="f-s-12">Adresse Email</span>
           <h5 class="f-w-600 lh-sm f-s-14">
             {{ contact().email }}
           </h5>
         </div>
         <div class="col-12 m-t-32">
-          <span class="f-s-12">Address</span>
+          <span class="f-s-12">Adresse</span>
           <h5 class="f-w-600 lh-sm f-s-14">
             {{ contact().address }}
           </h5>
         </div>
         <div class="col-lg-6 m-t-32">
-          <span class="f-s-12">Department</span>
+          <span class="f-s-12">Département</span>
           <h5 class="f-w-600 lh-sm f-s-14">
             {{ contact().department }}
           </h5>
         </div>
         <div class="col-lg-6 m-t-32">
-          <span class="f-s-12">Company</span>
+          <span class="f-s-12">Société</span>
           <h5 class="f-w-600 lh-sm f-s-14">
             {{ contact().company }}
           </h5>
@@ -121,14 +121,14 @@
     <mat-divider></mat-divider>
     <div class="p-24 d-flex align-items-center gap-8">
       <button mat-flat-button color="primary" (click)="editContact()">
-        Edit
+        Modifier
       </button>
       <button
         mat-flat-button
         class="bg-error"
         (click)="deleteContact(contact())"
       >
-        Delete
+        Supprimer
       </button>
     </div>
 
@@ -143,7 +143,7 @@
         <div>
           <form (ngSubmit)="saveContact()">
             <mat-label class="f-s-14 f-w-600 m-b-8 d-block"
-              >First Name</mat-label
+              >Prénom</mat-label
             >
             <mat-form-field appearance="outline" class="w-100">
               <input
@@ -154,7 +154,7 @@
               />
             </mat-form-field>
             <mat-label class="f-s-14 f-w-600 m-b-8 d-block"
-              >Last Name</mat-label
+              >Nom</mat-label
             >
             <mat-form-field appearance="outline" class="w-100">
               <input
@@ -164,7 +164,7 @@
                 required
               />
             </mat-form-field>
-            <mat-label class="f-s-14 f-w-600 m-b-8 d-block">Company</mat-label>
+            <mat-label class="f-s-14 f-w-600 m-b-8 d-block">Société</mat-label>
             <mat-form-field appearance="outline" class="w-100">
               <input
                 matInput
@@ -173,7 +173,7 @@
                 required
               />
             </mat-form-field>
-            <mat-label class="f-s-14 f-w-600 m-b-8 d-block">Phone</mat-label>
+            <mat-label class="f-s-14 f-w-600 m-b-8 d-block">Téléphone</mat-label>
             <mat-form-field appearance="outline" class="w-100">
               <input
                 matInput
@@ -191,7 +191,7 @@
                 required
               />
             </mat-form-field>
-            <mat-label class="f-s-14 f-w-600 m-b-8 d-block">Address</mat-label>
+            <mat-label class="f-s-14 f-w-600 m-b-8 d-block">Adresse</mat-label>
             <mat-form-field appearance="outline" class="w-100">
               <input matInput [(ngModel)]="formData().address" name="address" />
             </mat-form-field>
@@ -204,7 +204,7 @@
               ></textarea>
             </mat-form-field>
             <mat-label class="f-s-14 f-w-600 m-b-8 d-block"
-              >Department</mat-label
+              >Département</mat-label
             >
             <mat-form-field appearance="outline" class="w-100">
               <mat-select
@@ -220,13 +220,13 @@
               </mat-select>
             </mat-form-field>
             <div class="m-t-8 d-flex align-items-center gap-8">
-              <button type="submit" mat-flat-button>Save Contact</button>
+              <button type="submit" mat-flat-button>Enregistrer Contact</button>
               <button
                 mat-flat-button
                 class="bg-error text-white"
                 (click)="cancelEdit()"
               >
-                Cancel
+                Annuler
               </button>
             </div>
           </form>

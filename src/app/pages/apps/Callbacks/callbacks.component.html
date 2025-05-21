@@ -4,35 +4,35 @@
       <mat-card-content>
         <div class="d-flex align-items-center justify-content-between mb-4">
           <div>
-            <h4 class="m-0 f-w-500 f-s-18">Callbacks Management</h4>
-            <span class="text-muted f-s-14">Manage all your scheduled callbacks</span>
+            <h4 class="m-0 f-w-500 f-s-18">Gestion des Rappels</h4>
+            <span class="text-muted f-s-14">Gérez tous vos rappels programmés</span>
           </div>
           <div>
             <button mat-flat-button color="primary" [routerLink]="['/apps/tickets']">
               <mat-icon>keyboard_backspace</mat-icon>
-              Back to Tickets
+              Retour aux Tickets
             </button>
           </div>
         </div>
-
+<br>
         <!-- Summary Cards -->
         <div class="row mb-4">
           <div class="col-md-4">
             <mat-card class="bg-light-primary text-center p-3">
               <h3 class="f-s-24 text-primary f-w-600 m-b-4">{{ totalUpcoming }}</h3>
-              <h6 class="text-primary f-w-600 m-0 f-s-16">Upcoming Callbacks</h6>
+              <h6 class="text-primary f-w-600 m-0 f-s-16">Rappels à Venir</h6>
             </mat-card>
           </div>
           <div class="col-md-4">
             <mat-card class="bg-light-success text-center p-3">
               <h3 class="f-s-24 text-success f-w-600 m-b-4">{{ totalCompleted }}</h3>
-              <h6 class="text-success f-w-600 m-0 f-s-16">Completed Callbacks</h6>
+              <h6 class="text-success f-w-600 m-0 f-s-16">Rappels Terminés</h6>
             </mat-card>
           </div>
           <div class="col-md-4">
             <mat-card class="bg-light-warning text-center p-3">
               <h3 class="f-s-24 text-warning f-w-600 m-b-4">{{ totalCallbacks }}</h3>
-              <h6 class="text-warning f-w-600 m-0 f-s-16">Total Callbacks</h6>
+              <h6 class="text-warning f-w-600 m-0 f-s-16">Total des Rappels</h6>
             </mat-card>
           </div>
         </div>
@@ -40,7 +40,7 @@
         <!-- Tabs -->
         <mat-tab-group (selectedTabChange)="onTabChange($event)">
           <!-- Upcoming Callbacks Tab -->
-          <mat-tab label="Upcoming Callbacks">
+          <mat-tab label="Rappels à Venir">
             <div class="p-3">
               <div class="table-responsive" *ngIf="!isLoadingUpcoming">
                 <table mat-table [dataSource]="upcomingCallbacks" class="w-100">
@@ -54,7 +54,7 @@
                   
                   <!-- Request ID Column -->
                   <ng-container matColumnDef="requestId">
-                    <th mat-header-cell *matHeaderCellDef>Request</th>
+                    <th mat-header-cell *matHeaderCellDef>Demande</th>
                     <td mat-cell *matCellDef="let callback">
                       <a [routerLink]="['/apps/ticket', callback.requestId]">
                         #{{ callback.requestId }}
@@ -64,7 +64,7 @@
                   
                   <!-- Scheduled Date Column -->
                   <ng-container matColumnDef="scheduledDate">
-                    <th mat-header-cell *matHeaderCellDef>Scheduled Date</th>
+                    <th mat-header-cell *matHeaderCellDef>Date Programmée</th>
                     <td mat-cell *matCellDef="let callback">
                       <div>{{ formatCallbackDate(callback.scheduledDate) }}</div>
                       <small class="text-muted">{{ getTimeRemaining(callback.scheduledDate) }}</small>
@@ -79,10 +79,10 @@
                   
                   <!-- Status Column -->
                   <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <th mat-header-cell *matHeaderCellDef>Statut</th>
                     <td mat-cell *matCellDef="let callback">
                       <mat-chip [color]="callback.status === 'SCHEDULED' ? 'primary' : 'accent'" selected>
-                        {{ callback.status }}
+                        {{ callback.status === 'SCHEDULED' ? 'PROGRAMMÉ' : callback.status }}
                       </mat-chip>
                     </td>
                   </ng-container>
@@ -91,10 +91,10 @@
                   <ng-container matColumnDef="actions">
                     <th mat-header-cell *matHeaderCellDef>Actions</th>
                     <td mat-cell *matCellDef="let callback">
-                      <button mat-icon-button color="primary" (click)="completeCallback(callback.id)" matTooltip="Mark as completed">
+                      <button mat-icon-button color="primary" (click)="completeCallback(callback.id)" matTooltip="Marquer comme terminé">
                         <i-tabler name="check" class="icon-18"></i-tabler>
                       </button>
-                      <button mat-icon-button color="warn" (click)="cancelCallback(callback.id)" matTooltip="Cancel callback">
+                      <button mat-icon-button color="warn" (click)="cancelCallback(callback.id)" matTooltip="Annuler le rappel">
                         <i-tabler name="x" class="icon-18"></i-tabler>
                       </button>
                     </td>
@@ -107,15 +107,15 @@
                 <!-- No data message -->
                 <div *ngIf="upcomingCallbacks.data.length === 0" class="text-center p-5">
                   <mat-icon class="text-muted" style="font-size: 48px;">schedule</mat-icon>
-                  <h5 class="mt-2">No upcoming callbacks</h5>
-                  <p class="text-muted">Any scheduled callbacks will appear here</p>
+                  <h5 class="mt-2">Aucun rappel à venir</h5>
+                  <p class="text-muted">Les rappels programmés apparaîtront ici</p>
                 </div>
               </div>
               
               <!-- Loading spinner -->
               <div *ngIf="isLoadingUpcoming" class="text-center p-5">
                 <mat-spinner diameter="40" class="m-auto"></mat-spinner>
-                <p class="mt-2">Loading callbacks...</p>
+                <p class="mt-2">Chargement des rappels...</p>
               </div>
               
               <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
@@ -123,7 +123,7 @@
           </mat-tab>
           
           <!-- Completed Callbacks Tab -->
-          <mat-tab label="Completed Callbacks">
+          <mat-tab label="Rappels Terminés">
             <div class="p-3">
               <div class="table-responsive" *ngIf="!isLoadingCompleted">
                 <table mat-table [dataSource]="completedCallbacks" class="w-100">
@@ -136,7 +136,7 @@
                   </ng-container>
                   
                   <ng-container matColumnDef="requestId">
-                    <th mat-header-cell *matHeaderCellDef>Request</th>
+                    <th mat-header-cell *matHeaderCellDef>Demande</th>
                     <td mat-cell *matCellDef="let callback">
                       <a [routerLink]="['/apps/ticket', callback.requestId]">
                         #{{ callback.requestId }}
@@ -145,7 +145,7 @@
                   </ng-container>
                   
                   <ng-container matColumnDef="scheduledDate">
-                    <th mat-header-cell *matHeaderCellDef>Scheduled Date</th>
+                    <th mat-header-cell *matHeaderCellDef>Date Programmée</th>
                     <td mat-cell *matCellDef="let callback">
                       {{ formatCallbackDate(callback.scheduledDate) }}
                     </td>
@@ -157,10 +157,10 @@
                   </ng-container>
                   
                   <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <th mat-header-cell *matHeaderCellDef>Statut</th>
                     <td mat-cell *matCellDef="let callback">
                       <mat-chip color="accent" selected>
-                        {{ callback.status }}
+                        {{ callback.status === 'COMPLETED' ? 'TERMINÉ' : callback.status }}
                       </mat-chip>
                     </td>
                   </ng-container>
@@ -182,15 +182,15 @@
                 <!-- No data message -->
                 <div *ngIf="completedCallbacks.data.length === 0" class="text-center p-5">
                   <mat-icon class="text-muted" style="font-size: 48px;">check_circle</mat-icon>
-                  <h5 class="mt-2">No completed callbacks</h5>
-                  <p class="text-muted">Completed callbacks will appear here</p>
+                  <h5 class="mt-2">Aucun rappel terminé</h5>
+                  <p class="text-muted">Les rappels terminés apparaîtront ici</p>
                 </div>
               </div>
               
               <!-- Loading spinner -->
               <div *ngIf="isLoadingCompleted" class="text-center p-5">
                 <mat-spinner diameter="40" class="m-auto"></mat-spinner>
-                <p class="mt-2">Loading callbacks...</p>
+                <p class="mt-2">Chargement des rappels...</p>
               </div>
               
               <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
@@ -198,7 +198,7 @@
           </mat-tab>
           
           <!-- All Callbacks Tab -->
-          <mat-tab label="All Callbacks">
+          <mat-tab label="Tous les Rappels">
             <div class="p-3">
               <div class="table-responsive" *ngIf="!isLoadingAll">
                 <table mat-table [dataSource]="allCallbacks" class="w-100">
@@ -211,7 +211,7 @@
                   </ng-container>
                   
                   <ng-container matColumnDef="requestId">
-                    <th mat-header-cell *matHeaderCellDef>Request</th>
+                    <th mat-header-cell *matHeaderCellDef>Demande</th>
                     <td mat-cell *matCellDef="let callback">
                       <a [routerLink]="['/apps/ticket', callback.requestId]">
                         #{{ callback.requestId }}
@@ -220,7 +220,7 @@
                   </ng-container>
                   
                   <ng-container matColumnDef="scheduledDate">
-                    <th mat-header-cell *matHeaderCellDef>Scheduled Date</th>
+                    <th mat-header-cell *matHeaderCellDef>Date Programmée</th>
                     <td mat-cell *matCellDef="let callback">
                       {{ formatCallbackDate(callback.scheduledDate) }}
                     </td>
@@ -232,10 +232,10 @@
                   </ng-container>
                   
                   <ng-container matColumnDef="status">
-                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                    <th mat-header-cell *matHeaderCellDef>Statut</th>
                     <td mat-cell *matCellDef="let callback">
                       <mat-chip [color]="callback.status === 'SCHEDULED' ? 'primary' : 'accent'" selected>
-                        {{ callback.status }}
+                        {{ callback.status === 'SCHEDULED' ? 'PROGRAMMÉ' : (callback.status === 'COMPLETED' ? 'TERMINÉ' : callback.status) }}
                       </mat-chip>
                     </td>
                   </ng-container>
@@ -246,13 +246,13 @@
                       <button mat-icon-button color="primary" 
                               [disabled]="callback.status !== 'SCHEDULED'"
                               (click)="completeCallback(callback.id)" 
-                              matTooltip="Mark as completed">
+                              matTooltip="Marquer comme terminé">
                         <i-tabler name="check" class="icon-18"></i-tabler>
                       </button>
-                      <button mat-icon-button color="warn" 
+                      <button mat-icon-button color="warn"
                               [disabled]="callback.status !== 'SCHEDULED'"
-                              (click)="cancelCallback(callback.id)" 
-                              matTooltip="Cancel callback">
+                              (click)="cancelCallback(callback.id)"
+                              matTooltip="Annuler le rappel">
                         <i-tabler name="x" class="icon-18"></i-tabler>
                       </button>
                     </td>
@@ -264,16 +264,16 @@
                 
                 <!-- No data message -->
                 <div *ngIf="allCallbacks.data.length === 0" class="text-center p-5">
-                  <mat-icon class="text-muted" style="font-size: 48px;">event_note</mat-icon>
-                  <h5 class="mt-2">No callbacks found</h5>
-                  <p class="text-muted">Schedule callbacks from ticket details to see them here</p>
+                  <mat-icon class="text-muted" style="font-size: 48px;">phone_callback</mat-icon>
+                  <h5 class="mt-2">Aucun rappel trouvé</h5>
+                  <p class="text-muted">Les rappels apparaîtront ici une fois créés</p>
                 </div>
               </div>
               
               <!-- Loading spinner -->
               <div *ngIf="isLoadingAll" class="text-center p-5">
                 <mat-spinner diameter="40" class="m-auto"></mat-spinner>
-                <p class="mt-2">Loading callbacks...</p>
+                <p class="mt-2">Chargement des rappels...</p>
               </div>
               
               <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>

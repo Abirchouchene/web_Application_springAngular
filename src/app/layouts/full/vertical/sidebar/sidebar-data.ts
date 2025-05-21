@@ -15,54 +15,24 @@ export const navItems: NavItem[] = [
     navCap: 'Apps',
   },
   {
-    displayName: 'Reports',
+    displayName: 'Rapports',
     iconName: 'file-report',
     bgcolor: 'info',
     route: 'apps/reports',
     children: [
       {
-        displayName: 'Report List',
+        displayName: 'Liste des Rapports',
         iconName: 'point',
         bgcolor: 'tranparent',
         route: 'apps/reports/list',
       },
       {
-        displayName: 'Generate Report',
+        displayName: 'Générer Rapport',
         iconName: 'point',
         bgcolor: 'tranparent',
         route: 'apps/reports/generate',
       }
     ],
-  },
-  {
-    displayName: 'Chat',
-    iconName: 'message-2',
-    bgcolor: 'warning',
-    route: 'apps/chat',
-  },
-  {
-    displayName: 'test',
-    iconName: 'message-2',
-    bgcolor: 'warning',
-    route: 'apps/chat',
-  },
-  {
-    displayName: 'Calendar',
-    iconName: 'calendar-event',
-    bgcolor: 'success',
-    route: 'apps/calendar',
-  },
-  {
-    displayName: 'Email',
-    iconName: 'mail',
-    bgcolor: 'error',
-    route: 'apps/email/inbox',
-  },
-  {
-    displayName: 'Kanban',
-    iconName: 'checklist',
-    bgcolor: 'warning',
-    route: 'apps/kanban',
   },
   {
     displayName: 'Contacts',
@@ -71,7 +41,7 @@ export const navItems: NavItem[] = [
     route: 'apps/contacts',
   },
   {
-    displayName: 'Contact List',
+    displayName: 'Liste des Contacts',
     iconName: 'phone',
     bgcolor: 'error',
     route: 'apps/contact-list',
@@ -80,22 +50,10 @@ export const navItems: NavItem[] = [
     chipContent: 'New',
   },
   {
-    displayName: 'Courses',
-    iconName: 'certificate',
-    bgcolor: 'secondary',
-    route: 'apps/courses',
-  },
-  {
-    displayName: 'Manager Requests ',
+    displayName: 'Demandes du Manager',
     iconName: 'brand-ctemplar',
     bgcolor: 'warning',
     route: 'apps/request-manager',
-  },
-  {
-    displayName: 'Notes',
-    iconName: 'note',
-    bgcolor: 'success',
-    route: 'apps/notes',
   },
   {
     displayName: 'Tickets',
@@ -104,67 +62,40 @@ export const navItems: NavItem[] = [
     route: 'apps/tickets',
   },
   {
-    displayName: 'Callbacks',
+    displayName: 'Rappels',
     iconName: 'phone-calling',
     bgcolor: 'success',
     route: 'apps/callbacks',
   },
   {
-    displayName: 'Request List',
+    displayName: 'Liste des Demandes',
     iconName: 'file-invoice',
     bgcolor: 'primary',
     route: '',
     children: [
       {
-        displayName: 'List',
+        displayName: 'Liste',
         iconName: 'point',
         bgcolor: 'tranparent',
         route: '/apps/invoice',
       },
       {
-        displayName: 'Detail',
+        displayName: 'Détail',
         iconName: 'point',
         bgcolor: 'tranparent',
         route: '/apps/viewInvoice/101',
       },
       {
-        displayName: 'Create',
+        displayName: 'Créer',
         iconName: 'point',
         bgcolor: 'tranparent',
         route: '/apps/addInvoice',
       },
       {
-        displayName: 'Edit',
+        displayName: 'Modifier',
         iconName: 'point',
         bgcolor: 'tranparent',
         route: '/apps/editinvoice/101',
-      },
-    ],
-  },
-  {
-    displayName: 'ToDo',
-    iconName: 'edit',
-    bgcolor: 'secondary',
-    route: 'apps/todo',
-  },
-  {
-    displayName: 'Blog',
-    iconName: 'chart-donut-3',
-    bgcolor: 'success',
-    route: 'apps/blog',
-    children: [
-      {
-        displayName: 'Post',
-        iconName: 'point',
-        bgcolor: 'tranparent',
-        route: 'apps/blog/post',
-      },
-      {
-        displayName: 'Detail',
-        iconName: 'point',
-        bgcolor: 'tranparent',
-        route:
-          'apps/blog/detail/Early Black Friday Amazon deals: cheap TVs, headphones, laptops',
       },
     ],
   },

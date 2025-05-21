@@ -11,47 +11,47 @@
                 <div class="section-icon me-3">
                   <i-tabler name="file-description" class="icon-28"></i-tabler>
                 </div>
-                <h3 class="section-title m-0">Request Information</h3>
+                <h3 class="section-title m-0">Informations de la Demande</h3>
               </div>
               
               <div class="row g-4">
                 <div class="col-md-4">
                   <mat-form-field appearance="outline" class="w-100">
-                    <mat-label>Request Type</mat-label>
+                    <mat-label>Type de Demande</mat-label>
                     <mat-select formControlName="requestType">
                       <mat-option *ngFor="let type of requestTypes" [value]="type">{{ type }}</mat-option>
                     </mat-select>
-                    <mat-hint>Select the type of request</mat-hint>
+                    <mat-hint>Sélectionnez le type de demande</mat-hint>
                   </mat-form-field>
                 </div>
 
                 <div class="col-md-4">
                   <mat-form-field appearance="outline" class="w-100">
-                    <mat-label>Category</mat-label>
+                    <mat-label>Catégorie</mat-label>
                     <mat-select formControlName="category">
                       <mat-option *ngFor="let category of categoryRequests" [value]="category">{{ category }}</mat-option>
                     </mat-select>
-                    <mat-hint>Choose a category for your request</mat-hint>
+                    <mat-hint>Choisissez une catégorie pour votre demande</mat-hint>
                   </mat-form-field>
                 </div>
 
                 <div class="col-md-4">
                   <mat-form-field appearance="outline" class="w-100">
-                    <mat-label>Priority Level</mat-label>
+                    <mat-label>Niveau de Priorité</mat-label>
                     <mat-select formControlName="priorityLevel">
                       <mat-option *ngFor="let priority of priorityLevels" [value]="priority">{{ priority }}</mat-option>
                     </mat-select>
-                    <mat-hint>Set the urgency level</mat-hint>
+                    <mat-hint>Définissez le niveau d'urgence</mat-hint>
                   </mat-form-field>
                 </div>
 
                 <div class="col-md-6">
                   <mat-form-field appearance="outline" class="w-100">
-                    <mat-label>Deadline</mat-label>
-                    <input matInput [matDatepicker]="picker" formControlName="deadline" placeholder="Choose a date" />
+                    <mat-label>Date Limite</mat-label>
+                    <input matInput [matDatepicker]="picker" formControlName="deadline" placeholder="Choisissez une date" />
                     <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
                     <mat-datepicker #picker></mat-datepicker>
-                    <mat-hint>Select the completion deadline</mat-hint>
+                    <mat-hint>Sélectionnez la date limite d'achèvement</mat-hint>
                   </mat-form-field>
                 </div>
               </div>
@@ -68,8 +68,8 @@
               
               <mat-form-field appearance="outline" class="w-100">
                 <mat-label>Description</mat-label>
-                <textarea matInput formControlName="description" rows="4" placeholder="Provide detailed information about your request"></textarea>
-                <mat-hint>Be specific and include all relevant details</mat-hint>
+                <textarea matInput formControlName="description" rows="4" placeholder="Fournissez des informations détaillées sur votre demande"></textarea>
+                <mat-hint>Soyez précis et incluez tous les détails pertinents</mat-hint>
               </mat-form-field>
             </div>
 
@@ -80,11 +80,11 @@
                   <div class="section-icon me-3">
                     <i-tabler name="list-numbers" class="icon-28"></i-tabler>
                   </div>
-                  <h3 class="section-title m-0">Statistics Questions</h3>
+                  <h3 class="section-title m-0">Questions Statistiques</h3>
                 </div>
                 <button mat-flat-button color="primary" type="button" (click)="addNewQuestion()">
                   <i-tabler name="plus" class="icon-20 me-2"></i-tabler>
-                  Add Question
+                  Ajouter Question
                 </button>
               </div>
 
@@ -109,7 +109,7 @@
 
                     <div class="col-md-1 d-flex align-items-center justify-content-end">
                       <button mat-icon-button color="warn" type="button" (click)="removeNewQuestion(i)"
-                              matTooltip="Remove Question">
+                              matTooltip="Supprimer la Question">
                         <i-tabler name="trash" class="icon-20"></i-tabler>
                       </button>
                     </div>
@@ -124,17 +124,17 @@
                 <div class="section-icon me-3">
                   <i-tabler name="users" class="icon-28"></i-tabler>
                 </div>
-                <h3 class="section-title m-0">Select Contacts</h3>
+                <h3 class="section-title m-0">Sélectionner des Contacts</h3>
               </div>
 
               <div class="row g-3 mb-4">
                 <div class="col-md-6">
                   <mat-form-field appearance="outline" class="w-100">
-                    <mat-label>Search Contacts by Tag</mat-label>
+                    <mat-label>Rechercher des Contacts par Tag</mat-label>
                     <input matInput [(ngModel)]="searchTag" 
                            (keyup.enter)="fetchContactsByTag()" 
                            [ngModelOptions]="{ standalone: true }"
-                           placeholder="Enter tag and press Enter" />
+                           placeholder="Entrez un tag et appuyez sur Entrée" />
                     <mat-icon matSuffix>search</mat-icon>
                   </mat-form-field>
                 </div>
@@ -143,13 +143,13 @@
                   <button mat-flat-button color="primary" type="button" (click)="fetchContactsByTag()"
                           class="flex-grow-1">
                     <i-tabler name="search" class="icon-20 me-2"></i-tabler>
-                    Search
+                    Rechercher
                   </button>
 
                   <button mat-flat-button color="accent" type="button" (click)="openAddContactDialog()"
                           class="flex-grow-1">
                     <i-tabler name="user-plus" class="icon-20 me-2"></i-tabler>
-                    Add New Contact
+                    Ajouter Nouveau Contact
                   </button>
                 </div>
               </div>
@@ -178,7 +178,7 @@
                       [disabled]="requestForm.invalid"
                       class="px-5">
                 <i-tabler name="send" class="icon-20 me-2"></i-tabler>
-                Submit Request
+                Soumettre la Demande
               </button>
             </div>
 

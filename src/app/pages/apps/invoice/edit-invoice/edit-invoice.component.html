@@ -18,7 +18,7 @@
               mat-flat-button
               class="bg-error text-white m-r-10"
             >
-              Cancel
+              Annuler
             </a>
 
             <button
@@ -26,7 +26,7 @@
               color="primary"
               (click)="saveDetail($event)"
             >
-              Save Invoice
+              Enregistrer la Facture
             </button>
           </div>
         </div>
@@ -35,18 +35,18 @@
 
         <div class="row p-y-24 justify-content-between">
           <div class="col-sm-4">
-            <span class="f-w-600 f-s-15 d-block m-b-8"> Order Status: </span>
+            <span class="f-w-600 f-s-15 d-block m-b-8"> Statut de la Commande: </span>
             <mat-form-field appearance="outline" class="w-100 theme-select">
               <mat-select name="satus" [(ngModel)]="invoice().status">
-                <mat-option value="Pending"> Pending </mat-option>
-                <mat-option value="Shipped"> Shipped </mat-option>
-                <mat-option value="Delivered"> Delivered </mat-option>
+                <mat-option value="Pending"> En attente </mat-option>
+                <mat-option value="Shipped"> Expédié </mat-option>
+                <mat-option value="Delivered"> Livré </mat-option>
               </mat-select>
             </mat-form-field>
           </div>
           <div class="col-sm-6 d-flex align-items-center justify-content-end">
             <div class="text-right">
-              <span class="f-w-600 f-s-15 d-block m-b-8"> Order Date </span>
+              <span class="f-w-600 f-s-15 d-block m-b-8"> Date de Commande </span>
               <h6
                 name="date"
                 class="m-t-5 m-b-0 f-w-500 f-s-14 f-s-16"
@@ -64,10 +64,10 @@
         <div class="row m-y-24 p-t-24">
           <div class="col-sm-6">
             <mat-form-field appearance="outline" class="w-100">
-              <mat-label>Bill From</mat-label>
+              <mat-label>Facturé De</mat-label>
               <input
                 matInput
-                placeholder="Bill From"
+                placeholder="Facturé De"
                 name="from"
                 [(ngModel)]="invoice().billFrom"
               />
@@ -75,10 +75,10 @@
           </div>
           <div class="col-sm-6">
             <mat-form-field appearance="outline" class="w-100">
-              <mat-label>Bill To</mat-label>
+              <mat-label>Facturé À</mat-label>
               <input
                 matInput
-                placeholder="Bill To"
+                placeholder="Facturé À"
                 name="to"
                 [(ngModel)]="invoice().billTo"
               />
@@ -86,10 +86,10 @@
           </div>
           <div class="col-sm-6">
             <mat-form-field appearance="outline" class="w-100">
-              <mat-label>Enter From Address</mat-label>
+              <mat-label>Entrer l'Adresse d'Origine</mat-label>
               <input
                 matInput
-                placeholder="Enter From Address"
+                placeholder="Entrer l'Adresse d'Origine"
                 name="fromAddress"
                 [(ngModel)]="invoice().billFromAddress"
               />
@@ -97,10 +97,10 @@
           </div>
           <div class="col-sm-6">
             <mat-form-field appearance="outline" class="w-100">
-              <mat-label>Bill From</mat-label>
+              <mat-label>Adresse de Destination</mat-label>
               <input
                 matInput
-                placeholder="Enter To Address"
+                placeholder="Entrer l'Adresse de Destination"
                 name="toAddress"
                 [(ngModel)]="invoice().billToAddress"
               />
@@ -120,10 +120,10 @@
           <thead>
             <tr>
               <th class="p-16">#</th>
-              <th class="p-16">Item Name</th>
-              <th class="p-16">Unit Price</th>
-              <th class="p-16">Units</th>
-              <th class="p-16">Unit Total Price</th>
+              <th class="p-16">Nom de l'Article</th>
+              <th class="p-16">Prix Unitaire</th>
+              <th class="p-16">Unités</th>
+              <th class="p-16">Prix Total</th>
               <th class="p-16"></th>
             </tr>
           </thead>
@@ -141,7 +141,7 @@
                     type="text"
                     [id]="'txtNameControl' + i"
                     class="form-control"
-                    placeholder="Enter Item Name"
+                    placeholder="Entrer le Nom de l'Article"
                     formControlName="itemName"
                     (input)="itemsChanged()"
                   />
@@ -154,7 +154,7 @@
                     type="number"
                     [id]="'txtCostControl' + i"
                     class="form-control"
-                    placeholder="Enter Item Price"
+                    placeholder="Entrer le Prix"
                     formControlName="itemCost"
                     (input)="itemsChanged()"
                   />
@@ -167,7 +167,7 @@
                     type="number"
                     [id]="'txtTotalControl' + i"
                     class="form-control"
-                    placeholder="Enter Item"
+                    placeholder="Entrer la Quantité"
                     formControlName="itemSold"
                     (input)="itemsChanged()"
                   />
@@ -224,14 +224,14 @@
         <div class="text-right m-t-30">
           @if(addForm.get('rows')) {
           <button color="accent" mat-flat-button [disabled]="addForm.invalid">
-            Add row
+            Ajouter une ligne
           </button>
           }
 
-          <h5 class="m-b-5 f-w-600 f-s-16">Sub total: {{ subTotal() }}</h5>
-          <h5 class="f-w-600 f-s-16 m-b-24">Total Vat: {{ vat() }}%</h5>
+          <h5 class="m-b-5 f-w-600 f-s-16">Sous-total: {{ subTotal() }}</h5>
+          <h5 class="f-w-600 f-s-16 m-b-24">TVA Total: {{ vat() }}%</h5>
           <mat-divider></mat-divider>
-          <h3 class="m-b-0 p-t-20 f-s-18">Grand Total: {{ grandTotal() }}</h3>
+          <h3 class="m-b-0 p-t-20 f-s-18">Total Général: {{ grandTotal() }}</h3>
         </div>
       </div>
     </form>

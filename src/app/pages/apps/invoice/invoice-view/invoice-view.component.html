@@ -6,11 +6,11 @@
       <div class="row m-b-24">
         <div class="col-sm-4 d-flex align-items-center">
           <h4 class="f-s-14 f-s-18 f-w-600">
-            Request #{{ requestDetail()?.id }}
+            Demande #{{ requestDetail()?.id }}
           </h4>
         </div>
         <div class="col-sm-8 text-right">
-          <a routerLink="/apps/tickets" mat-stroked-button class="m-r-10">Back to Requests</a>
+          <a routerLink="/apps/tickets" mat-stroked-button class="m-r-10">Retour aux Demandes</a>
         </div>
       </div>
 
@@ -18,13 +18,13 @@
 
       <div class="row p-y-24">
         <div class="col-sm-6">
-          <span class="f-w-600 f-s-15"> Request Status: </span>
+          <span class="f-w-600 f-s-15"> Statut de la Demande: </span>
           <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
             {{ requestDetail()?.status }}
           </h6>
         </div>
         <div class="col-sm-6 text-right">
-          <span class="f-w-600 f-s-15"> Creation Date: </span>
+          <span class="f-w-600 f-s-15"> Date de Création: </span>
           <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
             {{ requestDetail()?.createdAt | date : 'fullDate' }}
           </h6>
@@ -36,16 +36,16 @@
       <!-- Agent Selection Section -->
       <div class="row p-y-24">
         <div class="col-sm-6">
-          <span class="f-w-600 f-s-15"> Select Agent: </span>
+          <span class="f-w-600 f-s-15"> Sélectionner un Agent: </span>
 
           <!-- Filter Buttons -->
           <div class="m-b-10">
-            <button mat-button color="primary" (click)="loadAvailableAgents()">Available Agents</button>
-            <button mat-button color="accent" (click)="loadAgents()">All Agents</button>
+            <button mat-button color="primary" (click)="loadAvailableAgents()">Agents Disponibles</button>
+            <button mat-button color="accent" (click)="loadAgents()">Tous les Agents</button>
           </div>
 
           <mat-form-field appearance="fill">
-            <mat-label>Select an agent</mat-label>
+            <mat-label>Sélectionner un agent</mat-label>
             <mat-select
               [value]="selectedAgentId()" 
               (selectionChange)="selectedAgentId.set($event.value)"
@@ -58,7 +58,7 @@
           
 
           <div class="text-right m-t-10">
-            <button mat-flat-button color="primary" (click)="assignAgent()">Assign Agent</button>
+            <button mat-flat-button color="primary" (click)="assignAgent()">Assigner l'Agent</button>
           </div>
 
         </div>

@@ -5,7 +5,7 @@
         <mat-form-field appearance="outline" class="w-100 hide-hint">
           <input
             matInput
-            placeholder="Search here..."
+            placeholder="Rechercher ici..."
             (keyup)="applyFilter($event)"
           />
           <mat-icon matSuffix>
@@ -13,12 +13,12 @@
           </mat-icon>
         </mat-form-field>
         @if(contacts().length === 0){
-        <p>No contacts available.</p>
+        <p>Aucun contact disponible.</p>
         }
       </div>
       <div class="col-sm-6 d-flex align-items-center justify-content-end">
         <button mat-flat-button (click)="openDialog('Add', {})" color="primary">
-          Add Contact
+          Ajouter Contact
         </button>
       </div>
     </div>
@@ -45,11 +45,11 @@
           <div class="d-flex gap-8 justify-content-center">
             <button mat-flat-button>Chat</button>
             <button mat-flat-button class="bg-secondary text-white">
-              Follow
+              Suivre
             </button>
           </div>
           <span class="f-s-14"> {{ contact.contactadd }}</span>
-          <span class="f-s-14"> Mo: {{ contact.contactno }}</span>
+          <span class="f-s-14"> Tél: {{ contact.contactno }}</span>
         </div>
       </mat-card-content>
       <mat-divider></mat-divider>

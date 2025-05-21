@@ -89,102 +89,64 @@ export class FullComponent implements OnInit {
   // for mobile app sidebar
   apps: apps[] = [
     {
-      id: 1,
-      img: '/assets/images/svgs/icon-dd-chat.svg',
-      title: 'Chat Application',
-      subtitle: 'Messages & Emails',
-      link: '/apps/chat',
-    },
-    {
       id: 2,
       img: '/assets/images/svgs/icon-dd-cart.svg',
-      title: 'eCommerce App',
-      subtitle: 'Buy a Product',
+      title: 'Application E-commerce',
+      subtitle: 'Acheter un Produit',
       link: '/apps/email/inbox',
     },
     {
       id: 3,
       img: '/assets/images/svgs/icon-dd-invoice.svg',
-      title: 'Invoice App',
-      subtitle: 'Get latest invoice',
+      title: 'Application de Factures',
+      subtitle: 'Dernières factures',
       link: '/apps/invoice',
-    },
-    {
-      id: 4,
-      img: '/assets/images/svgs/icon-dd-date.svg',
-      title: 'Calendar App',
-      subtitle: 'Get Dates',
-      link: '/apps/calendar',
     },
     {
       id: 5,
       img: '/assets/images/svgs/icon-dd-mobile.svg',
-      title: 'Contact Application',
-      subtitle: '2 Unsaved Contacts',
+      title: 'Application de Contacts',
+      subtitle: '2 Contacts non enregistrés',
       link: '/apps/contacts',
     },
     {
       id: 6,
       img: '/assets/images/svgs/icon-dd-lifebuoy.svg',
-      title: 'Tickets App',
-      subtitle: 'Create new ticket',
+      title: 'Application de Tickets',
+      subtitle: 'Créer un nouveau ticket',
       link: '/apps/tickets',
-    },
-    {
-      id: 7,
-      img: '/assets/images/svgs/icon-dd-message-box.svg',
-      title: 'Email App',
-      subtitle: 'Get new emails',
-      link: '/apps/email/inbox',
-    },
-    {
-      id: 8,
-      img: '/assets/images/svgs/icon-dd-application.svg',
-      title: 'Courses',
-      subtitle: 'Create new course',
-      link: '/apps/courses',
     }
   ];
 
   quicklinks: quicklinks[] = [
     {
       id: 1,
-      title: 'Pricing Page',
+      title: 'Page de Prix',
       link: '/theme-pages/pricing',
     },
     {
       id: 2,
-      title: 'Authentication Design',
+      title: 'Conception d\'Authentification',
       link: '/authentication/login',
     },
     {
       id: 3,
-      title: 'Register Now',
+      title: 'S\'Inscrire Maintenant',
       link: '/authentication/side-register',
     },
     {
       id: 4,
-      title: '404 Error Page',
+      title: 'Page d\'Erreur 404',
       link: '/authentication/error',
     },
     {
-      id: 5,
-      title: 'Notes App',
-      link: '/apps/notes',
-    },
-    {
       id: 6,
-      title: 'Employee App',
+      title: 'Application Employés',
       link: '/apps/employee',
     },
     {
-      id: 7,
-      title: 'Todo Application',
-      link: '/apps/todo',
-    },
-    {
       id: 8,
-      title: 'Treeview',
+      title: 'Arborescence',
       link: '/theme-pages/treeview',
     },
   ];

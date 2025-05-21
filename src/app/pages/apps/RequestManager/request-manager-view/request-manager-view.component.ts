@@ -39,7 +39,7 @@ import { signal } from '@angular/core'; // Or another correct import for signals
       this.activatedRouter.params.subscribe((params) => {
         this.id.set(+params['id']);
         this.loadRequestDetail();
-        this.loadAgentAvailability(); // Get agent availability directly
+        this.loadAgentAvailability(this.selectedDate());
       });
     }
   
