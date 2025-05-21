@@ -39,4 +39,7 @@ public class User implements Serializable {
     @JsonManagedReference
 
     private List<Callback> callbacks = new ArrayList<>();
+    @OneToMany(mappedBy = "agent")
+    private  List<Notification>notifications;
+
 }

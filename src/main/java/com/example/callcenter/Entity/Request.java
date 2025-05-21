@@ -76,8 +76,8 @@ public class Request implements Serializable {
 
     @ManyToMany
     private  Set<Logs>logs;
-    @ManyToMany
-    private  Set<Report>reports;
+    @OneToOne
+    private Report report;
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
 
     private List<Callback> callbacks = new ArrayList<>();
