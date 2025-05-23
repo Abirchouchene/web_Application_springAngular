@@ -36,10 +36,10 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    @JsonIgnore
+
 
     private Set<Permission> permissions = new HashSet<>();
-@JsonIgnore
+    @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return permissions.stream()
                 .map(permission -> new SimpleGrantedAuthority(permission.getNom()))

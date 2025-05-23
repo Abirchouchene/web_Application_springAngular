@@ -3,6 +3,8 @@ package com.abirch.security.controller;
 import com.abirch.security.service.RoleService;
 import com.abirch.security.user.Role;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,13 +22,10 @@ public class RoleController {
     }
 
     @PostMapping
-    public Role createRole(@RequestBody Role role) {
-        return roleService.createRole(role);
+    public ResponseEntity<Role> createRole(@RequestBody Role role) {
+        Role created = roleService.createRole(role);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{id}/permission")
-    public Role addPermissionsToRole(@PathVariable Integer id, @RequestBody List<Integer> permissionIds) {
-        return roleService.assignPermissions(id, permissionIds);
-    }
 }
 

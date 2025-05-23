@@ -1,24 +1,22 @@
-# Étape 1 : builder
-FROM maven:3.9.6-eclipse-temurin-17 AS builder
-
+# Étape 1 : Build avec Maven
+FROM maven:3.9.3-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copier les fichiers du projet
-COPY pom.xml .
-COPY src ./src
+# Copier tous les fichiers du projet
+COPY . .
 
-# Compiler le projet et générer le .jar
+# Construire le projet
 RUN mvn clean package -DskipTests
 
-# Étape 2 : image de runtime
+# Étape 2 : Exécuter avec JDK 17
 FROM eclipse-temurin:17-jdk-alpine
-
+VOLUME /tmp
 WORKDIR /app
 
-# Copier le .jar généré depuis l'étape précédente
-COPY --from=builder /app/target/*.jar app.jar
+# Copier le jar depuis l'étape précédente
+COPY --from=build /app/target/security-0.0.1-SNAPSHOT.jar app.jar
 
-# Exposer le port (adapter selon ton application)
+# Exposer le port
 EXPOSE 8080
 
 # Lancer l'application

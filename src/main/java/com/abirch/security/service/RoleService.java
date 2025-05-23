@@ -8,14 +8,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RoleService {
 
     private final RoleRepository roleRepository;
-    private final PermissionRepository permissionRepository;
+    private final PermissionService permissionService;
+
     private final AuditService auditService;
 
     private String getCurrentUserEmail() {
@@ -30,22 +35,24 @@ public class RoleService {
         return roleRepository.findAll();
     }
 
-    public Role createRole(Role role) {
-        String userEmail = getCurrentUserEmail();
-       if (userEmail != null) {
-            auditService.logAction(userEmail, "Création du rôle : " + role.getNom());
-        }
-        return roleRepository.save(role);
+    public Role createRole(Role roleInput) {
+        // Extraire les IDs de permission reçus dans le JSON
+        Set<Long> permissionIds = roleInput.getPermissions()
+                .stream()
+                .map(Permission::getId)
+                .collect(Collectors.toSet());
+
+        // Charger les vraies entités Permission depuis la base
+        Set<Permission> permissions = permissionService.getPermissionsByIds(permissionIds);
+
+        // Construire le rôle avec les vraies permissions
+        Role roleToSave = Role.builder()
+                .nom(roleInput.getNom())
+                .description(roleInput.getDescription())
+                .permissions(permissions)
+                .build();
+
+        return roleRepository.save(roleToSave);
     }
 
-    public Role assignPermissions(Integer roleId, List<Integer> permissionIds) {
-        Role role = roleRepository.findById(roleId).orElseThrow();
-        List<Permission> permissions = permissionRepository.findAllById(permissionIds);
-        role.getPermissions().addAll(permissions);
-        String userEmail = getCurrentUserEmail();
-        if (userEmail != null) {
-            auditService.logAction(userEmail, "Assignation de permissions au rôle : " + role.getNom());
-        }
-        return roleRepository.save(role);
-    }
 }
