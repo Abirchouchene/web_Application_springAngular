@@ -1,5 +1,7 @@
 package com.abirch.security.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,6 +13,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -56,13 +59,21 @@ public class User implements UserDetails {
   private Role role;
 
   @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL)
+  @JsonManagedReference
+
   private List<HistoriqueAction> actions;
 
   // Spring Security UserDetails implementation
   @Override
+  @JsonIgnore
+
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return role != null ? role.getAuthorities() : List.of();
+    if (role == null || role.getNom() == null) {
+      return List.of(); // ou retourner un rôle par défaut si besoin
+    }
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.getNom()));
   }
+
 
   @Override
   public String getPassword() {

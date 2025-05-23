@@ -14,7 +14,7 @@ import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
+//classe responsable pour la generation de token et claim jwt
 @Service
 public class JwtService {
 

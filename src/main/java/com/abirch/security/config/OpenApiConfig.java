@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.annotations.servers.Server;
-
+//specificarion de swagger
 @OpenAPIDefinition(
         info = @Info(
                 contact = @Contact(
@@ -22,7 +22,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
                 version = "1.0",
                 license = @License(
                         name = "Licence name",
-                        url = "https://some-url.com"
+                       url = "https://some-url.com"
                 ),
                 termsOfService = "Terms of service"
         ),

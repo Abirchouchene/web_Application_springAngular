@@ -31,6 +31,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
 
 @Configuration
 @RequiredArgsConstructor
+// pour autoriser le fronteder d'acceder a le backend
 public class ApplicationConfig {
 
   private final UserRepository repository;
@@ -56,27 +57,16 @@ public class ApplicationConfig {
 
   @Bean
   public CorsFilter corsFilter() {
-    final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    final CorsConfiguration config = new CorsConfiguration();
+    CorsConfiguration config = new CorsConfiguration();
     config.setAllowCredentials(true);
     config.setAllowedOrigins(Collections.singletonList("http://localhost:4200"));
-    config.setAllowedHeaders(Arrays.asList(
-            ORIGIN,
-            CONTENT_TYPE,
-            ACCEPT,
-            AUTHORIZATION
-    ));
-    config.setAllowedMethods(Arrays.asList(
-            GET.name(),
-            POST.name(),
-            DELETE.name(),
-            PUT.name(),
-            PATCH.name()
-    ));
+    config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization"));
+    config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", config);
     return new CorsFilter(source);
-
   }
+
 
   @Bean
   public PasswordEncoder passwordEncoder() {

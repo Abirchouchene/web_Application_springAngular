@@ -114,11 +114,12 @@ public class AuthenticationService {
                 .mfaEnabled(user.isMfaEnabled())
                 .build();
     }
-
+// methode pour regenerer un token deja existee
     public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         final String refreshToken;
         final String userEmail;
+
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return;

@@ -1,4 +1,5 @@
 package com.abirch.security.user;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,8 +36,10 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private Set<Permission> permissions = new HashSet<>();
+    @JsonIgnore
 
+    private Set<Permission> permissions = new HashSet<>();
+@JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return permissions.stream()
                 .map(permission -> new SimpleGrantedAuthority(permission.getNom()))

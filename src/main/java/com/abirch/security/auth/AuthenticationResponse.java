@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
+//mtaa register
+// respomse pour prouver que register et login son juste
 public class AuthenticationResponse {
 
   private String accessToken;

@@ -24,7 +24,7 @@ public class RoleController {
         return roleService.createRole(role);
     }
 
-    @PutMapping("/{id}/permissions")
+    @PutMapping("/{id}/permission")
     public Role addPermissionsToRole(@PathVariable Integer id, @RequestBody List<Integer> permissionIds) {
         return roleService.assignPermissions(id, permissionIds);
     }

@@ -3,7 +3,7 @@ package com.abirch.security.controller;
 import com.abirch.security.service.UserService;
 import com.abirch.security.user.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.*; // responsable de Request mapping
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping
+    @GetMapping // recupere les utilisateurs
     public List<User> getAllUsers() {
         return userService.getAllUsers();
     }

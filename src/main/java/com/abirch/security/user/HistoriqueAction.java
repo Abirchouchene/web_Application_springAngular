@@ -1,5 +1,6 @@
 package com.abirch.security.user;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +16,7 @@ public class HistoriqueAction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     private String action;
 
@@ -23,5 +24,7 @@ public class HistoriqueAction {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonBackReference
+
     private User utilisateur;
 }
