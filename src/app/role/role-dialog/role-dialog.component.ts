@@ -4,60 +4,53 @@ import {Permission} from "../../models/Permission";
 import {MAT_DIALOG_DATA, MatDialogRef} from "@angular/material/dialog";
 import {RoleService} from "../../services/role.service";
 import {PermissionService} from "../../services/permission.service";
+import {FormBuilder, FormGroup, Validators} from "@angular/forms";
+import {MatSnackBar} from "@angular/material/snack-bar";
 
 @Component({
   selector: 'app-role-dialog',
   templateUrl: './role-dialog.component.html',
   styleUrls: ['./role-dialog.component.scss']
 })
-  export class RoleDialogComponent implements OnInit {
-  roleForm: Role = { nom: '', description: '', permissions: [] };
+export class RoleDialogComponent implements OnInit {
+  role: Role = { nom: '', description: '', permissions: [] };
   permissions: Permission[] = [];
-  selectedPermissionIds: number[] = [];
+  selectedPermissions = new Set<number>();
 
   constructor(
-    private dialogRef: MatDialogRef<RoleDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: Role | null,
+    public dialogRef: MatDialogRef<RoleDialogComponent>,
     private roleService: RoleService,
-    private permissionService: PermissionService
+    private permissionService : PermissionService ,
+    @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
 
   ngOnInit(): void {
-    this.permissionService.getAllPermissions().subscribe(perms => {
-      this.permissions = perms;
-      if (this.data) {
-        this.roleForm = { ...this.data };
-        this.selectedPermissionIds = this.roleForm.permissions.map(p => p.id!);
-      }
+    this.permissionService.getAllPermissions().subscribe({
+      next: perms => {
+        this.permissions = perms;
+        console.log('Permissions chargées:', perms);
+      },
+      error: err => console.error('Erreur chargement permissions', err)
     });
   }
 
-  togglePermissionSelection(id: number) {
-    const index = this.selectedPermissionIds.indexOf(id);
-    if (index > -1) {
-      this.selectedPermissionIds.splice(index, 1);
+  onCheckboxChange(permissionId: number, selected: boolean) {
+    if (selected) {
+      this.selectedPermissions.add(permissionId);
     } else {
-      this.selectedPermissionIds.push(id);
+      this.selectedPermissions.delete(permissionId);
     }
   }
 
-  isPermissionSelected(id: number) {
-    return this.selectedPermissionIds.includes(id);
+  save(): void {
+    this.role.permissions = this.permissions.filter(p => this.selectedPermissions.has(p.id!));
+    this.roleService.createRole(this.role).subscribe({
+      next: role => this.dialogRef.close(role),
+      error: err => alert('Erreur lors de la création du rôle')
+    });
   }
 
-  save() {
-    this.roleForm.permissions = this.permissions.filter(p => this.selectedPermissionIds.includes(p.id!));
-
-    if (this.data) {
-      // Modifier rôle
-
-      // Ajouter rôle
-      this.roleService.createRole(this.roleForm).subscribe(() => this.dialogRef.close(true));
-    }
+  cancel(): void {
+    this.dialogRef.close();
   }
-
-  cancel() {
-    this.dialogRef.close(false);
-  }
-
 }

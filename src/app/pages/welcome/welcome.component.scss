@@ -38,6 +38,24 @@ a[mat-button] {
   margin-left: 10px;
   transition: background-color 0.3s;
 }
+.welcome-message {
+  margin-top: 80px;
+  text-align: center;
+  padding: 20px;
+  background-color: #e3f2fd;
+  border-bottom: 1px solid #ccc;
+}
+
+.welcome-message h1 {
+  font-size: 2rem;
+  color: #1976d2;
+  margin-bottom: 10px;
+}
+
+.welcome-message p {
+  font-size: 1.1rem;
+  color: #333;
+}
 
 a[mat-button]:hover {
   background-color: rgba(255, 255, 255, 0.2);

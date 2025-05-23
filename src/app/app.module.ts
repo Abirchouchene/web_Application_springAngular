@@ -31,6 +31,7 @@ import {MatCheckboxModule} from "@angular/material/checkbox";
 import {MatExpansionModule} from "@angular/material/expansion";
 import { RoleDialogComponent } from './role/role-dialog/role-dialog.component';
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
+import {MatFormFieldModule} from "@angular/material/form-field";
 
 @NgModule({
   declarations: [
@@ -58,7 +59,11 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
     MatSidenavModule,
     MatIconModule,
     MatDialogModule,
-    BrowserAnimationsModule, // 👈 Ajoute ceci !
+    BrowserAnimationsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+
+    FormsModule,// 👈 Ajoute ceci !
 
     MatListModule,
     MatButtonModule,

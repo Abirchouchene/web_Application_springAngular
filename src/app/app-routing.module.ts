@@ -8,6 +8,7 @@ import {UsersComponent} from "./components/users/users.component";
 import {RolesComponent} from "./components/roles/roles.component";
 import {PermissionsComponent} from "./components/permissions/permissions.component";
 import {AuditComponent} from "./components/audit/audit.component";
+import {NavbarComponent} from "./navbar/navbar.component";
 
 const routes: Routes = [
   { path: 'users', component: UsersComponent },
@@ -18,6 +19,10 @@ const routes: Routes = [
   {
     path: 'login',
     component: LoginComponent
+  },
+  {
+    path: 'Acceuil',
+    component: NavbarComponent
   },
   {
     path: 'register',

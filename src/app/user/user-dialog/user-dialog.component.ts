@@ -21,7 +21,6 @@ export class UserDialogComponent {
       firstname: [data?.firstname || '', Validators.required],
       lastname: [data?.lastname || ''],
       email: [data?.email || '', [Validators.required, Validators.email]],
-      role: [data?.role || null, Validators.required]
 
 
     });

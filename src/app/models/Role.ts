@@ -6,3 +6,4 @@ export interface Role {
   description: string;
   permissions: Permission[];
 }
+

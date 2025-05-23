@@ -1,16 +1,21 @@
 import { Injectable } from '@angular/core';
 import {HttpClient, HttpHeaders} from "@angular/common/http";
-import {Observable} from "rxjs";
+import {catchError, Observable, throwError} from "rxjs";
 import {Role} from "../models/Role";
 import {TokenStorageServiceService} from "./token-storage-service.service";
+import {Permission} from "../models/Permission";
 
 @Injectable({
   providedIn: 'root'
 })
 export class RoleService {
-  private baseUrl = 'http://localhost:8080/api/v1/roles';
+  private apiUrl = 'http://localhost:8080/api/v1/roles';
 
-  constructor(private http: HttpClient ,   private tokenStorage: TokenStorageServiceService) {}
+  constructor(
+    private http: HttpClient,
+    private tokenStorage: TokenStorageServiceService
+  ) {}
+
   private getAuthHeaders(): HttpHeaders {
     const token = this.tokenStorage.getToken();
     return new HttpHeaders({
@@ -19,17 +24,35 @@ export class RoleService {
     });
   }
 
-  getAllRoles(): Observable<Role[]> {
-    return this.http.get<Role[]>(this.baseUrl, { headers: this.getAuthHeaders() });
-  }
-
   createRole(role: Role): Observable<Role> {
-    return this.http.post<Role>(this.baseUrl, role, { headers: this.getAuthHeaders() });
+    return this.http.post<Role>(
+      this.apiUrl,
+      role,
+      { headers: this.getAuthHeaders() }
+    ).pipe(
+      catchError(error => {
+        console.error('Error creating role:', error);
+        return throwError(() => new Error('Failed to create role'));
+      })
+    );
   }
 
-  addPermissionsToRole(roleId: number, permissionIds: number[]): Observable<Role> {
-    return this.http.put<Role>(`${this.baseUrl}/${roleId}/permission`, permissionIds, { headers: this.getAuthHeaders() });
+  getAllRoles(): Observable<Role[]> {
+    return this.http.get<Role[]>(
+      this.apiUrl,
+      { headers: this.getAuthHeaders() }
+
+
+    );
   }
+
+  getPermissions(): Observable<Permission[]> {
+    return this.http.get<Permission[]>(
+      'http://localhost:8080/api/permissions',
+      { headers: this.getAuthHeaders() }
+    );
+  }
+
 }
 
 

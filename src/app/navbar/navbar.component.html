@@ -1,48 +1,6 @@
-<mat-sidenav-container class="sidenav-container">
-  <mat-sidenav mode="side" opened class="sidenav" fixedInViewport>
+<app-welcome></app-welcome>
 
-    <mat-toolbar color="primary" class="sidenav-header">
-      <mat-icon>dashboard</mat-icon>
-      <span class="ml-2">Admin Panel</span>
-    </mat-toolbar>
-
-    <mat-nav-list>
-      <h3 mat-subheader>Gestion</h3>
-
-      <mat-list-item routerLink="/users" routerLinkActive="active-link">
-        <mat-icon matListIcon>person</mat-icon>
-        <span matLine>Utilisateurs</span>
-      </mat-list-item>
-
-      <mat-list-item routerLink="/roles" routerLinkActive="active-link">
-        <mat-icon matListIcon>admin_panel_settings</mat-icon>
-        <span matLine>Rôles</span>
-      </mat-list-item>
-
-      <mat-list-item routerLink="/permissions" routerLinkActive="active-link">
-        <mat-icon matListIcon>lock</mat-icon>
-        <span matLine>Permissions</span>
-      </mat-list-item>
-
-      <mat-divider></mat-divider>
-
-      <h3 mat-subheader>Suivi</h3>
-
-      <mat-list-item routerLink="/audit" routerLinkActive="active-link">
-        <mat-icon matListIcon>history</mat-icon>
-        <span matLine>Historique</span>
-      </mat-list-item>
-    </mat-nav-list>
-
-  </mat-sidenav>
-
-  <mat-sidenav-content class="main-content">
-    <mat-toolbar color="primary">
-      <span>Tableau de bord</span>
-    </mat-toolbar>
-
-    <div class="content-wrapper">
-      <router-outlet></router-outlet>
-    </div>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+<div class="welcome-message">
+    <h1>Bienvenue sur la plateforme Web App</h1>
+    <p>Gérez vos utilisateurs, rôles, permissions et visualisez l'historique de façon simple et efficace.</p>
+</div>

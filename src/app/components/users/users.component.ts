@@ -23,8 +23,8 @@ export class UsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
-  }
 
+  }
 
   loadUsers(): void {
     this.userService.getAllUsers().subscribe({
@@ -57,7 +57,6 @@ export class UsersComponent implements OnInit {
         });
       }
     });
-
   }
 
   editUser(user: User): void {
@@ -80,7 +79,6 @@ export class UsersComponent implements OnInit {
         });
       }
     });
-
   }
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value.trim().toLowerCase();
@@ -95,9 +93,10 @@ export class UsersComponent implements OnInit {
           this.loadUsers();
         },
         error: () => {
-          this.snackBar.open('Erreur suppression', 'Fermer', { duration: 3000 });
+          this.snackBar.open('Erreur lors de la suppression', 'Fermer', { duration: 3000 });
         }
       });
     }
   }
+
 }
