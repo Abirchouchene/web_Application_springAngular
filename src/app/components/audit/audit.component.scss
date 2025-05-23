@@ -1,0 +1,29 @@
+.historique-container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 15px;
+  background: #fafafa;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.search-field {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+table {
+  width: 100%;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.error-message {
+  color: red;
+  text-align: center;
+  margin-top: 20px;
+}

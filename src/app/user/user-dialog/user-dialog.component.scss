@@ -1,0 +1,22 @@
+.dialog-title {
+  font-weight: 600;
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+}
+
+.dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 320px;
+  max-width: 420px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.dialog-actions {
+  margin-top: 20px;
+  gap: 10px;
+}

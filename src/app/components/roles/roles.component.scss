@@ -1,0 +1,30 @@
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.header-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.roles-accordion {
+  width: 100%;
+  margin-top: 15px;
+}
+
+.permissions-section {
+  margin: 10px 0;
+}
+
+mat-chip {
+  margin: 4px;
+}
+
+.edit-button {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}

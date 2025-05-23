@@ -1,0 +1,39 @@
+<app-welcome></app-welcome>
+<h2 class="title">Gestion des rôles</h2>
+
+
+<div class="header-bar">
+  <button mat-raised-button color="primary" (click)="openRoleDialog()">
+    <mat-icon>add</mat-icon> Ajouter un rôle
+  </button>
+</div>
+
+<mat-divider></mat-divider>
+
+<mat-accordion class="roles-accordion" multi>
+  <mat-expansion-panel *ngFor="let role of roles">
+    <mat-expansion-panel-header>
+      <mat-panel-title>
+        <strong>{{ role.nom }}</strong>
+      </mat-panel-title>
+      <mat-panel-description>
+        {{ role.description }}
+      </mat-panel-description>
+    </mat-expansion-panel-header>
+
+    <div class="permissions-section">
+      <p><strong>Permissions :</strong></p>
+      <mat-chip-list>
+        <mat-chip *ngFor="let p of role.permissions" color="accent" selected>
+          {{ p.nom }}
+        </mat-chip>
+      </mat-chip-list>
+    </div>
+
+    <div class="edit-button">
+      <button mat-mini-fab color="accent" aria-label="Modifier" (click)="openRoleDialog(role)">
+        <mat-icon>edit</mat-icon>
+      </button>
+    </div>
+  </mat-expansion-panel>
+</mat-accordion>

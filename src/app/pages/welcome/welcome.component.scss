@@ -1,0 +1,51 @@
+/* Navbar style */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 1000;
+  background: linear-gradient(to right, #1976d2, #42a5f5);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Logo */
+.logo {
+  width: 32px;
+  margin-right: 10px;
+}
+
+/* Titre */
+.title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* Espacement pour pousser les liens à droite */
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* Liens du menu */
+a[mat-button] {
+  color: white;
+  font-weight: 500;
+  margin-left: 10px;
+  transition: background-color 0.3s;
+}
+
+a[mat-button]:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* Contenu en dessous de la navbar */
+.content {
+  margin-top: 80px;
+  padding: 20px;
+}

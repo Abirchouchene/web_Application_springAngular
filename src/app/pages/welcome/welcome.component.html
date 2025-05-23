@@ -1,1 +1,14 @@
-<p>welcome works!</p>
+<mat-toolbar color="primary" class="navbar">
+  <img src="assets/angular-logo.png" alt="Logo" class="logo" />
+  <span class="title">Web App</span>
+  <span class="spacer"></span>
+  <a mat-button routerLink="/welcome">Accueil</a>
+  <a mat-button routerLink="/users">Utilisateurs</a>
+  <a mat-button routerLink="/audit">Historique</a>
+  <a mat-button routerLink="/roles">Roles</a>
+  <a mat-button routerLink="/permissions">Permissions</a>
+</mat-toolbar>
+
+<div class="content">
+  <router-outlet></router-outlet>
+</div>

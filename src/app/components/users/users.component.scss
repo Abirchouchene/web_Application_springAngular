@@ -1,0 +1,51 @@
+
+.user-container {
+  max-width: 2000px;
+  width: 180%;
+  margin: 30px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mat-table {
+  max-height: 600px;
+  overflow-y: auto;
+  display: block;
+}
+
+.mat-row, .mat-header-row {
+  height: 64px;
+  line-height: 64px;
+}
+
+.mat-cell, .mat-header-cell {
+  font-size: 16px;
+  padding: 16px;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-input {
+  width: 300px;
+}
+
+.actions-cell button {
+  margin-right: 5px;
+}
+
+mat-chip {
+  font-weight: 600;
+  font-size: 14px;
+}

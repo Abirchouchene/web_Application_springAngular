@@ -1,0 +1,32 @@
+<h1 mat-dialog-title>{{ data ? 'Modifier' : 'Ajouter' }} un rôle</h1>
+
+<div mat-dialog-content>
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Nom du rôle</mat-label>
+    <input matInput [(ngModel)]="roleForm.nom" required />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>Description</mat-label>
+    <textarea matInput [(ngModel)]="roleForm.description" rows="3"></textarea>
+  </mat-form-field>
+
+  <h3>Permissions</h3>
+  <mat-chip-list>
+    <mat-chip
+      *ngFor="let perm of permissions"
+      selectable="true"
+      [selected]="isPermissionSelected(perm.id!)"
+      (click)="togglePermissionSelection(perm.id!)"
+      color="primary"
+      class="permission-chip"
+    >
+      {{ perm.nom }}
+    </mat-chip>
+  </mat-chip-list>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-raised-button color="primary" (click)="save()">Enregistrer</button>
+</div>

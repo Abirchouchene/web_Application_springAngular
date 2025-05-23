@@ -1,0 +1,37 @@
+<h2 mat-dialog-title class="dialog-title">
+  {{ data ? 'Modifier' : 'Ajouter' }} un utilisateur
+</h2>
+
+<form [formGroup]="userForm" (ngSubmit)="onSubmit()" mat-dialog-content class="dialog-form">
+  <mat-form-field appearance="fill" class="full-width">
+    <mat-label>Prénom *</mat-label>
+    <input matInput formControlName="firstname" required />
+    <mat-error *ngIf="userForm.get('firstname')?.hasError('required')">
+      Le prénom est requis
+    </mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" class="full-width">
+    <mat-label>Nom</mat-label>
+    <input matInput formControlName="lastname" />
+  </mat-form-field>
+
+  <mat-form-field appearance="fill" class="full-width">
+    <mat-label>Email *</mat-label>
+    <input matInput formControlName="email" type="email" required />
+    <mat-error *ngIf="userForm.get('email')?.hasError('required')">
+      L'email est requis
+    </mat-error>
+    <mat-error *ngIf="userForm.get('email')?.hasError('email')">
+      Email invalide
+    </mat-error>
+
+  </mat-form-field>
+
+  <div mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()">Annuler</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="userForm.invalid">
+      Enregistrer
+    </button>
+  </div>
+</form>
