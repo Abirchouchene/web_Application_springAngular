@@ -23,4 +23,5 @@ public class Response implements Serializable {
     private Double responseNumber;
     @ManyToMany
     @JsonBackReference
-    private Set<Question> questions = new HashSet<>();}
+    private Set<Question> questions = new HashSet<>();
+}

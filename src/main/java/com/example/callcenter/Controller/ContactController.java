@@ -1,6 +1,7 @@
 package com.example.callcenter.Controller;
 
 
+import com.example.callcenter.DTO.ContactDTO;
 import com.example.callcenter.Entity.Contact;
 import com.example.callcenter.Entity.ContactStatus;
 import com.example.callcenter.Entity.Tag;
@@ -54,15 +55,13 @@ public class ContactController {
         return ResponseEntity.ok().build();
     }
     @PostMapping
-    public Contact createContact(@RequestBody Contact contact) {
-        return contactService.createContact(contact);
+    public Contact createContact(@RequestBody ContactDTO dto) {
+        return contactService.createContact(dto);
     }
-
     @PutMapping("/{id}")
-    public Contact updateContact(@PathVariable Long id, @RequestBody Contact contact) {
-        return contactService.updateContact(id, contact);
+    public Contact updateContact(@PathVariable Long id, @RequestBody ContactDTO dto) {
+        return contactService.updateContact(id, dto);
     }
-
     @DeleteMapping("/{id}")
     public void deleteContact(@PathVariable Long id) {
         contactService.deleteContact(id);
@@ -90,5 +89,10 @@ public class ContactController {
     public Contact removeTag(@PathVariable Long contactId, @PathVariable Long tagId) {
         return contactService.removeTagFromContact(contactId, tagId);
     }
+    @GetMapping("/tags/searchByTag")
+    public List<Contact> getContactsByTag(@RequestParam String tag) {
+        return contactService.getContactsByTag(tag);
+    }
+
 }
 

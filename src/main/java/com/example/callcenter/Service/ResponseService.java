@@ -15,14 +15,12 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ResponseService {
     private final QuestionRepository questionRepository;
-
-
     private final ResponseRepository responseRepository;
 
     public Question addResponsesToQuestion(Long questionId, List<String> responseValues) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
-
+        
         Set<Response> newResponses = new HashSet<>();
 
         for (String value : responseValues) {
@@ -30,7 +28,7 @@ public class ResponseService {
             response.getQuestions().add(question); // ensure bidirectional relation
 
             switch (question.getQuestionType()) {
-                case  YES_OR_NO  -> response.setResponseText(value);
+                case YES_OR_NO -> response.setResponseText(value);
                 case NUMBER -> {
                     try {
                         Double numericValue = Double.parseDouble(value);
@@ -44,9 +42,8 @@ public class ResponseService {
 
             newResponses.add(responseRepository.save(response));
         }
-
+        
         question.getResponses().addAll(newResponses);
         return questionRepository.save(question);
     }
-
 }

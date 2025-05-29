@@ -1,5 +1,6 @@
 package com.example.callcenter.Service;
 
+import com.example.callcenter.DTO.ContactDTO;
 import com.example.callcenter.Entity.Contact;
 import com.example.callcenter.Entity.ContactStatus;
 import com.example.callcenter.Entity.Tag;
@@ -10,12 +11,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class ContactService {
 
-    private final  TagRepository tagRepository;
+    private final TagRepository tagRepository;
     private final ContactRepository contactRepository;
     public List<Tag> getAllTags() {
         return tagRepository.findAll();
@@ -48,19 +51,45 @@ public class ContactService {
     }
 
 
-    public Contact createContact(Contact contact) {
+    public Contact createContact(ContactDTO dto) {
+        Contact contact = new Contact();
+        contact.setName(dto.getName());
+        contact.setPhoneNumber(dto.getPhoneNumber());
+        contact.setCallStatus(ContactStatus.NOT_CONTACTED);
+        contact.setLastCallAttempt(null); // or leave it out; default is null
+
+        // Fetch and set tags
+        if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
+            Set<Tag> tags = dto.getTagIds().stream()
+                    .map(tagId -> tagRepository.findById(tagId)
+                            .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId)))
+                    .collect(Collectors.toSet());
+            contact.setTags(tags);
+        }
+
         return contactRepository.save(contact);
     }
 
-    public Contact updateContact(Long id, Contact updatedContact) {
+    public Contact updateContact(Long id, ContactDTO dto) {
         return contactRepository.findById(id)
                 .map(contact -> {
-                    contact.setName(updatedContact.getName());
-                    contact.setPhoneNumber(updatedContact.getPhoneNumber());
+                    contact.setName(dto.getName());
+                    contact.setPhoneNumber(dto.getPhoneNumber());
+
+                    // Update tags
+                    if (dto.getTagIds() != null) {
+                        Set<Tag> tags = dto.getTagIds().stream()
+                                .map(tagId -> tagRepository.findById(tagId)
+                                        .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId)))
+                                .collect(Collectors.toSet());
+                        contact.setTags(tags);
+                    }
+
                     return contactRepository.save(contact);
                 })
                 .orElseThrow(() -> new RuntimeException("Contact not found"));
     }
+
 
     public void deleteContact(Long id) {
         contactRepository.deleteById(id);
@@ -88,6 +117,9 @@ public class ContactService {
         return contact.getCallStatus();
     }
 
+    public List<Contact> getContactsByTag(String tagName) {
+        return contactRepository.findByTagNameLike(tagName);
+    }
 
     public void updateLastCallAttempt(Long contactId, LocalDateTime timestamp) {
         Contact contact = getContactById(contactId);

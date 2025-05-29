@@ -39,7 +39,6 @@ public class Contact implements Serializable {
     private Set<Tag> tags = new HashSet<>();
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-
     private List<Callback> callbacks = new ArrayList<>();
 }
 
