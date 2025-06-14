@@ -10,6 +10,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @NoArgsConstructor
@@ -26,13 +27,16 @@ public class Question implements Serializable {
     @Enumerated(EnumType.STRING)
 
     private QuestionType questionType;
+    @ElementCollection
+    private List<String> options;
+
     @ManyToMany(mappedBy = "questions")
     @JsonIgnore
     private Set<Request>requests;
 
-    @ManyToMany(mappedBy = "questions")
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    private Set<Response>responses;
+    private Set<Response> responses = new HashSet<>();
     public Question(String text, QuestionType questionType) {
         this.text = text;
         this.questionType = questionType;

@@ -40,5 +40,8 @@ public class Contact implements Serializable {
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Callback> callbacks = new ArrayList<>();
+    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Response> responses = new ArrayList<>();
 }
 

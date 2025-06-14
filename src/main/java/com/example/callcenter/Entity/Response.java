@@ -8,7 +8,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 @Entity
 @NoArgsConstructor
@@ -19,9 +22,24 @@ public class Response implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String responseText;
-    private Double responseNumber;
-    @ManyToMany
+    private String answer; // For SHORT_ANSWER, PARAGRAPH, MULTIPLE_CHOICE, DROPDOWN
+
+    @ElementCollection
+    private List<String> multiAnswer; // For CHECKBOXES
+
+    private Boolean booleanAnswer; // For YES_OR_NO
+
+    private Double numberAnswer; // For NUMBER
+
+    private LocalDate dateAnswer; // For DATE
+
+    private LocalTime timeAnswer; // For TIME
+
+    @ManyToOne
     @JsonBackReference
-    private Set<Question> questions = new HashSet<>();
+    private Question question;
+
+    @ManyToOne
+    @JsonBackReference
+    private Contact contact;
 }

@@ -1,7 +1,7 @@
 package com.example.callcenter.Controller;
 
+import com.example.callcenter.DTO.ResponseDTO;
 import com.example.callcenter.Entity.Question;
-import com.example.callcenter.Service.RequestService;
 import com.example.callcenter.Service.ResponseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +16,13 @@ import java.util.List;
 public class ResponseController {
     private final ResponseService responseService;
 
-    @PostMapping("/question/{questionId}")
-    public ResponseEntity<Question> addResponsesToQuestion(
+    @PostMapping("/question/{questionId}/contact/{contactId}")
+    public ResponseEntity<ResponseDTO> addResponsesToQuestion(
             @PathVariable Long questionId,
+            @PathVariable Long contactId,
             @RequestBody List<String> responseValues
     ) {
-        Question updatedQuestion = responseService.addResponsesToQuestion(questionId, responseValues);
-        return ResponseEntity.ok(updatedQuestion);
+        ResponseDTO responseDTO = responseService.addResponseToQuestion(questionId, contactId, responseValues);
+        return ResponseEntity.ok(responseDTO);
     }
 }

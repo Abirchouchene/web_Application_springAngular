@@ -50,24 +50,25 @@ public class RequestService {
         request.setDeadline(requestDTO.getDeadline());
 
         Set<Contact> contactSet = new HashSet<>(contactRepository.findAllById(requestDTO.getContactIds()));
-
         if (contactSet.size() != requestDTO.getContactIds().size()) {
             throw new RuntimeException("One or more contacts not found.");
         }
-
         request.setContacts(contactSet);
 
         Set<Question> questions = new HashSet<>();
 
+        // Existing question IDs
         if (requestDTO.getQuestionIds() != null) {
             questions.addAll(questionRepository.findAllById(requestDTO.getQuestionIds()));
         }
 
+        // New questions
         if (requestDTO.getNewQuestions() != null && !requestDTO.getNewQuestions().isEmpty()) {
             List<Question> newQuestionEntities = requestDTO.getNewQuestions().stream().map(dto -> {
                 Question question = new Question();
                 question.setText(dto.getText());
                 question.setQuestionType(dto.getType());
+                question.setOptions(dto.getOptions()); // <-- Save options if provided
                 return question;
             }).collect(Collectors.toList());
 
@@ -76,10 +77,8 @@ public class RequestService {
 
         request.setQuestions(questions);
 
-
         return requestRepository.save(request);
     }
-
 
     private String saveFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
