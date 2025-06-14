@@ -6,6 +6,7 @@ import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.ContactRepository;
 import com.example.callcenter.Repository.QuestionRepository;
 import com.example.callcenter.Repository.ResponseRepository;
+import com.example.callcenter.Repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,48 +22,55 @@ import java.util.stream.Collectors;
 public class ResponseService {
     private final QuestionRepository questionRepository;
     private final ResponseRepository responseRepository;
-    private final ContactRepository contactRepository;
+
+    private final SubmissionRepository submissionRepository;
 
     public ResponseDTO addResponseToQuestion(Long questionId, Long contactId, List<String> responseValues) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
-        Contact contact = contactRepository.findById(contactId)
-                .orElseThrow(() -> new RuntimeException("Contact not found"));
 
-        Response response = responseRepository
-                .findByQuestionAndContact(question, contact)
+        Submission submission = submissionRepository.findByContactIdAndQuestion(contactId, question)
+                .orElseThrow(() -> new RuntimeException("Submission not found"));
+
+        Response response = responseRepository.findByQuestionAndSubmission(question, submission)
                 .orElse(new Response());
 
         response.setQuestion(question);
-        response.setContact(contact);
+        response.setSubmission(submission);
 
-        // Process each response value
-        for (String value : responseValues) {
-            String[] parts = value.split(":", 2);
-            if (parts.length != 2) continue;
+        if (responseValues.isEmpty()) {
+            throw new RuntimeException("Response value is required");
+        }
 
-            String type = parts[0];
-            String val = parts[1];
+        String value = responseValues.get(0); // assuming one response per question
+        switch (question.getQuestionType()) {
+            case SHORT_ANSWER, PARAGRAPH, MULTIPLE_CHOICE, DROPDOWN ->
+                    response.setAnswer(value);
 
-            switch (type) {
-                case "answer" -> response.setAnswer(val);
-                case "multiAnswer" -> {
-                    if (response.getMultiAnswer() == null) {
-                        response.setMultiAnswer(new ArrayList<>());
-                    }
-                    response.getMultiAnswer().add(val);
+            case CHECKBOXES -> {
+                if (response.getMultiAnswer() == null) {
+                    response.setMultiAnswer(new ArrayList<>());
                 }
-                case "booleanAnswer" -> response.setBooleanAnswer(Boolean.parseBoolean(val));
-                case "numberAnswer" -> response.setNumberAnswer(Double.parseDouble(val));
-                case "dateAnswer" -> response.setDateAnswer(LocalDate.parse(val));
-                case "timeAnswer" -> response.setTimeAnswer(LocalTime.parse(val));
+                response.getMultiAnswer().add(value);
             }
+
+            case YES_OR_NO -> response.setBooleanAnswer(Boolean.parseBoolean(value));
+
+            case NUMBER -> response.setNumberAnswer(Double.parseDouble(value));
+
+            case DATE -> response.setDateAnswer(LocalDate.parse(value));
+
+            case TIME -> response.setTimeAnswer(LocalTime.parse(value));
+
+
+            default -> throw new IllegalArgumentException("Unsupported question type");
         }
 
         responseRepository.save(response);
         return mapToDTO(response);
     }
+
     private ResponseDTO mapToDTO(Response response) {
         ResponseDTO dto = new ResponseDTO();
         dto.setId(response.getId());
@@ -73,13 +81,16 @@ public class ResponseService {
         dto.setDateAnswer(response.getDateAnswer());
         dto.setTimeAnswer(response.getTimeAnswer());
 
-        Contact contact = response.getContact();
-        if (contact != null) {
+        // Get contact through submission
+        if (response.getSubmission() != null && response.getSubmission().getContact() != null) {
+            Contact contact = response.getSubmission().getContact();
+
+            dto.setContactName(contact.getName());
+
             ContactDTO contactDTO = new ContactDTO();
             contactDTO.setName(contact.getName());
             contactDTO.setPhoneNumber(contact.getPhoneNumber());
 
-            // Assuming you have a getTags() method in Contact entity returning Set<Tag>
             if (contact.getTags() != null) {
                 Set<Long> tagIds = contact.getTags()
                         .stream()
@@ -93,5 +104,4 @@ public class ResponseService {
 
         return dto;
     }
-
 }

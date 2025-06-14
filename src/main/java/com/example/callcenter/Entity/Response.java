@@ -41,5 +41,6 @@ public class Response implements Serializable {
 
     @ManyToOne
     @JsonBackReference
-    private Contact contact;
+    private  Submission submission;
+
 }

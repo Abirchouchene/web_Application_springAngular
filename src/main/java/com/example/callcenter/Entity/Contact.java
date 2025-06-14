@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -32,16 +33,17 @@ public class Contact implements Serializable {
 
     private String callNote;
     private LocalDateTime lastCallAttempt;
-    @ManyToMany(mappedBy = "contacts")
-    @JsonBackReference
-    private Set<Request>requests;
+
     @ManyToMany(mappedBy = "contacts")
     private Set<Tag> tags = new HashSet<>();
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Callback> callbacks = new ArrayList<>();
-    @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private List<Response> responses = new ArrayList<>();
-}
+
+
+    @OneToMany(mappedBy = "contact")
+    @JsonIgnore
+
+    private  List<Submission>submissions;
+;}
 

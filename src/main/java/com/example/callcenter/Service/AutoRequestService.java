@@ -25,20 +25,32 @@ public class AutoRequestService {
         List<Contact> contacts = fetchContactsFromSales(); // or SAV
         List<Question> questions = fetchQuestionsFromReclamationRequests(); // <== updated here
 
+        Request request = new Request();
+        request.setDescription("Demande automatique générée");
+        request.setStatus(Status.AUTO_GENERATED);
+        request.setRequestType(RequestType.STATISTICS);
+        request.setCategoryRequest(CategoryRequest.RECLAMATION);
+        request.setPriority(Priority.URGENT);
+        request.setQuestions(new HashSet<>(questions));
+
+        // Save the request first
+        Request savedRequest = requestRepository.save(request);
+
+        // Create a Submission for each contact
         for (Contact contact : contacts) {
-            Request request = new Request();
-            request.setDescription("Demande automatique générée");
-            request.setStatus(Status.AUTO_GENERATED);
-            request.setRequestType(RequestType.STATISTICS);
-            request.setCategoryRequest(CategoryRequest.RECLAMATION);
-            request.setPriority(Priority.URGENT);
-            request.setContacts(new HashSet<>(List.of(contact)));
-            request.setQuestions(new HashSet<>(questions));
-            requestRepository.save(request);
+            Submission submission = new Submission();
+            submission.setRequest(savedRequest);
+            submission.setContact(contact);
+            submission.setSubmissionDate(java.time.LocalDate.now());
+
+            savedRequest.getSubmissionList().add(submission); // Add submission to request
         }
+
+        requestRepository.save(savedRequest); // Save again to persist submissions
 
         System.out.println("✅ Demandes automatiques générées avec succès.");
     }
+
     private List<Contact> fetchContactsFromSales() {
         Contact contact1 = new Contact();
         contact1.setIdC(1L);

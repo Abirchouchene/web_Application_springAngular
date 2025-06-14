@@ -10,14 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,9 +25,9 @@ public class RequestService {
     private  final ContactRepository contactRepository;
     private final QuestionRepository questionRepository;
     private final AgentLeaveRepository agentLeaveRepository;
+    private final SubmissionRepository submissionRepository;
 
-    @Value("${file.upload-dir}")
-    private String UPLOAD_DIR;
+
 
     public Request submitRequest(RequestDTO requestDTO) {
         User user = userRepository.findById(requestDTO.getUserId())
@@ -49,12 +42,6 @@ public class RequestService {
         request.setCategoryRequest(requestDTO.getCategory());
         request.setDeadline(requestDTO.getDeadline());
 
-        Set<Contact> contactSet = new HashSet<>(contactRepository.findAllById(requestDTO.getContactIds()));
-        if (contactSet.size() != requestDTO.getContactIds().size()) {
-            throw new RuntimeException("One or more contacts not found.");
-        }
-        request.setContacts(contactSet);
-
         Set<Question> questions = new HashSet<>();
 
         // Existing question IDs
@@ -68,7 +55,8 @@ public class RequestService {
                 Question question = new Question();
                 question.setText(dto.getText());
                 question.setQuestionType(dto.getType());
-                question.setOptions(dto.getOptions()); // <-- Save options if provided
+
+                question.setOptions(dto.getOptions());
                 return question;
             }).collect(Collectors.toList());
 
@@ -77,27 +65,29 @@ public class RequestService {
 
         request.setQuestions(questions);
 
-        return requestRepository.save(request);
-    }
 
-    private String saveFile(MultipartFile file) throws IOException {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty.");
+        // ✅ Save the request first to generate its ID
+        requestRepository.save(request);
+
+        // ✅ Create Submissions for each contact
+        List<Contact> contacts = contactRepository.findAllById(requestDTO.getContactIds());
+        if (contacts.size() != requestDTO.getContactIds().size()) {
+            throw new RuntimeException("One or more contacts not found.");
         }
 
-        // Ensure upload directory exists
-        File uploadDir = new File(UPLOAD_DIR);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
+        List<Submission> submissions = contacts.stream().map(contact -> {
+            Submission submission = new Submission();
+            submission.setContact(contact);
+            submission.setRequest(request);
+            submission.setSubmissionDate(LocalDate.now());
+            return submission;
+        }).collect(Collectors.toList());
 
-        // Generate unique file name and save it
-        String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-        Path filePath = Paths.get(UPLOAD_DIR, fileName);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        submissionRepository.saveAll(submissions);
 
-        return filePath.toString(); // Return saved file path
+        return request;
     }
+
     @Transactional
     public Request updateRequestByRequester(Long requestId, UpdateRequestDTO dto, Long requesterId) {
         Request existingRequest = requestRepository.findById(requestId)
@@ -120,10 +110,26 @@ public class RequestService {
             existingRequest.setDeadline(dto.getDeadline());
         }
 
-        // ✅ Set Contacts
+        // ✅ Update Submissions (Contacts)
         if (dto.getContactIds() != null && !dto.getContactIds().isEmpty()) {
+            // Delete old submissions
+            submissionRepository.deleteByRequest(existingRequest);
+
+            // Create new submissions
             List<Contact> contacts = contactRepository.findAllById(dto.getContactIds());
-            existingRequest.setContacts(new HashSet<>(contacts));
+            if (contacts.size() != dto.getContactIds().size()) {
+                throw new RuntimeException("One or more contacts not found.");
+            }
+
+            List<Submission> newSubmissions = contacts.stream().map(contact -> {
+                Submission submission = new Submission();
+                submission.setRequest(existingRequest);
+                submission.setContact(contact);
+                submission.setSubmissionDate(LocalDate.now());
+                return submission;
+            }).collect(Collectors.toList());
+
+            submissionRepository.saveAll(newSubmissions);
         }
 
         // ✅ Set Questions

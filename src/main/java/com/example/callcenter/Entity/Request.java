@@ -1,5 +1,6 @@
 package com.example.callcenter.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -55,12 +56,8 @@ public class Request implements Serializable {
     @JsonIgnore
     private User user;
 
-    @ManyToMany
-    @JsonManagedReference
 
-    private Set<Contact> contacts = new HashSet<>();
-
-   @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
 
     @JoinTable(
             name = "request_questions",
@@ -71,16 +68,20 @@ public class Request implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "agent_id")
-    @JsonIgnore
+    @JsonManagedReference
     private User agent;
 
     @ManyToMany
-    private  Set<Logs>logs;
+    private Set<Logs> logs;
     @OneToOne
     private Report report;
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
 
     private List<Callback> callbacks = new ArrayList<>();
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+
+    private List<Submission> submissionList = new ArrayList<>();
 }
 
 

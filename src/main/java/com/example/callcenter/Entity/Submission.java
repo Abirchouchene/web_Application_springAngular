@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,32 +9,29 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
-@Getter
-@Setter
+import java.time.LocalDate;
+import java.util.List;
+
+@Entity
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-public class Notification implements Serializable {
+@Getter
+@Setter
+public class Submission implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private LocalDate submissionDate;
 
-    private String message;
-
-    @Enumerated(EnumType.STRING)
-    private NotificationType type;
-
-    private LocalDateTime timestamp;
-
-    private boolean isRead;
 
     @ManyToOne
     @JsonBackReference
 
-    private User agent;
+    private Request request;
+    @OneToMany(mappedBy = "submission")
+    @JsonManagedReference
 
+    private List<Response>responses;
+    @ManyToOne
+    private Contact contact;
 }
-
-
-
