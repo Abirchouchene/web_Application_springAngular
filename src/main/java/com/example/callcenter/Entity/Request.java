@@ -2,6 +2,7 @@ package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -28,7 +29,7 @@ public class Request implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idR;
-
+    private String title;
     private String description;
     private String note;
     private String attachmentPath;
@@ -40,20 +41,24 @@ public class Request implements Serializable {
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private Status status;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private RequestType requestType;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private CategoryRequest categoryRequest;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.example.callcenter.Config.PriorityConverter.class)
+    @Column(length = 20)
     private Priority priority;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @JsonIgnore
+    @JsonIgnoreProperties({"requests", "assignedRequests", "password", "role"})
     private User user;
 
 
@@ -64,23 +69,21 @@ public class Request implements Serializable {
             joinColumns = @JoinColumn(name = "request_idr"),
             inverseJoinColumns = @JoinColumn(name = "question_id")
     )
-    private Set<Question> questions = new HashSet<>();
+    @OrderBy("id ASC")
+    private List<Question> questions = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "agent_id")
-    @JsonManagedReference
+    @JsonIgnoreProperties({"requests", "assignedRequests", "password", "role"})
     private User agent;
 
-    @ManyToMany
-    private Set<Logs> logs;
+    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<Logs> logs = new ArrayList<>();
     @OneToOne
     private Report report;
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
-
-    private List<Callback> callbacks = new ArrayList<>();
-    @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-
+    @JsonIgnore
     private List<Submission> submissionList = new ArrayList<>();
 }
 

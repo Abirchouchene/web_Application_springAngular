@@ -48,4 +48,10 @@ public class NotificationController {
     public void clearAllNotifications(@PathVariable Long agentId) {
         notificationService.clearAllNotifications(agentId);
     }
+    
+    // Test endpoint to manually create a notification
+    @PostMapping("/test/{agentId}")
+    public void createTestNotification(@PathVariable Long agentId) {
+        notificationService.createTestNotification(agentId);
+    }
 }

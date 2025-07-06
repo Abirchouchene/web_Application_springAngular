@@ -1,13 +1,15 @@
 package com.example.callcenter.Service;
 
 import com.example.callcenter.DTO.AgentAvailabilityDTO;
+import com.example.callcenter.DTO.ContactResponse;
 import com.example.callcenter.DTO.RequestDTO;
 import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.*;
-import jakarta.persistence.EntityNotFoundException;
+import com.example.callcenter.client.ContactClient;
+import com.example.callcenter.Service.RequestContactStatusService;
+import com.example.callcenter.Service.LogsService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,17 +19,16 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-
 public class RequestService {
     private final RequestRepository requestRepository;
-
     private final UserRepository userRepository;
-    private  final ContactRepository contactRepository;
     private final QuestionRepository questionRepository;
     private final AgentLeaveRepository agentLeaveRepository;
     private final SubmissionRepository submissionRepository;
-
-
+    private final SubmissionService submissionService;
+    private final ContactClient contactClient;
+    private final RequestContactStatusService requestContactStatusService;
+    private final LogsService logsService;
 
     public Request submitRequest(RequestDTO requestDTO) {
         User user = userRepository.findById(requestDTO.getUserId())
@@ -35,6 +36,7 @@ public class RequestService {
 
         Request request = new Request();
         request.setUser(user);
+        request.setTitle(requestDTO.getTitle());
         request.setRequestType(requestDTO.getRequestType());
         request.setStatus(Status.PENDING);
         request.setDescription(requestDTO.getDescription());
@@ -55,7 +57,6 @@ public class RequestService {
                 Question question = new Question();
                 question.setText(dto.getText());
                 question.setQuestionType(dto.getType());
-
                 question.setOptions(dto.getOptions());
                 return question;
             }).collect(Collectors.toList());
@@ -63,27 +64,35 @@ public class RequestService {
             questions.addAll(questionRepository.saveAll(newQuestionEntities));
         }
 
-        request.setQuestions(questions);
+        request.setQuestions(new ArrayList<>(questions));
 
-
-        // ✅ Save the request first to generate its ID
+        // Save the request first to generate its ID
         requestRepository.save(request);
 
-        // ✅ Create Submissions for each contact
-        List<Contact> contacts = contactRepository.findAllById(requestDTO.getContactIds());
+        // Create Submissions for each contact
+        List<ContactResponse> contacts = requestDTO.getContactIds().stream()
+                .map(contactClient::getContactById)
+                .toList();
+
         if (contacts.size() != requestDTO.getContactIds().size()) {
             throw new RuntimeException("One or more contacts not found.");
         }
 
         List<Submission> submissions = contacts.stream().map(contact -> {
             Submission submission = new Submission();
-            submission.setContact(contact);
+            submission.setContactId(contact.getIdC());
             submission.setRequest(request);
             submission.setSubmissionDate(LocalDate.now());
             return submission;
         }).collect(Collectors.toList());
 
         submissionRepository.saveAll(submissions);
+
+        // Initialize contact statuses for this request
+        requestContactStatusService.initializeContactStatuses(request.getIdR(), requestDTO.getContactIds());
+
+        // Log the request creation
+        logsService.logRequestCreated(request, user, "127.0.0.1", "System");
 
         return request;
     }
@@ -101,7 +110,7 @@ public class RequestService {
             throw new IllegalStateException("Only pending requests can be modified.");
         }
 
-        // ✅ Basic fields
+        // Basic fields
         existingRequest.setDescription(dto.getDescription());
         existingRequest.setPriority(dto.getPriority());
         existingRequest.setCategoryRequest(dto.getCategoryRequest());
@@ -110,13 +119,16 @@ public class RequestService {
             existingRequest.setDeadline(dto.getDeadline());
         }
 
-        // ✅ Update Submissions (Contacts)
+        // Update Submissions (Contacts)
         if (dto.getContactIds() != null && !dto.getContactIds().isEmpty()) {
-            // Delete old submissions
-            submissionRepository.deleteByRequest(existingRequest);
+            // Delete old submissions using SubmissionService
+            submissionService.deleteSubmissionsByRequestId(existingRequest.getIdR());
 
             // Create new submissions
-            List<Contact> contacts = contactRepository.findAllById(dto.getContactIds());
+            List<ContactResponse> contacts = dto.getContactIds().stream()
+                    .map(contactClient::getContactById)
+                    .toList();
+
             if (contacts.size() != dto.getContactIds().size()) {
                 throw new RuntimeException("One or more contacts not found.");
             }
@@ -124,7 +136,7 @@ public class RequestService {
             List<Submission> newSubmissions = contacts.stream().map(contact -> {
                 Submission submission = new Submission();
                 submission.setRequest(existingRequest);
-                submission.setContact(contact);
+                submission.setContactId(contact.getIdC());
                 submission.setSubmissionDate(LocalDate.now());
                 return submission;
             }).collect(Collectors.toList());
@@ -132,10 +144,10 @@ public class RequestService {
             submissionRepository.saveAll(newSubmissions);
         }
 
-        // ✅ Set Questions
+        // Set Questions
         if (dto.getQuestionIds() != null && !dto.getQuestionIds().isEmpty()) {
             List<Question> questions = questionRepository.findAllById(dto.getQuestionIds());
-            existingRequest.setQuestions(new HashSet<>(questions));
+            existingRequest.setQuestions(questions);
         }
 
         return requestRepository.save(existingRequest);
@@ -144,12 +156,12 @@ public class RequestService {
     public List<Request> getAllRequests() {
         return requestRepository.findAll();
     }
+
     public List<Request> getRequestsByType(RequestType requestType) {
         return requestRepository.findByRequestType(requestType);
     }
-  public  List<Contact>getAllContacts(){
-        return contactRepository.findAll();
-  }
+
+
     public Request getRequestById(Long id) {
         return requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
@@ -160,12 +172,6 @@ public class RequestService {
     }
 
 
-    public List<Contact> searchContactsByTag(String tag) {
-        return contactRepository.findByTagNameLike(tag);
-    }
-
-
-
     public Request approveRequest(Long requestId, Status status) {
         if (status != Status.APPROVED && status != Status.REJECTED) {
             throw new IllegalArgumentException("Invalid status. Use APPROVED or REJECTED.");
@@ -174,9 +180,19 @@ public class RequestService {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
+        Status oldStatus = request.getStatus();
         request.setStatus(status);
-        return requestRepository.save(request);
+        Request savedRequest = requestRepository.save(request);
+
+        // Log the approval/rejection
+        logsService.logRequestApproval(savedRequest, request.getUser(), 
+                                     status == Status.APPROVED, 
+                                     "Request " + (status == Status.APPROVED ? "approved" : "rejected"), 
+                                     "127.0.0.1", "System");
+
+        return savedRequest;
     }
+
     public Request assignRequestToAgent(Long requestId, Long agentId) {
         // Find the request by ID
         Request request = requestRepository.findById(requestId)
@@ -192,35 +208,48 @@ public class RequestService {
         }
 
         // Set the agent to the request
+        User oldAgent = request.getAgent();
         request.setAgent(agent);
 
         // Change the status to "assigned"
         request.setStatus(Status.ASSIGNED);
 
-        // Save the updated request and return it
-        return requestRepository.save(request);
+        // Save the updated request
+        Request savedRequest = requestRepository.save(request);
+
+        // Log the agent assignment
+        logsService.logAgentAssignment(savedRequest, request.getUser(), 
+                                      oldAgent, agent, 
+                                      "127.0.0.1", "System", 
+                                      "Agent assigned to request");
+
+        return savedRequest;
     }
-
-
 
     public List<User> getUsersByRole(Role role) {
         return userRepository.findByRole(role);  // Fetch users based on role
     }
+
     public List<Request> getRequestsAssignedToAgent(Long agentId) {
         return requestRepository.findByAgent_IdUser(agentId);
-
     }
+
     @Transactional
     public Request updateRequestStatus(Long requestId, Status newStatus) {
         Request request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-
-
-
+        Status oldStatus = request.getStatus();
         request.setStatus(newStatus);
+        Request savedRequest = requestRepository.save(request);
 
-        return requestRepository.save(request);
+        // Log the status change
+        logsService.logStatusChange(savedRequest, request.getUser(), 
+                                   oldStatus, newStatus, 
+                                   "127.0.0.1", "System", 
+                                   "Status updated");
+
+        return savedRequest;
     }
 
     @Transactional
@@ -228,11 +257,14 @@ public class RequestService {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
-        // Break association
+        // Delete submissions and their responses using SubmissionService
+        submissionService.deleteSubmissionsByRequestId(request.getIdR());
+
+        // Break association with questions
         request.getQuestions().clear();
         requestRepository.save(request); // optional but safe
 
-        // Now delete
+        // Now delete the request
         requestRepository.delete(request);
     }
 
@@ -263,19 +295,32 @@ public class RequestService {
                 .collect(Collectors.toList());
     }
 
-    public Question createNewQuestion(String questionText, QuestionType questionType) {
-        Question question = new Question(questionText, questionType);
-        return questionRepository.save(question);
-    }
+
     public Request updateNote(Long id, String note) {
         Request request = requestRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Request not found with id: " + id));
-
+                .orElseThrow(() -> new RuntimeException("Request not found"));
         request.setNote(note);
-        return requestRepository.save(request);
+        Request savedRequest = requestRepository.save(request);
+
+        // Log the note update
+        logsService.logRequestUpdate(savedRequest, request.getUser(), 
+                                    "Note updated: " + note, 
+                                    "127.0.0.1", "System");
+
+        return savedRequest;
     }
 
-
+    public List<Question> getQuestionsByCategoryAndType(CategoryRequest category, QuestionType questionType) {
+        if (category != null && questionType != null) {
+            return questionRepository.findByCategoryRequestAndQuestionType(category, questionType);
+        } else if (category != null) {
+            return questionRepository.findByCategoryRequest(category);
+        } else if (questionType != null) {
+            return questionRepository.findByQuestionType(questionType);
+        } else {
+            return questionRepository.findAllDistinct();
+        }
+    }
 }
 
 

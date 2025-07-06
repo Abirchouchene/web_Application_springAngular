@@ -1,5 +1,10 @@
 package com.example.callcenter.Entity;
 
 public enum Priority {
-    URGENT
+    LOW,
+    MEDIUM,
+    HIGH,
+    URGENT,
+    IMMEDIATE
 }
+

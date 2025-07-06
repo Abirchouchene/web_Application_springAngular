@@ -3,10 +3,13 @@ package com.example.callcenter;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
+@EnableFeignClients(basePackages = "com.example.callcenter.client")
+
 public class CallCenterApplication {
 
     public static void main(String[] args) {

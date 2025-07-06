@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class RequestDTO {
     private Long userId;
+    private String title;
     private RequestType requestType;
     private List<Long> contactIds;
     private String description;

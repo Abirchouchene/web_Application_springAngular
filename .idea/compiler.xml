@@ -10,13 +10,17 @@
         <processorPath useClasspath="false">
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
-        <module name="CallCenter" />
+        <module name="callcenter" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="CallCenter" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="CallCenter" options="-parameters -parameters" />
+      <module name="callcenter" options="-parameters -parameters" />
     </option>
   </component>
 </project>

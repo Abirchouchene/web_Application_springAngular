@@ -1,29 +1,27 @@
-package com.example.callcenter.Service;
+/*package com.example.callcenter.Service;
 
+import com.example.callcenter.DTO.ContactResponse;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.RequestRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.callcenter.client.ContactClient;
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.HashSet;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class AutoRequestService {
-
-    @Autowired
-    private RequestRepository requestRepository;
-
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RequestRepository requestRepository;
+    private final ContactClient contactClient;
 
     // Appelé tous les jours à 2h du matin (cron configurable)
     @Scheduled(cron = "0 0 0 * * MON")
     public void generateAutomaticRequests() {
-        List<Contact> contacts = fetchContactsFromSales(); // or SAV
-        List<Question> questions = fetchQuestionsFromReclamationRequests(); // <== updated here
+        List<ContactResponse> contacts = fetchContactsFromSales(); // or SAV
+        List<Question> questions = fetchQuestionsFromReclamationRequests();
 
         Request request = new Request();
         request.setDescription("Demande automatique générée");
@@ -37,10 +35,10 @@ public class AutoRequestService {
         Request savedRequest = requestRepository.save(request);
 
         // Create a Submission for each contact
-        for (Contact contact : contacts) {
+        for (ContactResponse contact : contacts) {
             Submission submission = new Submission();
             submission.setRequest(savedRequest);
-            submission.setContact(contact);
+            submission.setContactId(contact.getIdC());
             submission.setSubmissionDate(java.time.LocalDate.now());
 
             savedRequest.getSubmissionList().add(submission); // Add submission to request
@@ -51,23 +49,17 @@ public class AutoRequestService {
         System.out.println("✅ Demandes automatiques générées avec succès.");
     }
 
-    private List<Contact> fetchContactsFromSales() {
-        Contact contact1 = new Contact();
-        contact1.setIdC(1L);
-        contact1.setName("Ali Ben Salah");
-        contact1.setPhoneNumber("98765432");
-
-        Contact contact2 = new Contact();
-        contact2.setIdC(2L);
-        contact2.setName("Sara Meftah");
-        contact2.setPhoneNumber("12345678");
-
-        return List.of(contact1, contact2);
+    private List<ContactResponse> fetchContactsFromSales() {
+        // In a real application, you would call the contact service to get contacts
+        // For now, we'll use hardcoded IDs and fetch them from the contact service
+        return List.of(
+            contactClient.getContactById(1L),
+            contactClient.getContactById(2L)
+        );
     }
-
-
 
     private List<Question> fetchQuestionsFromReclamationRequests() {
         return requestRepository.findQuestionsByReclamationRequests();
     }
 }
+*/

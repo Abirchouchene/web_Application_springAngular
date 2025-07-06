@@ -22,5 +22,7 @@ public class ResponseDTO {
     private Long contactId;
     private String contactName;
     private ContactDTO contact;
-
+    private Long questionId;
+    private String questionText;
+    private String questionType;
 }

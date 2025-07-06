@@ -46,6 +46,7 @@ public class Report implements Serializable {
     private Integer contactedContacts;
 
     private Double contactRate;
+    @Column(name = "statistics_data", columnDefinition = "LONGTEXT")
 
     private String statisticsData; // JSON string to store question responses and other statistics
 }

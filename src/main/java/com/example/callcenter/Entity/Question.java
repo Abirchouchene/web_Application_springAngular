@@ -34,9 +34,7 @@ public class Question implements Serializable {
     @JsonIgnore
     private Set<Request>requests;
 
-    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-    private Set<Response> responses = new HashSet<>();
+
     public Question(String text, QuestionType questionType) {
         this.text = text;
         this.questionType = questionType;

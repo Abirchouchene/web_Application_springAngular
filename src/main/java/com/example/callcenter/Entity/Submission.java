@@ -23,15 +23,14 @@ public class Submission implements Serializable {
     private Long id;
     private LocalDate submissionDate;
 
-
     @ManyToOne
     @JsonBackReference
-
     private Request request;
-    @OneToMany(mappedBy = "submission")
-    @JsonManagedReference
 
-    private List<Response>responses;
-    @ManyToOne
-    private Contact contact;
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    @OrderBy("id ASC")
+    private List<Response> responses;
+
+    private Long contactId;
 }

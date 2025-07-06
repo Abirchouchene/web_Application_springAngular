@@ -35,12 +35,14 @@ public class Response implements Serializable {
 
     private LocalTime timeAnswer; // For TIME
 
-    @ManyToOne
-    @JsonBackReference
-    private Question question;
+
 
     @ManyToOne
     @JsonBackReference
     private  Submission submission;
+
+    @ManyToOne
+    @JoinColumn(name = "question_id")
+    private Question question;
 
 }

@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -27,18 +28,15 @@ public class User implements Serializable {
     private String fullName;
     @Enumerated(EnumType.STRING)
     private Role role;
-    @OneToMany(mappedBy = "user")
-
-    private Set<Request>requests;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Request> requests = new ArrayList<>();
     @OneToMany(mappedBy = "agent")
-    @JsonBackReference
+    @JsonIgnore
     private Set<Request> assignedRequests;
     @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL)
     private Set<AgentLeave> leaves = new HashSet<>();
-    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
-
-    private List<Callback> callbacks = new ArrayList<>();
+   
     @OneToMany(mappedBy = "agent")
     @JsonManagedReference
     private  List<Notification>notifications;
