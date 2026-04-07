@@ -8,7 +8,7 @@ import { AppCourseDetailComponent } from './courses/course-detail/course-detail.
 import { AppEmployeeComponent } from './employee/employee.component';
 import { AppBlogsComponent } from './blogs/blogs.component';
 import { AppBlogDetailsComponent } from './blogs/details/details.component';
-/*import { AppContactComponent } from './contact/contact.component';*/
+import { ContactManagementComponent } from './contact/contact-management/contact-management.component';
 import { AppNotesComponent } from './notes/notes.component';
 import { AppTodoComponent } from './todo/todo.component';
 import { AppPermissionComponent } from './permission/permission.component';
@@ -158,17 +158,17 @@ export const AppsRoutes: Routes = [
           ],
         },
       },
-     /* {
+      {
         path: 'contacts',
-        component: AppContactComponent,
+        component: ContactManagementComponent,
         data: {
-          title: 'Contacts',
+          title: 'Gestion des Contacts',
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
-            { title: 'Contacts' },
+            { title: 'Gestion des Contacts' },
           ],
         },
-      },*/
+      },
       {
         path: 'courses',
         component: AppCoursesComponent,
@@ -273,10 +273,10 @@ export const AppsRoutes: Routes = [
         path: 'addInvoice',
         component: AppAddRequestComponent,
         data: {
-          title: 'Add Request',
+          title: 'Ajouter une Demande',
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
-            { title: 'Add Request' },
+            { title: 'Ajouter une Demande' },
           ],
         },
       },

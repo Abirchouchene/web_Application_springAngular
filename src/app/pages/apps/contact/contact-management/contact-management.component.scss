@@ -1,0 +1,25 @@
+.contact-table {
+  th.mat-mdc-header-cell {
+    font-weight: 600;
+  }
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #f1f3f5;
+  color: #495057;
+}
+
+.status-pill.status-ok {
+  background: #d3f9d8;
+  color: #2b8a3e;
+}
+
+.status-pill.status-warn {
+  background: #fff3bf;
+  color: #e67700;
+}

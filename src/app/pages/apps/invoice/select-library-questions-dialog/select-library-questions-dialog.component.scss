@@ -1,0 +1,31 @@
+.library-dialog-content {
+  min-width: min(880px, 92vw);
+  max-height: 72vh;
+}
+
+.panel-subtitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #2c3e50;
+}
+
+.panel-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  background: #fafbfc;
+}
+
+.library-row {
+  border: 1px solid #e9ecef;
+  background: #fff;
+}
+
+.library-row--sel {
+  background: #f8f9ff;
+  border-color: #c5cae9;
+}
+
+.library-dual {
+  margin-top: 0.5rem;
+}

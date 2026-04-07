@@ -1,0 +1,115 @@
+<h2 mat-dialog-title class="d-flex align-items-center justify-content-between gap-2">
+  <span>Sélectionner des questions</span>
+  <button mat-icon-button type="button" (click)="cancel()" aria-label="Fermer">
+    <mat-icon>close</mat-icon>
+  </button>
+</h2>
+
+<mat-dialog-content class="library-dialog-content">
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Catégorie</mat-label>
+        <mat-select
+          [(ngModel)]="categoryFilter"
+          (selectionChange)="applyFilters()"
+        >
+          <mat-option value="">Toutes</mat-option>
+          <mat-option *ngFor="let c of categories" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div class="col-md-6">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Type</mat-label>
+        <mat-select
+          [(ngModel)]="typeFilter"
+          (selectionChange)="applyFilters()"
+        >
+          <mat-option value="ALL">Tous</mat-option>
+          <mat-option *ngFor="let t of questionTypes" [value]="t">
+            {{ questionTypeLabel(t) }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <p *ngIf="loading" class="text-muted small">Chargement…</p>
+  <p
+    *ngIf="!loading && allQuestions.length === 0"
+    class="text-warning small"
+  >
+    Aucune question enregistrée — vérifiez l’endpoint des questions sur le call center (ex.
+    GET /api/questions).
+  </p>
+
+  <div class="row g-3 library-dual">
+    <div class="col-lg-6">
+      <h3 class="panel-subtitle">
+        Questions disponibles ({{ filteredQuestions.length }})
+      </h3>
+      <div class="panel-scroll mat-elevation-z1 rounded p-2">
+        <div
+          *ngFor="let q of filteredQuestions; trackBy: trackById"
+          class="library-row d-flex align-items-start gap-2 p-2 mb-2 rounded"
+        >
+          <mat-checkbox
+            [checked]="isSelected(q)"
+            (change)="toggleQuestion(q, $event.checked)"
+          />
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-medium">{{ q.text }}</div>
+            <mat-chip-set class="mt-1">
+              <mat-chip color="primary">{{ questionTypeLabel(q.questionType) }}</mat-chip>
+            </mat-chip-set>
+          </div>
+          <button
+            mat-stroked-button
+            color="primary"
+            type="button"
+            class="flex-shrink-0"
+            (click)="addOne(q)"
+            [disabled]="isSelected(q)"
+          >
+            Ajouter
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <h3 class="panel-subtitle">Sélectionnées ({{ selectedList.length }})</h3>
+      <div class="panel-scroll mat-elevation-z1 rounded p-2">
+        <div
+          *ngFor="let q of selectedList; trackBy: trackById"
+          class="library-row library-row--sel d-flex align-items-center gap-2 p-2 mb-2 rounded"
+        >
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-medium text-truncate">{{ q.text }}</div>
+            <mat-chip-set class="mt-1">
+              <mat-chip>{{ questionTypeLabel(q.questionType) }}</mat-chip>
+            </mat-chip-set>
+          </div>
+          <button
+            mat-icon-button
+            type="button"
+            (click)="removeSelected(q)"
+            aria-label="Retirer"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <p *ngIf="selectedList.length === 0" class="text-muted small m-2">
+          Aucune question sélectionnée.
+        </p>
+      </div>
+    </div>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()">Annuler</button>
+  <button mat-flat-button color="primary" type="button" (click)="confirm()">
+    Ajouter
+  </button>
+</mat-dialog-actions>

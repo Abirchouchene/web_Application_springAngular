@@ -1,6 +1,7 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import { Contact } from '../../../models/Contact';
 import { Tag } from '../../../models/Tag';
 import { TagCreateDto } from '../../../models/TagCreateDto';
@@ -10,13 +11,12 @@ import { ContactStatus } from '../../../models/ContactStatus';
   providedIn: 'root'
 })
 export class ContactService {
-  private baseUrl = 'http://localhost:8082/api/contacts';
+  private readonly baseUrl = environment.contactApiUrl;
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json',
       'Accept': 'application/json'
-    }),
-    withCredentials: true
+    })
   };
 
   constructor(private http: HttpClient) { }

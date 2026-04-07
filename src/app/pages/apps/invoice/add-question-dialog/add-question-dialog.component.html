@@ -9,7 +9,7 @@
     <mat-label>Type de Question</mat-label>
     <mat-select [(ngModel)]="questionType">
       <mat-option *ngFor="let type of questionTypes" [value]="type">
-        {{ type }}
+        {{ questionTypeLabel(type) }}
       </mat-option>
     </mat-select>
   </mat-form-field>

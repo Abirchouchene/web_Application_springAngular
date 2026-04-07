@@ -6,6 +6,7 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { MaterialModule } from 'src/app/material.module';
 import { QuestionType } from 'src/app/models/QuestionType';
+import { questionTypeLabel } from 'src/app/utils/question-type-labels';
 
 @Component({
   selector: 'app-add-question-dialog',
@@ -20,9 +21,9 @@ import { QuestionType } from 'src/app/models/QuestionType';
 })
 export class AddQuestionDialogComponent {
   questionText = '';
-  questionType: QuestionType = QuestionType.YES_OR_NO; 
-  // Populate the options for the dropdown
+  questionType: QuestionType = QuestionType.SHORT_ANSWER;
   questionTypes = Object.values(QuestionType);
+  readonly questionTypeLabel = questionTypeLabel;
 
   constructor(private dialogRef: MatDialogRef<AddQuestionDialogComponent>) {}
 
