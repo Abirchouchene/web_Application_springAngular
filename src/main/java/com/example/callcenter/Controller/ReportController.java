@@ -4,6 +4,8 @@ import com.example.callcenter.Entity.Report;
 import com.example.callcenter.Service.ReportService;
 import com.example.callcenter.DTO.ReportDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/reports")
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:4200")
+//@CrossOrigin("http://localhost:4200")
 
 public class ReportController {
     private final ReportService reportService;
@@ -29,6 +31,16 @@ public class ReportController {
         Report report = reportService.getReportByRequest(requestId);
         ReportDTO dto = reportService.toReportDTO(report);
         return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/request/{requestId}/status")
+    public ResponseEntity<String> getReportStatusByRequest(@PathVariable Long requestId) {
+        try {
+            Report report = reportService.getReportByRequest(requestId);
+            return ResponseEntity.ok(report.getStatus().name());
+        } catch (Exception e) {
+            return ResponseEntity.ok("NOT_GENERATED");
+        }
     }
 
     @GetMapping("/{reportId}")
@@ -55,5 +67,15 @@ public class ReportController {
     public ResponseEntity<Void> rejectReport(@PathVariable Long reportId) {
         reportService.rejectReport(reportId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{reportId}/pdf")
+    public ResponseEntity<byte[]> getReportPdf(@PathVariable Long reportId) {
+        byte[] pdfBytes = reportService.generatePdf(reportId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=rapport-" + reportId + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(pdfBytes.length)
+                .body(pdfBytes);
     }
 } 

@@ -25,7 +25,7 @@ public class Question implements Serializable {
     private String text;
 
     @Enumerated(EnumType.STRING)
-
+    @Column(columnDefinition = "VARCHAR(50)")
     private QuestionType questionType;
     @ElementCollection
     private List<String> options;

@@ -47,6 +47,12 @@ public class Report implements Serializable {
 
     private Double contactRate;
     @Column(name = "statistics_data", columnDefinition = "LONGTEXT")
-
     private String statisticsData; // JSON string to store question responses and other statistics
+
+    private String pdfPath; // MinIO object key for the generated PDF
+
+    @Column(name = "ai_insights_data", columnDefinition = "LONGTEXT")
+    private String aiInsightsData; // JSON string storing AI-generated insights & recommendations
+
+    private LocalDateTime aiGeneratedDate;
 }

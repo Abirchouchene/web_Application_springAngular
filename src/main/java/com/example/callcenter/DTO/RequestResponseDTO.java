@@ -41,4 +41,5 @@ public class RequestResponseDTO {
     
     private Report report;
     private List<Submission> submissionList;
+    private List<ContactResponse> contacts;
 } 

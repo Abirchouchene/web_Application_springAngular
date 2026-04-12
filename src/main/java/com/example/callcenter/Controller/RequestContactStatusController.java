@@ -13,7 +13,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/request-contact-status")
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:4200")
+//@CrossOrigin("http://localhost:4200")
 public class RequestContactStatusController {
 
     private final RequestContactStatusService requestContactStatusService;

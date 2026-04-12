@@ -29,7 +29,9 @@ public class RequestService {
     private final ContactClient contactClient;
     private final RequestContactStatusService requestContactStatusService;
     private final LogsService logsService;
+    private final ReportRepository reportRepository;
 
+    @Transactional
     public Request submitRequest(RequestDTO requestDTO) {
         User user = userRepository.findById(requestDTO.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -69,31 +71,29 @@ public class RequestService {
         // Save the request first to generate its ID
         requestRepository.save(request);
 
-        // Create Submissions for each contact
-        List<ContactResponse> contacts = requestDTO.getContactIds().stream()
-                .map(contactClient::getContactById)
-                .toList();
+        // Create Submissions directly from contactIds (no need to call contact-service)
+        List<Long> contactIds = requestDTO.getContactIds();
+        if (contactIds != null && !contactIds.isEmpty()) {
+            List<Submission> submissions = contactIds.stream().map(contactId -> {
+                Submission submission = new Submission();
+                submission.setContactId(contactId);
+                submission.setRequest(request);
+                submission.setSubmissionDate(LocalDate.now());
+                return submission;
+            }).collect(Collectors.toList());
 
-        if (contacts.size() != requestDTO.getContactIds().size()) {
-            throw new RuntimeException("One or more contacts not found.");
+            submissionRepository.saveAll(submissions);
+
+            // Initialize contact statuses for this request
+            requestContactStatusService.initializeContactStatuses(request.getIdR(), contactIds);
         }
-
-        List<Submission> submissions = contacts.stream().map(contact -> {
-            Submission submission = new Submission();
-            submission.setContactId(contact.getIdC());
-            submission.setRequest(request);
-            submission.setSubmissionDate(LocalDate.now());
-            return submission;
-        }).collect(Collectors.toList());
-
-        submissionRepository.saveAll(submissions);
-
-        // Initialize contact statuses for this request
-        requestContactStatusService.initializeContactStatuses(request.getIdR(), requestDTO.getContactIds());
 
         // Log the request creation
         logsService.logRequestCreated(request, user, "127.0.0.1", "System");
 
+        // Force-initialize lazy collections before leaving transaction
+        request.getSubmissionList().size();
+        request.getQuestions().size();
         return request;
     }
 
@@ -119,24 +119,16 @@ public class RequestService {
             existingRequest.setDeadline(dto.getDeadline());
         }
 
-        // Update Submissions (Contacts)
+        // Update Submissions (Contacts) - use contactIds directly, no Feign call needed
         if (dto.getContactIds() != null && !dto.getContactIds().isEmpty()) {
             // Delete old submissions using SubmissionService
             submissionService.deleteSubmissionsByRequestId(existingRequest.getIdR());
 
-            // Create new submissions
-            List<ContactResponse> contacts = dto.getContactIds().stream()
-                    .map(contactClient::getContactById)
-                    .toList();
-
-            if (contacts.size() != dto.getContactIds().size()) {
-                throw new RuntimeException("One or more contacts not found.");
-            }
-
-            List<Submission> newSubmissions = contacts.stream().map(contact -> {
+            // Create new submissions directly from contactIds
+            List<Submission> newSubmissions = dto.getContactIds().stream().map(contactId -> {
                 Submission submission = new Submission();
                 submission.setRequest(existingRequest);
-                submission.setContactId(contact.getIdC());
+                submission.setContactId(contactId);
                 submission.setSubmissionDate(LocalDate.now());
                 return submission;
             }).collect(Collectors.toList());
@@ -150,11 +142,16 @@ public class RequestService {
             existingRequest.setQuestions(questions);
         }
 
-        return requestRepository.save(existingRequest);
+        Request saved = requestRepository.save(existingRequest);
+        // Force-initialize lazy collections before leaving transaction
+        saved.getSubmissionList().size();
+        saved.getQuestions().size();
+        return saved;
     }
 
+    @Transactional(readOnly = true)
     public List<Request> getAllRequests() {
-        return requestRepository.findAll();
+        return requestRepository.findAllWithDetails();
     }
 
     public List<Request> getRequestsByType(RequestType requestType) {
@@ -162,9 +159,11 @@ public class RequestService {
     }
 
 
+    @Transactional(readOnly = true)
     public Request getRequestById(Long id) {
-        return requestRepository.findById(id)
+        Request request = requestRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
+        return request;
     }
 
     public List<Request> getRequestsByUserId(Long userId) {
@@ -172,6 +171,7 @@ public class RequestService {
     }
 
 
+    @Transactional
     public Request approveRequest(Long requestId, Status status) {
         if (status != Status.APPROVED && status != Status.REJECTED) {
             throw new IllegalArgumentException("Invalid status. Use APPROVED or REJECTED.");
@@ -190,6 +190,8 @@ public class RequestService {
                                      "Request " + (status == Status.APPROVED ? "approved" : "rejected"), 
                                      "127.0.0.1", "System");
 
+        savedRequest.getSubmissionList().size();
+        savedRequest.getQuestions().size();
         return savedRequest;
     }
 
@@ -223,6 +225,8 @@ public class RequestService {
                                       "127.0.0.1", "System", 
                                       "Agent assigned to request");
 
+        savedRequest.getSubmissionList().size();
+        savedRequest.getQuestions().size();
         return savedRequest;
     }
 
@@ -230,6 +234,7 @@ public class RequestService {
         return userRepository.findByRole(role);  // Fetch users based on role
     }
 
+    @Transactional(readOnly = true)
     public List<Request> getRequestsAssignedToAgent(Long agentId) {
         return requestRepository.findByAgent_IdUser(agentId);
     }
@@ -249,6 +254,8 @@ public class RequestService {
                                    "127.0.0.1", "System", 
                                    "Status updated");
 
+        savedRequest.getSubmissionList().size();
+        savedRequest.getQuestions().size();
         return savedRequest;
     }
 
@@ -257,12 +264,21 @@ public class RequestService {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
 
+        // Delete request-contact-status records
+        requestContactStatusService.deleteByRequestIdR(request.getIdR());
+
         // Delete submissions and their responses using SubmissionService
         submissionService.deleteSubmissionsByRequestId(request.getIdR());
 
+        // Delete associated report if any
+        if (request.getReport() != null) {
+            request.setReport(null);
+            reportRepository.delete(reportRepository.findByRequest(request).orElse(null));
+        }
+
         // Break association with questions
         request.getQuestions().clear();
-        requestRepository.save(request); // optional but safe
+        requestRepository.save(request);
 
         // Now delete the request
         requestRepository.delete(request);
@@ -296,6 +312,7 @@ public class RequestService {
     }
 
 
+    @Transactional
     public Request updateNote(Long id, String note) {
         Request request = requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
@@ -307,6 +324,8 @@ public class RequestService {
                                     "Note updated: " + note, 
                                     "127.0.0.1", "System");
 
+        savedRequest.getSubmissionList().size();
+        savedRequest.getQuestions().size();
         return savedRequest;
     }
 

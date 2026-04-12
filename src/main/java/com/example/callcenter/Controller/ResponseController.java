@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/response")
 @RequiredArgsConstructor
-@CrossOrigin("http://localhost:4200")
+//@CrossOrigin("http://localhost:4200")
 public class ResponseController {
     private final ResponseService responseService;
 

@@ -26,6 +26,9 @@ public class User implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private  Long idUser;
     private String fullName;
+    private String email;
+    private String username;
+    private boolean enabled = true;
     @Enumerated(EnumType.STRING)
     private Role role;
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)

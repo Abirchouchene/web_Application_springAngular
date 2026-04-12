@@ -19,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/logs")
-@CrossOrigin("http://localhost:4200")
+//@CrossOrigin("http://localhost:4200")
 @RequiredArgsConstructor
 public class LogsController {
     

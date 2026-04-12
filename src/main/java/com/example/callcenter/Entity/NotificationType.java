@@ -7,5 +7,8 @@ public enum NotificationType {
     LEAVE_REQ,
     LEAVE_APP,
     LEAVE_REJ,
-    REMINDER
+    REMINDER,
+    CALLBACK,
+    CLARIFICATION,
+    DEADLINE
 }

@@ -24,4 +24,6 @@ public class ReportDTO {
     private Integer contactedContacts;
     private Double contactRate;
     private String statisticsData;
-} 
+    private String aiInsightsData;
+    private LocalDateTime aiGeneratedDate;
+}
