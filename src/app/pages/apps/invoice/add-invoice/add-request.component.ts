@@ -100,13 +100,13 @@ export class AppAddRequestComponent implements OnInit {
         this.contacts = (data || []).map((c) => this.normalizeContact(c));
         this.syncContactCacheFromList();
       },
-      error: () => {
+      error: (err) => {
         this.contactsLoadError = true;
-        this.snackBar.open(
-          'Impossible de charger les contacts (vérifiez contact-service :8081 et le token).',
-          'Fermer',
-          { duration: 6000 }
-        );
+        const msg = err.status === 401
+          ? 'Session expirée — veuillez vous reconnecter.'
+          : 'Impossible de charger les contacts. Réessayez dans quelques instants.';
+        this.snackBar.open(msg, 'Réessayer', { duration: 8000 })
+          .onAction().subscribe(() => this.loadAllContacts());
       },
     });
   }

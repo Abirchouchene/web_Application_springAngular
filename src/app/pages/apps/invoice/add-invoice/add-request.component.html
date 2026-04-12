@@ -106,7 +106,8 @@
                   </div>
 
                   <p *ngIf="contactsLoadError" class="text-warning small mb-2">
-                    Chargement des contacts en échec — vérifiez que le service sur le port 8081 répond et que vous êtes authentifié.
+                    Chargement des contacts en échec.
+                    <a href="javascript:void(0)" (click)="loadAllContacts()" class="text-primary">Réessayer</a>
                   </p>
 
                   <div class="row g-3">

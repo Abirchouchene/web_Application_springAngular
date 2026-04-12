@@ -40,7 +40,7 @@ export class AppInvoiceViewComponent {
       this.id.set(+params['id']); 
   
       this.loadRequestDetail();
-      this.availableAgents();
+      this.loadAvailableAgents();
     });
   }
   
@@ -74,11 +74,12 @@ export class AppInvoiceViewComponent {
     }
   }
    loadAvailableAgents(): void {
-    this.requestService.getAvailableAgents()
+    const today = new Date().toISOString().split('T')[0];
+    this.requestService.getAvailableAgents(today)
       .subscribe({
         next: (agents) => {
           this.availableAgents.set(agents);
-          this.agents.set(agents); // <-- update agents list as well
+          this.agents.set(agents);
         },
         error: (err) => console.error('Error fetching agents', err)
       });

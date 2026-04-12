@@ -106,12 +106,12 @@ export class ContactManagementComponent implements OnInit, AfterViewInit {
         this.allContacts = (rows || []).map(normalizeContact);
         this.applyFilters();
       },
-      error: () => {
-        this.snackBar.open(
-          'Impossible de charger les contacts (vérifiez le service et le token).',
-          'Fermer',
-          { duration: 5000 }
-        );
+      error: (err) => {
+        const msg = err.status === 401
+          ? 'Session expirée — veuillez vous reconnecter.'
+          : 'Impossible de charger les contacts. Réessayez dans quelques instants.';
+        this.snackBar.open(msg, 'Réessayer', { duration: 8000 })
+          .onAction().subscribe(() => this.loadContacts());
         this.allContacts = [];
         this.applyFilters();
       },

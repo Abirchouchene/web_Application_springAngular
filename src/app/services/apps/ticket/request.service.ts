@@ -129,6 +129,20 @@ updateNote(requestId: number, note: string): Observable<Request> {
   deleteRequest(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`, { responseType: 'text' });
   }
+
+  updateRequestByRequester(requestId: number, dto: any, requesterId: number): Observable<any> {
+    return this.http.put(`${this.apiUrl}/requester/${requestId}/update?requesterId=${requesterId}`, dto);
+  }
+
+  getRequestsByType(type: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/type/${type}`).pipe(
+      map(requests => this.sortByCreatedAtDesc(requests))
+    );
+  }
+
+  autoGenerateSurvey(userId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/auto-generate?userId=${userId}`, null);
+  }
   
   generateReport(requestId: number): Observable<{ reportId: string }> {
     return this.reportService.generateReport(requestId).pipe(

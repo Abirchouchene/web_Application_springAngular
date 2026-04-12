@@ -78,17 +78,15 @@ export class AppTicketlistComponent implements OnInit, AfterViewInit {
       error: (error) => {
         console.error('Error loading callbacks:', error);
         // Display a more user-friendly error message based on the error type
-        let errorMessage = 'Failed to load upcoming callbacks';
+        let errorMessage = 'Impossible de charger les rappels';
         if (error.status === 0) {
-          errorMessage += ': Server not reachable';
+          errorMessage += ' : serveur inaccessible';
         } else if (error.status === 401) {
-          errorMessage += ': Authentication required';
+          errorMessage = 'Session expirée — veuillez vous reconnecter.';
         } else if (error.status === 403) {
-          errorMessage += ': Access denied';
+          errorMessage += ' : accès refusé';
         } else if (error.status === 404) {
-          errorMessage += ': API endpoint not found';
-        } else if (error.error && error.error.message) {
-          errorMessage += `: ${error.error.message}`;
+          errorMessage += ' : endpoint introuvable';
         }
         this.showMessage(errorMessage);
         // Still initialize to empty array to prevent UI errors
@@ -100,18 +98,18 @@ export class AppTicketlistComponent implements OnInit, AfterViewInit {
   markCallbackAsCompleted(callbackId: number): void {
     this.callbackService.updateCallbackStatus(callbackId, CallbackStatus.COMPLETED).subscribe({
       next: () => {
-        this.showMessage('Callback marked as completed');
+        this.showMessage('Rappel marqué comme terminé');
         this.loadUpcomingCallbacks(); // Refresh the callbacks
       },
       error: (error) => {
         console.error('Error updating callback:', error);
-        this.showMessage('Failed to update callback status');
+        this.showMessage('Échec de la mise à jour du rappel');
       }
     });
   }
 
   showMessage(message: string): void {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, 'Fermer', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'top',
@@ -129,7 +127,8 @@ export class AppTicketlistComponent implements OnInit, AfterViewInit {
   loadAssignedTickets() {
     const agentId = 1; // 👈 Replace this with dynamic value if needed
   
-    this.requestService.getAssignedRequests(agentId).subscribe(data => {
+    this.requestService.getAssignedRequests(agentId).subscribe({
+      next: (data) => {
       data = data.map((item: any) => {
         if (typeof item.createdAt === 'string') {
           item.createdAt = new Date(item.createdAt.replace(' ', 'T'));
@@ -158,6 +157,16 @@ export class AppTicketlistComponent implements OnInit, AfterViewInit {
       
       console.log("Assigned requests only:", this.tickets);
       this.updateCounts();
+    },
+      error: (error) => {
+        console.error('Error loading assigned tickets:', error);
+        const msg = error.status === 401
+          ? 'Session expirée — veuillez vous reconnecter.'
+          : 'Erreur lors du chargement des tickets assignés.';
+        this.showMessage(msg);
+        this.tickets = [];
+        this.dataSource.data = [];
+      }
     });
   }
   

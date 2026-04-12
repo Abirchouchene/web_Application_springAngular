@@ -2,11 +2,13 @@ import { Routes } from '@angular/router';
 import { BlankComponent } from './layouts/blank/blank.component';
 import { FullComponent } from './layouts/full/full.component';
 import { ListeJobComponent } from './components/jobOffer/liste-job/liste-job.component';
+import { AuthGuard } from './guard/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
     component: FullComponent,
+    canActivate: [AuthGuard],
     children: [
       {
         path: 'job-offres',

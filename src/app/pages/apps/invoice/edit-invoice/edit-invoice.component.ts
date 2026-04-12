@@ -1,164 +1,163 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { InvoiceService } from 'src/app/services/apps/invoice/invoice.service';
-import { InvoiceList, order } from '../invoice';
-import {
-  UntypedFormGroup,
-  UntypedFormArray,
-  UntypedFormBuilder,
-  Validators,
-  FormsModule,
-  ReactiveFormsModule,
-} from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
-import { OkDialogComponent } from './ok-dialog/ok-dialog.component';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MaterialModule } from 'src/app/material.module';
 import { CommonModule } from '@angular/common';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { RequestService } from 'src/app/services/apps/ticket/request.service';
+import { ContactService } from 'src/app/services/apps/contact/contact.service';
+import { CategoryRequest } from 'src/app/models/CategoryRequest';
+import { Priority } from 'src/app/models/Priority';
+import { environment } from 'src/environments/environment';
+
 @Component({
-    selector: 'app-edit-invoice',
-    templateUrl: './edit-invoice.component.html',
-    imports: [
-        MaterialModule,
-        CommonModule,
-        RouterLink,
-        FormsModule,
-        ReactiveFormsModule,
-        TablerIconsModule,
-    ]
+  selector: 'app-edit-invoice',
+  templateUrl: './edit-invoice.component.html',
+  imports: [
+    MaterialModule,
+    CommonModule,
+    RouterLink,
+    FormsModule,
+    ReactiveFormsModule,
+    TablerIconsModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+  ],
 })
-export class AppEditInvoiceComponent {
-  id = signal<any>(null);
-  subTotal = signal<number>(0);
-  vat = signal<number>(0);
-  grandTotal = signal<number>(0);
-  addForm: UntypedFormGroup | any;
-  invoice = signal<InvoiceList | any>([]);
+export class AppEditInvoiceComponent implements OnInit {
+  id = signal<number>(0);
+  editForm!: UntypedFormGroup;
+  requestData = signal<any>(null);
+  loading = signal<boolean>(true);
+  contacts: any[] = [];
+  selectedContacts: number[] = [];
+  canEdit = signal<boolean>(false);
+
+  categoryRequests = Object.values(CategoryRequest);
+  priorityLevels = Object.values(Priority);
+
   constructor(
-    activatedRouter: ActivatedRoute,
-    private invoiceService: InvoiceService,
+    private route: ActivatedRoute,
     private router: Router,
     private fb: UntypedFormBuilder,
-    public dialog: MatDialog,
+    private requestService: RequestService,
+    private contactService: ContactService,
     private snackBar: MatSnackBar
-  ) {
-    this.id.set(activatedRouter.snapshot.paramMap.get('id'));
-    this.loadInvoice(); // Load invoice here
-    this.subTotal.set(this.invoice()?.totalCost || 0);
-    this.vat.set(this.invoice()?.vat || 0);
-    this.grandTotal.set(this.invoice()?.grandTotal || 0);
-    this.addForm = this.fb.group({
-      item: this.fb.array([this.itemControl()]),
+  ) {}
+
+  ngOnInit(): void {
+    this.id.set(+this.route.snapshot.paramMap.get('id')!);
+    this.editForm = this.fb.group({
+      description: ['', Validators.required],
+      priority: [null, Validators.required],
+      categoryRequest: [null, Validators.required],
+      deadline: [null],
     });
-
-    this.fillAddControls();
+    this.loadRequest();
+    this.loadContacts();
   }
 
-  loadInvoice(): void {
-    const invoiceData = this.invoiceService
-      .getInvoiceList()
-      .find((x) => x.id === +this.id());
-    this.invoice.set(invoiceData); // Set the invoice signal
-  }
-  itemControl(): UntypedFormGroup {
-    return this.fb.group({
-      itemName: ['', Validators.required],
-      itemCost: ['', Validators.required],
-      itemSold: ['', Validators.required],
-      itemTotal: [{ value: 0, disabled: true }]
+  loadRequest(): void {
+    this.requestService.getRequestById(this.id()).subscribe({
+      next: (data) => {
+        this.requestData.set(data);
+        this.canEdit.set(data.status === 'PENDING');
+        this.editForm.patchValue({
+          description: data.description,
+          priority: data.priority,
+          categoryRequest: data.categoryRequest,
+          deadline: data.deadline ? new Date(data.deadline) : null,
+        });
+        // Extract contactIds from submissionList
+        if (data.submissionList?.length) {
+          this.selectedContacts = data.submissionList
+            .map((s: any) => s.contactId)
+            .filter((id: any) => id != null);
+        }
+        this.loading.set(false);
+      },
+      error: () => {
+        this.snackBar.open('Erreur lors du chargement de la demande', 'OK', { duration: 3000 });
+        this.loading.set(false);
+      },
     });
   }
 
-  fillAddControls(): void {
-    this.addForm.setControl('item', this.setItem(this.invoice()?.orders));
-  }
-
-  setItem(order: any): UntypedFormArray {
-    const fa = new UntypedFormArray([]);
-    order?.forEach((s: any) => {
-      fa.push(
-        this.fb.group({
-          itemName: s.itemName,
-          itemCost: s.unitPrice,
-          itemSold: s.units,
-          itemTotal: s.unitTotalPrice,
-        })
-      );
+  loadContacts(): void {
+    this.contactService.getAllContacts().subscribe({
+      next: (data) => (this.contacts = data || []),
+      error: () => (this.contacts = []),
     });
-    return fa;
   }
 
-  btnAddItemClick(): void {
-    (<UntypedFormArray>this.addForm.get('item')).push(this.itemControl());
+  isContactSelected(id: number): boolean {
+    return this.selectedContacts.includes(id);
   }
 
-  btnRemoveClick(i: number): void {
-    const totalCostOfItem =
-      this.addForm.get('item')?.value[i].itemCost *
-      this.addForm.get('item')?.value[i].itemSold;
-
-    this.subTotal.set(this.subTotal() - totalCostOfItem);
-    this.vat.set(this.subTotal() / 10);
-    this.grandTotal.set(this.subTotal() + this.vat());
-
-    (<UntypedFormArray>this.addForm.get('item')).removeAt(i);
-  }
-
-  itemsChanged(): void {
-    let total = 0;
-    for (
-      let t = 0;
-      t < (<UntypedFormArray>this.addForm.get('item')).length;
-      t++
-    ) {
-      if (
-        this.addForm.get('item')?.value[t].itemCost != '' &&
-        this.addForm.get('item')?.value[t].itemSold
-      ) {
-        total +=
-          this.addForm.get('item')?.value[t].itemCost *
-          this.addForm.get('item')?.value[t].itemSold;
-      }
-    }
-    this.subTotal.set(total);
-    this.vat.set(this.subTotal() / 10);
-    this.grandTotal.set(this.subTotal() + this.vat());
-  }
-
-  saveDetail(event: Event): void {
-    event.preventDefault();
-    const currentInvoice = this.invoice();
-    if (currentInvoice) {
-      currentInvoice.grandTotal = this.grandTotal();
-      currentInvoice.totalCost = this.subTotal();
-      currentInvoice.vat = this.vat();
-      currentInvoice.orders = [];
-
-      for (
-        let t = 0;
-        t < (<UntypedFormArray>this.addForm.get('item')).length;
-        t++
-      ) {
-        const o: order = new order();
-        o.itemName = this.addForm.get('item')?.value[t].itemName;
-        o.unitPrice = this.addForm.get('item')?.value[t].itemCost;
-        o.units = this.addForm.get('item')?.value[t].itemSold;
-        o.unitTotalPrice = o.units * o.unitPrice;
-        currentInvoice.orders.push(o);
-      }
-      this.dialog.open(OkDialogComponent);
-      this.invoiceService.updateInvoice(currentInvoice.id, currentInvoice);
-      this.router.navigate(['/apps/invoice']);
-      this.showSnackbar('Invoice updated  successfully!');
+  toggleContact(id: number): void {
+    const idx = this.selectedContacts.indexOf(id);
+    if (idx > -1) {
+      this.selectedContacts.splice(idx, 1);
+    } else {
+      this.selectedContacts.push(id);
     }
   }
 
-  showSnackbar(message: string): void {
-    this.snackBar.open(message, 'Close', {
-      duration: 3000,
-      horizontalPosition: 'center',
-      verticalPosition: 'top',
+  onSave(): void {
+    if (!this.editForm.valid) {
+      this.snackBar.open('Veuillez remplir tous les champs obligatoires', 'OK', { duration: 3000 });
+      return;
+    }
+    if (!this.canEdit()) {
+      this.snackBar.open('Seules les demandes en attente peuvent être modifiées', 'OK', { duration: 3000 });
+      return;
+    }
+
+    const formVal = this.editForm.value;
+    const dto = {
+      description: formVal.description,
+      priority: formVal.priority,
+      categoryRequest: formVal.categoryRequest,
+      deadline: formVal.deadline ? this.formatDate(formVal.deadline) : null,
+      contactIds: this.selectedContacts,
+      questionIds: this.requestData()?.questions?.map((q: any) => q.id) || [],
+    };
+
+    const requesterId = this.requestData()?.user?.idUser ?? environment.callCenterSubmitUserId;
+
+    this.requestService.updateRequestByRequester(this.id(), dto, requesterId).subscribe({
+      next: () => {
+        this.snackBar.open('Demande mise à jour avec succès', 'OK', { duration: 3000 });
+        this.router.navigate(['/apps/invoice']);
+      },
+      error: (err) => {
+        const msg = err?.error?.message || err?.error || 'Erreur lors de la mise à jour';
+        this.snackBar.open(typeof msg === 'string' ? msg : 'Erreur lors de la mise à jour', 'OK', { duration: 4000 });
+      },
     });
+  }
+
+  onDelete(): void {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette demande ?')) {
+      this.requestService.deleteRequest(this.id()).subscribe({
+        next: () => {
+          this.snackBar.open('Demande supprimée', 'OK', { duration: 3000 });
+          this.router.navigate(['/apps/invoice']);
+        },
+        error: () => {
+          this.snackBar.open('Erreur lors de la suppression', 'OK', { duration: 3000 });
+        },
+      });
+    }
+  }
+
+  private formatDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

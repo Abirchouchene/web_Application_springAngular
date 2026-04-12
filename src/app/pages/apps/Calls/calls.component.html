@@ -1,0 +1,184 @@
+<div class="row">
+  <!-- Stats Cards -->
+  <div class="col-lg-3 col-md-6">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-24 text-center">
+        <i-tabler name="phone" class="icon-40 text-primary"></i-tabler>
+        <h3 class="m-t-8 f-w-600">{{ stats.total }}</h3>
+        <span class="text-muted f-s-14">Total Appels</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-24 text-center">
+        <i-tabler name="phone-check" class="icon-40 text-success"></i-tabler>
+        <h3 class="m-t-8 f-w-600">{{ stats.contacted }}</h3>
+        <span class="text-muted f-s-14">Contactés</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-24 text-center">
+        <i-tabler name="phone-off" class="icon-40 text-warning"></i-tabler>
+        <h3 class="m-t-8 f-w-600">{{ stats.pending }}</h3>
+        <span class="text-muted f-s-14">En attente</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <div class="col-lg-3 col-md-6">
+    <mat-card class="cardWithShadow">
+      <mat-card-content class="p-24 text-center">
+        <i-tabler name="phone-calling" class="icon-40 text-accent"></i-tabler>
+        <h3 class="m-t-8 f-w-600">{{ stats.callback }}</h3>
+        <span class="text-muted f-s-14">À rappeler</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<!-- Upcoming Callbacks Alert -->
+<mat-card class="cardWithShadow m-b-24" *ngIf="upcomingCallbacks.length > 0">
+  <mat-card-content class="p-24">
+    <div class="d-flex align-items-center gap-12 m-b-16">
+      <i-tabler name="bell-ringing" class="icon-24 text-warning"></i-tabler>
+      <h5 class="f-w-600 m-0">Rappels à venir ({{ upcomingCallbacks.length }})</h5>
+    </div>
+    <div class="d-flex flex-wrap gap-8">
+      <mat-chip *ngFor="let cb of upcomingCallbacks" color="warn" selected class="cursor-pointer">
+        <i-tabler name="phone-calling" class="icon-16 m-r-4"></i-tabler>
+        Contact #{{ cb.contactId }} — {{ cb.scheduledDate | date:'HH:mm' }}
+      </mat-chip>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- Calls Table -->
+<mat-card class="cardWithShadow">
+  <mat-card-header>
+    <mat-card-title>Gestion des Appels</mat-card-title>
+  </mat-card-header>
+  <mat-card-content class="p-24">
+    <!-- Filters -->
+    <div class="d-flex align-items-center gap-16 m-b-16 flex-wrap">
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>Rechercher</mat-label>
+        <input matInput [(ngModel)]="searchFilter" placeholder="Nom, téléphone..." />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Statut</mat-label>
+        <mat-select [(ngModel)]="statusFilter">
+          <mat-option value="ALL">Tous</mat-option>
+          <mat-option value="NOT_CONTACTED">Non contacté</mat-option>
+          <mat-option value="CONTACTED_AVAILABLE">Contacté - Disponible</mat-option>
+          <mat-option value="CONTACTED_UNAVAILABLE">Contacté - Indisponible</mat-option>
+          <mat-option value="NO_ANSWER">Pas de réponse</mat-option>
+          <mat-option value="CALL_BACK_LATER">Rappeler plus tard</mat-option>
+          <mat-option value="WRONG_NUMBER">Mauvais numéro</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-stroked-button color="primary" (click)="loadData()">
+        <mat-icon>refresh</mat-icon> Actualiser
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="d-flex justify-content-center p-24">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive" *ngIf="!isLoading">
+      <table mat-table [dataSource]="filteredEntries" class="w-100">
+        <!-- Contact Name -->
+        <ng-container matColumnDef="contact">
+          <th mat-header-cell *matHeaderCellDef>Contact</th>
+          <td mat-cell *matCellDef="let entry">
+            <div class="d-flex align-items-center gap-8">
+              <i-tabler [name]="getStatusIcon(entry.status)" class="icon-20"></i-tabler>
+              <div>
+                <span class="f-w-600">{{ entry.contact.name || 'N/A' }}</span>
+                <br />
+                <span class="text-muted f-s-12">{{ entry.contact.phoneNumber }}</span>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Request -->
+        <ng-container matColumnDef="request">
+          <th mat-header-cell *matHeaderCellDef>Enquête</th>
+          <td mat-cell *matCellDef="let entry">
+            <span class="f-s-14">{{ entry.request.description | slice:0:40 }}{{ entry.request.description && entry.request.description.length > 40 ? '...' : '' }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Status -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <td mat-cell *matCellDef="let entry">
+            <mat-chip [color]="getStatusColor(entry.status)" selected>
+              {{ getStatusLabel(entry.status) }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Last Call -->
+        <ng-container matColumnDef="lastCall">
+          <th mat-header-cell *matHeaderCellDef>Dernier appel</th>
+          <td mat-cell *matCellDef="let entry">
+            {{ entry.contact.lastCallAttempt ? (entry.contact.lastCallAttempt | date:'dd/MM/yyyy HH:mm') : '—' }}
+          </td>
+        </ng-container>
+
+        <!-- Actions -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let entry">
+            <button mat-icon-button [matMenuTriggerFor]="actionMenu" matTooltip="Actions">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #actionMenu="matMenu">
+              <button mat-menu-item (click)="updateCallStatus(entry, ContactStatus.CONTACTED_AVAILABLE)">
+                <i-tabler name="phone-check" class="icon-18 m-r-8 text-success"></i-tabler>
+                Contacté - Disponible
+              </button>
+              <button mat-menu-item (click)="updateCallStatus(entry, ContactStatus.NO_ANSWER)">
+                <i-tabler name="phone-x" class="icon-18 m-r-8 text-warning"></i-tabler>
+                Pas de réponse
+              </button>
+              <button mat-menu-item (click)="updateCallStatus(entry, ContactStatus.CONTACTED_UNAVAILABLE)">
+                <i-tabler name="phone-pause" class="icon-18 m-r-8"></i-tabler>
+                Contacté - Indisponible
+              </button>
+              <button mat-menu-item (click)="updateCallStatus(entry, ContactStatus.CALL_BACK_LATER)">
+                <i-tabler name="phone-calling" class="icon-18 m-r-8 text-accent"></i-tabler>
+                Rappeler plus tard
+              </button>
+              <button mat-menu-item (click)="updateCallStatus(entry, ContactStatus.WRONG_NUMBER)">
+                <i-tabler name="phone-x" class="icon-18 m-r-8 text-error"></i-tabler>
+                Mauvais numéro
+              </button>
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="openTicket(entry)">
+                <i-tabler name="file-text" class="icon-18 m-r-8 text-primary"></i-tabler>
+                Voir détails / Saisir réponses
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="['contact','request','status','lastCall','actions']"></tr>
+        <tr mat-row *matRowDef="let row; columns: ['contact','request','status','lastCall','actions']"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell text-center p-24" colspan="5">
+            Aucun appel trouvé
+          </td>
+        </tr>
+      </table>
+    </div>
+  </mat-card-content>
+</mat-card>

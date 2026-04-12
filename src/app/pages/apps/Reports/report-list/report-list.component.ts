@@ -9,7 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { RouterLink } from '@angular/router';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { Status } from 'src/app/models/Status';
 import { RequestType } from 'src/app/models/RequestType';
@@ -17,15 +16,17 @@ import { ReportDetailsComponent } from '../report-details/report-details.compone
 
 interface Report {
   id: number;
-  requestId: number;
+  request?: { idR: number; title?: string; [key: string]: any };
   requestTitle: string;
   requestType: RequestType;
-  generatedBy: string;
   generatedDate: Date;
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SENT';
-  approvedBy?: string;
   approvedDate?: Date;
   sentDate?: Date;
+  totalContacts?: number;
+  contactedContacts?: number;
+  contactRate?: number;
+  statisticsData?: string;
 }
 
 @Component({
@@ -42,7 +43,6 @@ interface Report {
     MatButtonModule,
     MatIconModule,
     MatChipsModule,
-    RouterLink
   ]
 })
 export class ReportListComponent implements OnInit {
@@ -50,7 +50,6 @@ export class ReportListComponent implements OnInit {
     'requestId',
     'requestTitle',
     'requestType',
-    'generatedBy',
     'generatedDate',
     'status',
     'actions'
@@ -79,7 +78,10 @@ export class ReportListComponent implements OnInit {
       error: (error) => {
         console.error('Error loading reports:', error);
         this.isLoading = false;
-        this.showMessage('Failed to load reports');
+        const msg = error.status === 401
+          ? 'Session expirée — veuillez vous reconnecter.'
+          : 'Erreur lors du chargement des rapports.';
+        this.showMessage(msg);
       }
     });
   }
@@ -87,50 +89,50 @@ export class ReportListComponent implements OnInit {
   viewReportDetails(report: Report): void {
     this.dialog.open(ReportDetailsComponent, {
       width: '800px',
-      data: { requestId: report.requestId },
+      data: { requestId: report.id },
       disableClose: true
     });
   }
 
   generatePdf(report: Report): void {
-    this.requestService.generateReportPdf(report.requestId).subscribe({
+    this.requestService.generateReportPdf(report.id).subscribe({
       next: (pdfBlob) => {
         const url = window.URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `report-${report.requestId}.pdf`;
+        link.download = `report-${report.id}.pdf`;
         link.click();
         window.URL.revokeObjectURL(url);
       },
       error: (error) => {
         console.error('Error generating PDF:', error);
-        this.showMessage('Failed to generate PDF');
+        this.showMessage('Échec de la génération du PDF');
       }
     });
   }
 
   approveReport(report: Report): void {
-    this.requestService.approveReport(report.requestId).subscribe({
+    this.requestService.approveReport(report.id).subscribe({
       next: () => {
-        this.showMessage('Report approved successfully');
+        this.showMessage('Rapport approuvé avec succès');
         this.loadReports();
       },
       error: (error) => {
         console.error('Error approving report:', error);
-        this.showMessage('Failed to approve report');
+        this.showMessage('Échec de l\'approbation du rapport');
       }
     });
   }
 
   rejectReport(report: Report): void {
-    this.requestService.rejectReport(report.requestId).subscribe({
+    this.requestService.rejectReport(report.id).subscribe({
       next: () => {
-        this.showMessage('Report rejected');
+        this.showMessage('Rapport rejeté');
         this.loadReports();
       },
       error: (error) => {
         console.error('Error rejecting report:', error);
-        this.showMessage('Failed to reject report');
+        this.showMessage('Échec du rejet du rapport');
       }
     });
   }
@@ -151,7 +153,7 @@ export class ReportListComponent implements OnInit {
   }
 
   private showMessage(message: string): void {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, 'Fermer', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'top',

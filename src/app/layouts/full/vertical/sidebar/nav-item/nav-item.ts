@@ -13,4 +13,5 @@ export interface NavItem {
     children?: NavItem[];
     ddType?: string;
     bgcolor?:string;
+    roles?: string[];
 }

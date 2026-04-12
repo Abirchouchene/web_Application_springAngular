@@ -8,6 +8,7 @@ import {
   HttpClient,
   provideHttpClient,
   withInterceptorsFromDi,
+  HTTP_INTERCEPTORS,
 } from '@angular/common/http';
 import { routes } from './app.routes';
 import {
@@ -43,6 +44,7 @@ import { provideHighlightOptions } from 'ngx-highlightjs';
 import 'highlight.js/styles/atom-one-dark.min.css';
 import { KeycloakInitService } from './services/keycloak.service';
 import { KeycloakAngularModule } from 'keycloak-angular';
+import { AuthInterceptor } from './interceptors/auth.interceptor';
 
 export function HttpLoaderFactory(http: HttpClient): any {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -107,9 +109,14 @@ export const appConfig: ApplicationConfig = {
     ),
 
     {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true,
+    },
+    {
       provide: APP_INITIALIZER,
       useFactory: keycloakInitializer,
-      deps: [KeycloakInitService], // Ajout du service KeycloakInitService comme dépendance
+      deps: [KeycloakInitService],
       multi: true,
     },
   ],

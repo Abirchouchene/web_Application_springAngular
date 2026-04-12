@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { KeycloakService } from 'keycloak-angular';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -7,22 +8,46 @@ import { KeycloakService } from 'keycloak-angular';
 export class KeycloakInitService {
   constructor(private keycloakService: KeycloakService) {}
 
-  // Méthode d'initialisation de Keycloak
   init() {
-    // Retourner la promesse retournée par Keycloak
     return this.keycloakService.init({
       config: {
-        url: 'http://192.168.10.161:8080/', // L'URL de ton serveur Keycloak
-        realm: 'Portal',  // Le nom de ton realm
-        clientId: 'uptech-rest-api', // Le client ID
+        url: environment.keycloak.url,
+        realm: environment.keycloak.realm,
+        clientId: environment.keycloak.clientId,
       },
       initOptions: {
-        onLoad: 'login-required', // L'utilisateur doit être authentifié au démarrage
-        checkLoginIframe: false, // Désactiver la vérification par iframe
+        onLoad: 'login-required',
+        checkLoginIframe: false,
+        silentCheckSsoFallback: false,
+        enableLogging: true,
+        redirectUri: window.location.origin + '/',
+      },
+      shouldAddToken: (request) => {
+        const { url } = request;
+        // Only add token for API calls through the gateway
+        const isApiCall = url.startsWith(environment.apiUrl) || url.startsWith(environment.gatewayUrl);
+        return isApiCall;
       },
     });
   }
+
   logout() {
-    this.keycloakService.logout(window.location.origin);  // Redirige l'utilisateur après la déconnexion
+    this.keycloakService.logout(window.location.origin);
+  }
+
+  getToken(): Promise<string> {
+    return this.keycloakService.getToken();
+  }
+
+  getUserRoles(): string[] {
+    return this.keycloakService.getUserRoles();
+  }
+
+  isLoggedIn(): boolean {
+    return this.keycloakService.isLoggedIn();
+  }
+
+  getUsername(): string {
+    return this.keycloakService.getUsername();
   }
 }

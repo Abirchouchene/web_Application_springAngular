@@ -19,6 +19,7 @@ import { AppConfirmDeleteDialogComponent } from './confirm-delete-dialog.compone
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
+import { RoleService } from 'src/app/services/role.service';
 
 @Component({
     selector: 'app-invoice-list',
@@ -33,11 +34,14 @@ import { RequestService } from 'src/app/services/apps/ticket/request.service';
     ]
 })
 export class AppInvoiceListComponent implements AfterViewInit {
+  isAgent = false;
   allComplete = signal<boolean>(false);
   invoiceList = new MatTableDataSource<InvoiceList>([]);
-  activeTab = signal<string>('All');
+  activeTab = signal<string>('ALL');
   allInvoices = signal<InvoiceList[]>([]);
   searchQuery = signal<string>('');
+  allRequests: any[] = [];
+  statusFilters = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'AUTO_GENERATED'];
   displayedColumns: string[] = [
     'idR',
     'createdAt',
@@ -58,11 +62,13 @@ export class AppInvoiceListComponent implements AfterViewInit {
 
   constructor(
     private requestService: RequestService,
+    private roleService: RoleService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {
+    this.isAgent = this.roleService.getRole() === 'AGENT';
     this.loadRequests();
   }
 
@@ -72,18 +78,21 @@ export class AppInvoiceListComponent implements AfterViewInit {
   }
 
   loadRequests() {
-    this.requestService.getAllRequests().subscribe({
+    const request$ = this.isAgent
+      ? this.requestService.getAssignedRequests(1) // TODO: replace 1 with actual agent ID
+      : this.requestService.getAllRequests();
+
+    request$.subscribe({
       next: (data) => {
-        // Convert string dates to Date objects
         data = data.map(item => ({
           ...item,
           createdAt: new Date(item.createdAt),
           deadline: item.deadline ? new Date(item.deadline) : null
         }));
 
-        this.dataSource.data = data;
+        this.allRequests = data;
+        this.applyFilters();
 
-        // Set default sorting
         if (this.sort) {
           this.sort.active = 'createdAt';
           this.sort.direction = 'desc';
@@ -92,13 +101,35 @@ export class AppInvoiceListComponent implements AfterViewInit {
       },
       error: (error) => {
         console.error('Error loading requests:', error);
-        this.snackBar.open('Error loading requests', 'Close', {
-          duration: 3000,
+        const msg = error.status === 401
+          ? 'Session expirée — veuillez vous reconnecter.'
+          : 'Erreur lors du chargement des demandes.';
+        this.snackBar.open(msg, 'Réessayer', {
+          duration: 8000,
           horizontalPosition: 'center',
           verticalPosition: 'top',
-        });
+        }).onAction().subscribe(() => this.loadRequests());
       }
     });
+  }
+
+  filterByStatus(status: string): void {
+    this.activeTab.set(status);
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    const tab = this.activeTab();
+    let filtered = this.allRequests;
+    if (tab !== 'ALL') {
+      filtered = filtered.filter(r => r.status === tab);
+    }
+    this.dataSource.data = filtered;
+  }
+
+  countByStatus(status: string): number {
+    if (status === 'ALL') return this.allRequests.length;
+    return this.allRequests.filter(r => r.status === status).length;
   }
 
   onKeyUp(event: KeyboardEvent) {

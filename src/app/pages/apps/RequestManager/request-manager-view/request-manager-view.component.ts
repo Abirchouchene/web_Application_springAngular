@@ -1,12 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { MaterialModule } from 'src/app/material.module';
 import { AgentAvailabilityDTO } from 'src/app/models/AgentAvailabilityDTO';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
-import { signal } from '@angular/core'; // Or another correct import for signals
+import { signal } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 
 
@@ -26,13 +27,15 @@ import { signal } from '@angular/core'; // Or another correct import for signals
   export class RequestManagerViewComponent implements OnInit {
     id = signal<number>(0);
     requestDetail = signal<any | null>(null);
-    agents = signal<AgentAvailabilityDTO[]>([]); // Directly using your backend DTO
+    agents = signal<AgentAvailabilityDTO[]>([]);
     selectedAgentId = signal<number | null>(null);
-    selectedDate = signal<string>(new Date().toISOString().split('T')[0]); // Default to today's date
+    selectedDate = signal<string>(new Date().toISOString().split('T')[0]);
   
     constructor(
       private activatedRouter: ActivatedRoute,
       private requestService: RequestService,
+      private snackBar: MatSnackBar,
+      private router: Router,
     ) {}
   
     ngOnInit(): void {
@@ -51,37 +54,66 @@ import { signal } from '@angular/core'; // Or another correct import for signals
     }
   
     loadAgentAvailability(date?: string): void {
-      console.log('Fetching agents for date:', date);
       this.requestService.getAvailableAgents(date).subscribe({
-        next: (res: AgentAvailabilityDTO[]) => {
-          console.log('Fetched agents:', res);  // Log the response to see if availability is correct
-          this.agents.set(res);
-        },
+        next: (res: AgentAvailabilityDTO[]) => this.agents.set(res),
         error: (err) => console.error('Error fetching available agents', err),
       });
     }
-    
-    
   
     onDateChange(event: Event): void {
       const input = event.target as HTMLInputElement;
-      const newDate = input.value;
-      this.selectedDate.set(newDate);  // Update the signal value
-      this.loadAgentAvailability(newDate);  // Fetch agent availability for the selected date
+      this.selectedDate.set(input.value);
+      this.loadAgentAvailability(input.value);
     }
-    
-    
     
     assignAgent(): void {
       const agentId = this.selectedAgentId();
       if (agentId) {
         this.requestService.assignAgentToRequest(this.id(), agentId).subscribe({
           next: () => {
-            alert('Agent assigned successfully!');
+            this.snackBar.open('Agent assigné avec succès!', 'OK', { duration: 3000 });
             this.loadRequestDetail();
           },
           error: (err) => console.error('Error assigning agent', err),
         });
+      }
+    }
+
+    approveRequest(): void {
+      this.requestService.approveRequest(this.id(), 'APPROVED').subscribe({
+        next: () => {
+          this.snackBar.open('Demande approuvée avec succès', 'OK', { duration: 3000 });
+          this.loadRequestDetail();
+        },
+        error: (err) => {
+          console.error('Error approving request:', err);
+          this.snackBar.open('Erreur lors de l\'approbation', 'OK', { duration: 3000 });
+        }
+      });
+    }
+
+    rejectRequest(): void {
+      this.requestService.approveRequest(this.id(), 'REJECTED').subscribe({
+        next: () => {
+          this.snackBar.open('Demande rejetée', 'OK', { duration: 3000 });
+          this.loadRequestDetail();
+        },
+        error: (err) => {
+          console.error('Error rejecting request:', err);
+          this.snackBar.open('Erreur lors du rejet', 'OK', { duration: 3000 });
+        }
+      });
+    }
+
+    getStatusClass(status: string): string {
+      switch (status) {
+        case 'PENDING': return 'bg-warning text-dark';
+        case 'APPROVED': return 'bg-success text-white';
+        case 'REJECTED': return 'bg-danger text-white';
+        case 'IN_PROGRESS': return 'bg-info text-white';
+        case 'ASSIGNED': return 'bg-primary text-white';
+        case 'RESOLVED': return 'bg-success text-white';
+        default: return 'bg-light text-dark';
       }
     }
   
@@ -110,7 +142,6 @@ import { signal } from '@angular/core'; // Or another correct import for signals
     }
   
     getAvailabilityLabel(isAvailable: boolean): string {
-      return isAvailable ? 'Yes' : 'No';
+      return isAvailable ? 'Oui' : 'Non';
     }
-    
   }

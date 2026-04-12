@@ -11,6 +11,14 @@ export interface Notification {
 }
 
 export enum NotificationType {
+  ASSIGNED = 'ASSIGNED',
+  UPDATED = 'UPDATED',
+  COMPLETED = 'COMPLETED',
+  LEAVE_REQ = 'LEAVE_REQ',
+  LEAVE_APP = 'LEAVE_APP',
+  LEAVE_REJ = 'LEAVE_REJ',
+  REMINDER = 'REMINDER',
   CALLBACK = 'CALLBACK',
-  REMINDER = 'REMINDER'
+  CLARIFICATION = 'CLARIFICATION',
+  DEADLINE = 'DEADLINE'
 } 

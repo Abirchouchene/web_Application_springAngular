@@ -123,6 +123,15 @@ export class TicketdetailsComponent implements OnInit {
   callHistory: CallHistoryActivity[] = [];
   upcomingCallbacks: Callback[] = [];
   
+  // Clarification feature
+  isClarificationExpanded: boolean = false;
+  clarificationMessage: string = '';
+  isSendingClarification: boolean = false;
+  clarificationHistory: { message: string; timestamp: Date }[] = [];
+  
+  // Per-contact response feature
+  selectedResponseContactId: number | null = null;
+  
   constructor(
     private route: ActivatedRoute,
     private requestService: RequestService,
@@ -167,10 +176,9 @@ export class TicketdetailsComponent implements OnInit {
         // Load upcoming callbacks after getting request details
         this.loadUpcomingCallbacks();
         
-        // Check if agent information is available
-        if (!this.requestData.agent?.id) {
-          console.warn('No agent information available for this request');
-          this.showMessage('Warning: No agent information available. Please contact support.');
+        // Agent may not be assigned yet for PENDING/APPROVED requests — that's normal
+        if (!this.requestData.agent) {
+          console.log('No agent assigned yet for this request');
         }
         
         // Check report status
@@ -271,11 +279,11 @@ export class TicketdetailsComponent implements OnInit {
           notes: note
         });
         
-        this.showMessage(`Updated status for ${contact.name}`);
+        this.showMessage(`Statut mis à jour pour ${contact.name}`);
       },
       error: (error: HttpErrorResponse) => {
         console.error('Error updating contact status:', error);
-        this.showMessage('Failed to update contact status');
+        this.showMessage('Échec de la mise à jour du statut du contact');
       }
     });
   }
@@ -322,12 +330,12 @@ export class TicketdetailsComponent implements OnInit {
           });
         }
         
-        this.showMessage('Updated last call attempt');
+        this.showMessage('Dernier appel mis à jour');
         this.getRequestDetails();
       },
       error: (error: HttpErrorResponse) => {
         console.error('Error updating last call attempt:', error);
-        this.showMessage('Failed to update last call attempt');
+        this.showMessage('Échec de la mise à jour du dernier appel');
       }
     });
   }
@@ -349,12 +357,12 @@ export class TicketdetailsComponent implements OnInit {
     this.requestService.updateRequestStatus(this.requestData.idR, this.status).subscribe({
       next: () => {
         this.isLoading = false;
-        alert('Request updated successfully!');
+        alert('Demande mise à jour avec succès !');
       },
       error: (error) => {
         this.isLoading = false;
         console.error('Error updating request:', error);
-        alert('Failed to update the request. Please try again.');
+        alert('Échec de la mise à jour. Veuillez réessayer.');
       }
     });
   }
@@ -365,32 +373,77 @@ export class TicketdetailsComponent implements OnInit {
       return;
     }
 
+    if (!this.selectedResponseContactId) {
+      this.showMessage('Veuillez sélectionner un contact');
+      return;
+    }
+
     this.isSavingResponses = true;
     let savedCount = 0;
-    const totalQuestions = this.requestData.questions.length;
+    let errorOccurred = false;
+    const questionsWithResponses = this.requestData.questions.filter(q => q.response);
+    const totalToSave = questionsWithResponses.length;
 
-    this.requestData.questions.forEach(question => {
-      if (question.response) {
-        this.responseService.addResponsesToQuestion(question.id, [question.response]).subscribe({
-          next: () => {
-            savedCount++;
-            if (savedCount === totalQuestions) {
-              this.isSavingResponses = false;
-              this.showMessage('All responses saved successfully');
-            }
-          },
-          error: (error) => {
-            console.error('Error saving response:', error);
+    if (totalToSave === 0) {
+      this.isSavingResponses = false;
+      this.showMessage('Aucune réponse à enregistrer');
+      return;
+    }
+
+    questionsWithResponses.forEach(question => {
+      this.responseService.addResponsesToQuestion(
+        this.requestData.idR,
+        question.id,
+        this.selectedResponseContactId!,
+        [question.response!]
+      ).subscribe({
+        next: () => {
+          savedCount++;
+          if (savedCount === totalToSave) {
             this.isSavingResponses = false;
-            this.showMessage('Error saving responses. Please try again.');
+            this.showMessage('Toutes les réponses enregistrées avec succès');
           }
-        });
+        },
+        error: (error) => {
+          console.error('Error saving response:', error);
+          if (!errorOccurred) {
+            errorOccurred = true;
+            this.isSavingResponses = false;
+            this.showMessage('Erreur lors de l\'enregistrement. Veuillez réessayer.');
+          }
+        }
+      });
+    });
+  }
+
+  loadContactResponses(): void {
+    if (!this.selectedResponseContactId || !this.requestData?.idR) return;
+
+    this.responseService.getResponsesByContactAndRequest(
+      this.selectedResponseContactId,
+      this.requestData.idR
+    ).subscribe({
+      next: (responses) => {
+        // Map responses back to questions
+        if (this.requestData.questions) {
+          this.requestData.questions.forEach(q => q.response = '');
+          for (const resp of responses) {
+            const question = this.requestData.questions.find(q => q.id === resp.questionId);
+            if (question && resp.responseValues?.length) {
+              question.response = resp.responseValues[0];
+            }
+          }
+        }
+        this.showMessage('Réponses chargées');
+      },
+      error: () => {
+        this.showMessage('Aucune réponse trouvée pour ce contact');
       }
     });
   }
 
   private showMessage(message: string): void {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, 'Fermer', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'top',
@@ -419,7 +472,7 @@ export class TicketdetailsComponent implements OnInit {
       next: (response) => {
         this.isGeneratingReport = false;
         this.reportStatus = 'PENDING_APPROVAL';
-        this.showMessage('Report generated successfully and sent for manager approval');
+        this.showMessage('Rapport généré avec succès et envoyé pour approbation');
       },
       error: (error: HttpErrorResponse) => {
         this.isGeneratingReport = false;
@@ -438,7 +491,7 @@ export class TicketdetailsComponent implements OnInit {
     this.requestService.approveReport(this.requestData.idR).subscribe({
       next: () => {
         this.reportStatus = 'APPROVED';
-        this.showMessage('Report approved and sent to requester');
+        this.showMessage('Rapport approuvé et envoyé au demandeur');
       },
       error: (error: HttpErrorResponse) => {
         console.error('Error approving report:', error);
@@ -468,15 +521,15 @@ export class TicketdetailsComponent implements OnInit {
   getReportStatusLabel(): string {
     switch (this.reportStatus) {
       case 'NOT_GENERATED':
-        return 'Not Generated';
+        return 'Non généré';
       case 'PENDING_APPROVAL':
-        return 'Pending Manager Approval';
+        return 'En attente d\'approbation';
       case 'APPROVED':
-        return 'Approved & Sent';
+        return 'Approuvé et envoyé';
       case 'SENT':
-        return 'Sent to Requester';
+        return 'Envoyé au demandeur';
       default:
-        return 'Unknown';
+        return 'Inconnu';
     }
   }
 
@@ -591,7 +644,7 @@ export class TicketdetailsComponent implements OnInit {
           ).subscribe();
         }
 
-        this.showMessage('Callback scheduled successfully');
+        this.showMessage('Rappel planifié avec succès');
         this.dialog.closeAll();
         
         // Update contact status
@@ -668,6 +721,52 @@ export class TicketdetailsComponent implements OnInit {
     // This would typically come from your backend service
     // For now, we'll just use the activities we've collected
     this.callHistory.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  requestClarification(): void {
+    if (!this.clarificationMessage?.trim()) {
+      this.showMessage('Veuillez saisir un message de clarification.');
+      return;
+    }
+
+    this.isSendingClarification = true;
+
+    // Send notification to the requester via the agent's notification system
+    const agentId = this.requestData.agent?.id || 1;
+    const requesterName = this.requestData.user?.fullName || 'le demandeur';
+    const message = `Demande #${this.requestId} — Clarification demandée par l'agent: ${this.clarificationMessage}`;
+
+    this.notificationService.notifyAgent(
+      agentId,
+      message,
+      NotificationType.CLARIFICATION
+    ).subscribe({
+      next: () => {
+        // Add to local clarification history
+        this.clarificationHistory.unshift({
+          message: this.clarificationMessage,
+          timestamp: new Date()
+        });
+
+        // Add to call history
+        this.callHistory.unshift({
+          id: Date.now(),
+          type: ActivityType.NOTE,
+          title: 'Demande de clarification envoyée',
+          description: this.clarificationMessage,
+          timestamp: new Date()
+        });
+
+        this.clarificationMessage = '';
+        this.isSendingClarification = false;
+        this.showMessage(`Demande de clarification envoyée pour la demande #${this.requestId}.`);
+      },
+      error: (error) => {
+        console.error('Error sending clarification:', error);
+        this.isSendingClarification = false;
+        this.showMessage('Échec de l\'envoi de la demande de clarification.');
+      }
+    });
   }
 
   loadUpcomingCallbacks(): void {

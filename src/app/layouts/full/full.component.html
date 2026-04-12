@@ -44,13 +44,13 @@
             width="40"
           />
           <div class="m-l-16">
-            <h4 class="f-w-600">Mike</h4>
-            <span class="f-s-12">Admin</span>
+            <h4 class="f-w-600">{{ username }}</h4>
+            <span class="f-s-12">{{ userRole }}</span>
           </div>
           <div class="m-l-auto">
             <a
               mat-icon-button
-              [routerLink]="['/authentication/login']"
+              (click)="logout()"
               class="d-flex justify-content-center"
             >
               <i-tabler
@@ -68,7 +68,7 @@
   <!-- ============================================================== -->
   <!-- horizontal Sidebar -->
   <!-- ============================================================== -->
-  @if (resView) {
+  @if (resView && options.horizontal) {
   <mat-sidenav
     #leftsidenav
     [mode]="'over'"
@@ -94,13 +94,13 @@
           width="40"
         />
         <div class="m-l-16">
-          <h4 class="f-w-600">Mike</h4>
-          <span class="f-s-12">Admin</span>
+          <h4 class="f-w-600">{{ username }}</h4>
+          <span class="f-s-12">{{ userRole }}</span>
         </div>
         <div class="m-l-auto">
           <a
             mat-icon-button
-            [routerLink]="['/authentication/login']"
+            (click)="logout()"
             class="d-flex justify-content-center"
           >
             <i-tabler

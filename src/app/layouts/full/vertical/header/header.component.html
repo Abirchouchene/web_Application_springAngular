@@ -215,18 +215,18 @@
       </button>
 
       <!-- --------------------------------------------------------------- -->
-      <!-- Messages Dropdown -->
+      <!-- Notifications Bell -->
       <!-- --------------------------------------------------------------- -->
       <button
         mat-icon-button
         [matMenuTriggerFor]="msgMenu"
-        aria-label="Messages"
+        aria-label="Notifications"
+        [matBadge]="unreadCount"
+        [matBadgeHidden]="unreadCount === 0"
+        matBadgeColor="warn"
+        matBadgeSize="small"
       >
-        <i-tabler class="d-flex" name="message-2"></i-tabler>
-        <div class="pulse">
-          <span class="heartbit border-primary"></span>
-          <span class="point bg-primary"></span>
-        </div>
+        <i-tabler class="d-flex" name="bell"></i-tabler>
       </button>
 
       <!-- --------------------------------------------------------------- -->
@@ -248,7 +248,7 @@
           />
           <div class="d-none d-lg-flex text-left flex-col">
             <h5 class="f-s-16 f-w-600">{{username}}</h5>
-            <span class="f-s-14">Admin</span>
+            <span class="f-s-14">{{roleLabel}}</span>
           </div>
         </div>
       </button>
@@ -257,52 +257,77 @@
   }
 
   <!-- --------------------------------------------------------------- -->
-  <!-- Messages Dropdown -->
+  <!-- Notifications Bell Dropdown -->
   <!-- --------------------------------------------------------------- -->
   <button
     mat-icon-button
     [matMenuTriggerFor]="msgMenu"
-    aria-label="Messages"
+    aria-label="Notifications"
     class="d-none d-lg-block align-items-center justify-content-center"
+    [matBadge]="unreadCount"
+    [matBadgeHidden]="unreadCount === 0"
+    matBadgeColor="warn"
+    matBadgeSize="small"
   >
-    <i-tabler class="d-flex" name="message-2"></i-tabler>
-    <div class="pulse">
-      <span class="heartbit border-primary"></span>
-      <span class="point bg-primary"></span>
-    </div>
+    <i-tabler class="d-flex" name="bell"></i-tabler>
   </button>
   <mat-menu
     #msgMenu="matMenu"
     xPosition="before"
     class="topbar-dd cardWithShadow"
   >
-    <div class="d-flex align-items-center p-x-32 p-y-16">
-      <h6 class="f-s-16 f-w-600 m-0">Messages</h6>
-      <span class="m-l-16">
-        <span class="bg-warning text-white p-x-8 p-y-4 f-w-500 rounded f-s-12"
-          >5 new</span
-        >
+    <div class="d-flex align-items-center justify-content-between p-x-32 p-y-16">
+      <h6 class="f-s-16 f-w-600 m-0">Notifications</h6>
+      @if(unreadCount > 0) {
+      <span class="bg-warning text-white p-x-8 p-y-4 f-w-500 rounded f-s-12">
+        {{ unreadCount }} nouvelle{{ unreadCount > 1 ? 's' : '' }}
       </span>
+      }
     </div>
 
-    @for(notification of notifications; track notification.title) {
-    <button mat-menu-item class="p-x-32 p-y-16">
+    @if(liveNotifications.length === 0) {
+    <div class="p-x-32 p-y-16 text-center text-muted">
+      Aucune notification
+    </div>
+    } @else {
+    @for(notif of liveNotifications; track notif.id) {
+    <button mat-menu-item class="p-x-32 p-y-16" (click)="onNotificationClick(notif)">
       <div class="d-flex align-items-center">
-        <img [src]="notification.img" class="rounded-circle" width="48" />
-        <div class="m-l-16">
-          <h5 class="f-s-14 f-w-600 m-0">
-            {{ notification.title }}
+        <span
+          class="rounded-circle icon-40 d-flex align-items-center justify-content-center"
+          [ngClass]="{
+            'bg-light-primary text-primary': notif.type === 'ASSIGNED',
+            'bg-light-warning text-warning': notif.type === 'REMINDER' || notif.type === 'CALLBACK',
+            'bg-light-error text-error': notif.type === 'DEADLINE',
+            'bg-light-accent text-accent': notif.type === 'CLARIFICATION',
+            'bg-light-success text-success': notif.type !== 'ASSIGNED' && notif.type !== 'REMINDER' && notif.type !== 'CALLBACK' && notif.type !== 'DEADLINE' && notif.type !== 'CLARIFICATION'
+          }"
+        >
+          <i-tabler [name]="getNotifIcon(notif.type)" class="icon-20"></i-tabler>
+        </span>
+        <div class="m-l-16" style="max-width: 220px;">
+          <h5 class="f-s-14 f-w-600 m-0" [class.text-muted]="notif.isRead">
+            {{ notif.message }}
           </h5>
-          <span>{{ notification.subtitle }}</span>
+          <span class="f-s-12 text-muted">{{ formatNotifTime(notif.timestamp) }}</span>
         </div>
+        @if(!notif.isRead) {
+        <span class="bg-primary rounded-circle m-l-auto" style="width: 8px; height: 8px;"></span>
+        }
       </div>
     </button>
     }
+    }
 
-    <div class="p-y-12 p-x-32">
-      <button mat-flat-button color="primary" class="w-100">
-        See All Messages
+    <div class="p-y-12 p-x-32 d-flex gap-8">
+      @if(unreadCount > 0) {
+      <button mat-stroked-button color="accent" class="flex-1" (click)="markAllNotificationsRead()">
+        Tout marquer lu
       </button>
+      }
+      <a mat-flat-button color="primary" class="flex-1" [routerLink]="['/apps/notifications']">
+        Voir tout
+      </a>
     </div>
   </mat-menu>
 
@@ -439,7 +464,7 @@
       />
       <div class="d-none d-lg-flex text-left flex-col">
         <h5 class="f-s-16 f-w-600">{{username}}</h5>
-        <span class="f-s-14">Admin</span>
+        <span class="f-s-14">{{roleLabel}}</span>
       </div>
     </div>
   </button>
@@ -460,7 +485,7 @@
           />
           <div class="m-l-16">
             <h6 class="f-s-16 f-w-600 m-0">{{username}}</h6>
-            <span class="f-s-14 text-body d-block m-b-4">Admin</span>
+            <span class="f-s-14 text-body d-block m-b-4">{{roleLabel}}</span>
             <span class="d-flex align-items-center">
               <i-tabler name="mail" class="icon-15 m-r-4"></i-tabler>
              {{email}}
@@ -496,12 +521,12 @@
 
       <div class="p-y-12 p-x-32">
         <button
-          [routerLink]="['/authentication/login']"
+          (click)="logout()"
           mat-flat-button
           color="primary"
           class="w-100"
         >
-          Logout
+          Déconnexion
         </button>
       </div>
     </ng-scrollbar>

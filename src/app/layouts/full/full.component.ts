@@ -7,7 +7,10 @@ import { AppSettings } from 'src/app/config';
 import { filter } from 'rxjs/operators';
 import { NavigationEnd, Router } from '@angular/router';
 import { navItems } from './vertical/sidebar/sidebar-data';
+import { NavItem } from './vertical/sidebar/nav-item/nav-item';
 import { NavService } from '../../services/nav.service';
+import { RoleService } from '../../services/role.service';
+import { KeycloakService } from 'keycloak-angular';
 import { AppNavItemComponent } from './vertical/sidebar/nav-item/nav-item.component';
 import { RouterModule } from '@angular/router';
 import { MaterialModule } from 'src/app/material.module';
@@ -64,7 +67,9 @@ interface quicklinks {
   encapsulation: ViewEncapsulation.None,
 })
 export class FullComponent implements OnInit {
-  navItems = navItems;
+  navItems: NavItem[] = [];
+  username = '';
+  userRole = '';
 
   @ViewChild('leftsidenav')
   public sidenav: MatSidenav;
@@ -156,7 +161,9 @@ export class FullComponent implements OnInit {
     private mediaMatcher: MediaMatcher,
     private router: Router,
     private breakpointObserver: BreakpointObserver,
-    private navService: NavService
+    private navService: NavService,
+    private roleService: RoleService,
+    private keycloakService: KeycloakService
   ) {
     this.htmlElement = document.querySelector('html')!;
     this.layoutChangesSubscription = this.breakpointObserver
@@ -183,7 +190,23 @@ export class FullComponent implements OnInit {
       });
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.roleService.loadUserInfo().subscribe(info => {
+      if (info) {
+        this.username = info.fullName || info.username || '';
+        this.userRole = this.roleService.getRoleLabel();
+        const role = info.role;
+        this.navItems = navItems.filter(item => {
+          if (!item.roles || item.roles.length === 0) return true;
+          return item.roles.includes(role);
+        });
+      }
+    });
+  }
+
+  logout() {
+    this.keycloakService.logout(window.location.origin);
+  }
 
   ngOnDestroy() {
     this.layoutChangesSubscription.unsubscribe();

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from '../../guard/auth.guard';
 
 import { AppChatComponent } from './chat/chat.component';
 import { AppEmailComponent } from './email/email.component';
@@ -8,6 +9,7 @@ import { AppCourseDetailComponent } from './courses/course-detail/course-detail.
 import { AppEmployeeComponent } from './employee/employee.component';
 import { AppBlogsComponent } from './blogs/blogs.component';
 import { AppBlogDetailsComponent } from './blogs/details/details.component';
+import { UserManagementComponent } from './user-management/user-management.component';
 import { ContactManagementComponent } from './contact/contact-management/contact-management.component';
 import { AppNotesComponent } from './notes/notes.component';
 import { AppTodoComponent } from './todo/todo.component';
@@ -26,6 +28,9 @@ import { RequestManagerListComponent } from './RequestManager/request-manager-vi
 import { CallbacksComponent } from './Callbacks/callbacks.component';
 import { ReportListComponent } from './Reports/report-list/report-list.component';
 import { ReportDetailsComponent } from './Reports/report-details/report-details.component';
+import { NotificationsComponent } from './Notifications/notifications.component';
+import { LogsComponent } from './Logs/logs.component';
+import { CallsComponent } from './Calls/calls.component';
 
 
 export const AppsRoutes: Routes = [
@@ -127,8 +132,10 @@ export const AppsRoutes: Routes = [
       {
         path: 'tickets',
         component: AppTicketlistComponent,
+        canActivate: [AuthGuard],
         data: {
           title: 'Tickets',
+          roles: ['AGENT', 'MANAGER', 'ADMIN'],
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
             { title: 'Tickets' },
@@ -150,11 +157,26 @@ export const AppsRoutes: Routes = [
       {
         path: 'callbacks',
         component: CallbacksComponent,
+        canActivate: [AuthGuard],
         data: {
           title: 'Callbacks',
+          roles: ['AGENT', 'MANAGER', 'ADMIN'],
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
             { title: 'Callbacks' },
+          ],
+        },
+      },
+      {
+        path: 'notifications',
+        component: NotificationsComponent,
+        canActivate: [AuthGuard],
+        data: {
+          title: 'Notifications',
+          roles: ['AGENT', 'MANAGER', 'ADMIN', 'SURVEY_REQUESTER'],
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Notifications' },
           ],
         },
       },
@@ -238,8 +260,10 @@ export const AppsRoutes: Routes = [
       {
         path: 'request-manager',
         component: RequestManagerListComponent,
+        canActivate: [AuthGuard],
         data: {
           title: 'Request Manager',
+          roles: ['MANAGER', 'ADMIN'],
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
             { title: 'Request Manager' },
@@ -272,8 +296,10 @@ export const AppsRoutes: Routes = [
       {
         path: 'addInvoice',
         component: AppAddRequestComponent,
+        canActivate: [AuthGuard],
         data: {
           title: 'Ajouter une Demande',
+          roles: ['SURVEY_REQUESTER', 'MANAGER', 'ADMIN'],
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
             { title: 'Ajouter une Demande' },
@@ -304,6 +330,8 @@ export const AppsRoutes: Routes = [
       },
       {
         path: 'reports',
+        canActivate: [AuthGuard],
+        data: { roles: ['AGENT', 'MANAGER', 'ADMIN', 'SURVEY_REQUESTER'] },
         children: [
           {
             path: 'list',
@@ -331,9 +359,45 @@ export const AppsRoutes: Routes = [
           },
         ],
       },
+      {
+        path: 'logs',
+        component: LogsComponent,
+        canActivate: [AuthGuard],
+        data: {
+          title: 'Journal d\'Activités',
+          roles: ['MANAGER', 'ADMIN'],
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Journal d\'Activités' },
+          ],
+        },
+      },
+      {
+        path: 'calls',
+        component: CallsComponent,
+        canActivate: [AuthGuard],
+        data: {
+          title: 'Gestion des Appels',
+          roles: ['AGENT', 'MANAGER', 'ADMIN'],
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Gestion des Appels' },
+          ],
+        },
+      },
+      {
+        path: 'user-management',
+        component: UserManagementComponent,
+        canActivate: [AuthGuard],
+        data: {
+          title: 'Gestion des Utilisateurs',
+          roles: ['ADMIN'],
+          urls: [
+            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Gestion des Utilisateurs' },
+          ],
+        },
+      },
     ],
   },
-
-  
-
 ];

@@ -5,6 +5,8 @@ import {
   Input,
   signal,
   ViewEncapsulation,
+  OnInit,
+  OnDestroy,
 } from '@angular/core';
 import { CoreService } from 'src/app/services/core.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -18,6 +20,10 @@ import { FormsModule } from '@angular/forms';
 import { NgScrollbarModule } from 'ngx-scrollbar';
 import { AppSettings } from 'src/app/config';
 import { KeycloakService } from 'keycloak-angular';
+import { RoleService } from 'src/app/services/role.service';
+import { WebSocketService } from 'src/app/services/apps/websocket.service';
+import { Notification as AppNotification } from 'src/app/models/Notification';
+import { Subscription } from 'rxjs';
 
 interface notifications {
   id: number;
@@ -61,7 +67,7 @@ interface quicklinks {
   templateUrl: './header.component.html',
   encapsulation: ViewEncapsulation.None,
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit, OnDestroy {
   @Input() showToggle = true;
   @Input() toggleChecked = false;
   @Output() toggleMobileNav = new EventEmitter<void>();
@@ -69,18 +75,71 @@ export class HeaderComponent {
   @Output() toggleCollapsed = new EventEmitter<void>();
   username!: string | undefined;
   email!: string | undefined;
-  isCollapse: boolean = false; // Initially hidden
+  roleLabel = '';
+  isCollapse: boolean = false;
+
+  // Real-time notifications
+  liveNotifications: AppNotification[] = [];
+  unreadCount = 0;
+  private notifSub: Subscription | null = null;
 
   toggleCollpase() {
-    this.isCollapse = !this.isCollapse; // Toggle visibility
+    this.isCollapse = !this.isCollapse;
   }
   
   ngOnInit() {
     this.keycloakService.loadUserProfile().then(profile => {
-      this.username = profile.firstName;  // Récupérer le prénom de l'utilisateur      
-      this.email = profile.email;  // Récupérer le prénom de l'utilisateur
-
+      this.username = profile.firstName;
+      this.email = profile.email;
     });
+
+    // Connect WebSocket and update roleLabel after role is loaded
+    this.roleService.ensureLoaded().then(info => {
+      this.roleLabel = this.roleService.getRoleLabel();
+      if (info && info.id) {
+        this.wsService.connect(info.id);
+      }
+      this.notifSub = this.wsService.notifications$.subscribe(notifs => {
+        this.liveNotifications = notifs.slice(0, 10); // show latest 10
+        this.unreadCount = notifs.filter(n => !n.isRead).length;
+      });
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.notifSub?.unsubscribe();
+  }
+
+  onNotificationClick(notification: AppNotification): void {
+    if (!notification.isRead) {
+      this.wsService.markAsRead(notification.id);
+    }
+  }
+
+  markAllNotificationsRead(): void {
+    this.wsService.markAllAsRead();
+  }
+
+  getNotifIcon(type: string): string {
+    switch (type) {
+      case 'CALLBACK': return 'phone-calling';
+      case 'REMINDER': return 'bell-ringing';
+      case 'ASSIGNED': return 'user-plus';
+      case 'CLARIFICATION': return 'message-question';
+      case 'DEADLINE': return 'alert-triangle';
+      default: return 'bell';
+    }
+  }
+
+  formatNotifTime(ts: Date | string): string {
+    const d = typeof ts === 'string' ? new Date(ts) : ts;
+    const now = new Date();
+    const diffMin = Math.floor((now.getTime() - d.getTime()) / 60000);
+    if (diffMin < 1) return 'À l\'instant';
+    if (diffMin < 60) return `Il y a ${diffMin} min`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `Il y a ${diffH}h`;
+    return d.toLocaleDateString('fr-FR');
   }
 
   showFiller = false;
@@ -123,9 +182,9 @@ export class HeaderComponent {
     private vsidenav: CoreService,
     public dialog: MatDialog,
     private translate: TranslateService,
-    private keycloakService: KeycloakService 
-    
-
+    private keycloakService: KeycloakService,
+    private roleService: RoleService,
+    private wsService: WebSocketService
   ) {
     translate.setDefaultLang('en');
   }
@@ -148,6 +207,10 @@ export class HeaderComponent {
   setlightDark(theme: string) {
     this.options.theme = theme;
     this.emitOptions();
+  }
+
+  logout() {
+    this.keycloakService.logout(window.location.origin);
   }
 
   private emitOptions() {

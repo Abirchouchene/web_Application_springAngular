@@ -134,7 +134,7 @@ export class CallbacksComponent implements OnInit {
   updateCallbackStatus(callbackId: number, status: CallbackStatus): void {
     this.callbackService.updateCallbackStatus(callbackId, status).subscribe({
       next: () => {
-        this.showMessage(`Callback marked as ${status.toLowerCase()}`);
+        this.showMessage(`Rappel marqué comme ${status === CallbackStatus.COMPLETED ? 'terminé' : 'annulé'}`);
         this.loadCallbacks();
       },
       error: (error) => {
@@ -170,7 +170,7 @@ export class CallbacksComponent implements OnInit {
     const diffMs = callbackDate.getTime() - now.getTime();
     
     if (diffMs <= 0) {
-      return 'Due now';
+      return 'Maintenant';
     }
     
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -178,17 +178,17 @@ export class CallbacksComponent implements OnInit {
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     
     if (diffDays > 0) {
-      return `${diffDays}d ${diffHours}h remaining`;
+      return `Dans ${diffDays}j ${diffHours}h`;
     } else if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m remaining`;
+      return `Dans ${diffHours}h ${diffMinutes}min`;
     } else {
-      return `${diffMinutes}m remaining`;
+      return `Dans ${diffMinutes}min`;
     }
   }
   
   // Display snackbar message
   showMessage(message: string): void {
-    this.snackBar.open(message, 'Close', {
+    this.snackBar.open(message, 'Fermer', {
       duration: 3000,
       horizontalPosition: 'center',
       verticalPosition: 'top'
@@ -199,16 +199,17 @@ export class CallbacksComponent implements OnInit {
   private handleError(message: string, error: any): void {
     console.error(`${message}:`, error);
     
-    // Get a more detailed error message if available
-    let errorMsg = 'An unexpected error occurred';
-    if (error.error && error.error.message) {
-      errorMsg = error.error.message;
-    } else if (error.message) {
-      errorMsg = error.message;
-    } else if (typeof error === 'string') {
-      errorMsg = error;
+    let errorMsg: string;
+    if (error.status === 0) {
+      errorMsg = 'Serveur inaccessible — vérifiez votre connexion.';
+    } else if (error.status === 401) {
+      errorMsg = 'Session expirée — veuillez vous reconnecter.';
+    } else if (error.status === 403) {
+      errorMsg = 'Accès refusé.';
+    } else {
+      errorMsg = 'Erreur inattendue, réessayez.';
     }
     
-    this.showMessage(`${message}: ${errorMsg}`);
+    this.showMessage(errorMsg);
   }
 } 

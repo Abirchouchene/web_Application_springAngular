@@ -207,6 +207,21 @@
         </div>
 
         <div *ngIf="isQuestionsExpanded">
+          <!-- Contact Selector for per-contact responses -->
+          <div class="m-b-16" *ngIf="requestData.contacts?.length">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Sélectionner le contact pour les réponses</mat-label>
+              <mat-select [(ngModel)]="selectedResponseContactId">
+                <mat-option *ngFor="let contact of requestData.contacts" [value]="contact.idC">
+                  {{ contact.name || 'Contact #' + contact.idC }} — {{ contact.phoneNumber || '' }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <button mat-stroked-button color="accent" *ngIf="selectedResponseContactId" (click)="loadContactResponses()" class="m-b-8">
+              <mat-icon>download</mat-icon> Charger les réponses existantes
+            </button>
+          </div>
+
           <div *ngFor="let question of requestData.questions" class="m-b-20">
             <label class="f-w-500 f-s-14">{{ question.text }}</label>
             
@@ -228,7 +243,7 @@
 
           <!-- Save Responses Button -->
           <div class="d-flex justify-content-end m-t-20">
-            <button mat-flat-button color="primary" (click)="saveResponses()" [disabled]="isSavingResponses">
+            <button mat-flat-button color="primary" (click)="saveResponses()" [disabled]="isSavingResponses || !selectedResponseContactId">
               <mat-icon *ngIf="isSavingResponses">
                 <mat-spinner diameter="20"></mat-spinner>
               </mat-icon>
@@ -265,6 +280,52 @@
               Mettre à jour la Demande
               <mat-progress-spinner *ngIf="isLoading" diameter="20" mode="indeterminate"></mat-progress-spinner>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Clarification Request Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Demander des Clarifications</h5>
+          <button mat-icon-button (click)="isClarificationExpanded = !isClarificationExpanded">
+            <mat-icon>{{ isClarificationExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isClarificationExpanded" class="p-y-16">
+          <p class="text-muted f-s-13 m-b-10">
+            Envoyez une demande de clarification au demandeur concernant cette enquête.
+          </p>
+          <mat-form-field class="w-100">
+            <mat-label>Message de clarification</mat-label>
+            <textarea matInput [(ngModel)]="clarificationMessage" 
+                      placeholder="Précisez les informations que vous souhaitez obtenir du demandeur..."
+                      rows="3"></textarea>
+          </mat-form-field>
+          <div class="d-flex justify-content-end m-t-10">
+            <button mat-flat-button color="accent" 
+                    (click)="requestClarification()" 
+                    [disabled]="!clarificationMessage.trim() || isSendingClarification">
+              <mat-icon *ngIf="!isSendingClarification">send</mat-icon>
+              <mat-spinner *ngIf="isSendingClarification" diameter="20"></mat-spinner>
+              <span class="m-l-8">Envoyer la Demande</span>
+            </button>
+          </div>
+          
+          <!-- Sent clarifications history -->
+          <div *ngIf="clarificationHistory.length > 0" class="m-t-16">
+            <h6 class="f-s-14 f-w-600 m-b-8">Historique des demandes</h6>
+            <div *ngFor="let item of clarificationHistory" 
+                 class="p-12 mb-2 rounded bg-light d-flex align-items-start">
+              <mat-icon class="text-accent m-r-8 f-s-18">question_answer</mat-icon>
+              <div class="flex-grow-1">
+                <p class="m-0 f-s-13">{{ item.message }}</p>
+                <span class="text-muted f-s-11">{{ item.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

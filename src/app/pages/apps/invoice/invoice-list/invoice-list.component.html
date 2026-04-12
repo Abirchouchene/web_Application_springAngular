@@ -1,15 +1,31 @@
 <mat-card class="cardWithShadow mb-4">
   <mat-card-content>
     <div class="row justify-content-between align-items-center mb-3">
-      <div class="col-sm-4">
+      <div class="col-sm-6">
         <mat-form-field appearance="outline" class="w-100">
           <input matInput placeholder="Rechercher Demande" (keyup)="onKeyUp($event)" />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
       </div>
-      <div class="col-sm-4 d-flex justify-content-end">
-        <a mat-button [routerLink]="['/apps/addInvoice']" mat-flat-button color="primary">Ajouter Demande</a>
+      <div class="col-sm-6 d-flex justify-content-end" *ngIf="!isAgent">
+        <a mat-button [routerLink]="['/apps/addInvoice']" mat-flat-button color="primary">
+          <i-tabler name="plus" class="icon-18 m-r-4"></i-tabler>
+          Ajouter Demande
+        </a>
       </div>
+    </div>
+
+    <!-- Status filter tabs -->
+    <div class="d-flex flex-wrap gap-8 m-b-16">
+      @for (status of statusFilters; track status) {
+        <button mat-stroked-button
+          [color]="activeTab() === status ? 'primary' : ''"
+          [class.mat-flat-button]="activeTab() === status"
+          (click)="filterByStatus(status)">
+          {{ status === 'ALL' ? 'Tous' : status }}
+          <span class="badge bg-light text-dark m-l-8">{{ countByStatus(status) }}</span>
+        </button>
+      }
     </div>
   </mat-card-content>
 </mat-card>
@@ -27,7 +43,7 @@
 
         <!-- Created At Column -->
         <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Créé le</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Cree le</th>
           <td mat-cell *matCellDef="let element">{{ formatFullDate(element.createdAt) }}</td>
         </ng-container>
 
@@ -39,13 +55,13 @@
 
         <!-- Category Column -->
         <ng-container matColumnDef="categoryRequest">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Catégorie</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Categorie</th>
           <td mat-cell *matCellDef="let element"> {{element.categoryRequest}} </td>
         </ng-container>
 
         <!-- Priority Column -->
         <ng-container matColumnDef="priority">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Priorité</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Priorite</th>
           <td mat-cell *matCellDef="let element"> {{element.priority}} </td>
         </ng-container>
 
@@ -61,14 +77,14 @@
 
         <!-- Request Type Column -->
         <ng-container matColumnDef="requestType">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Type de Demande</th>
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
           <td mat-cell *matCellDef="let element"> {{element.requestType}} </td>
         </ng-container>
 
         <!-- Description Column -->
         <ng-container matColumnDef="description">
           <th mat-header-cell *matHeaderCellDef>Description</th>
-          <td mat-cell *matCellDef="let element">{{ element.description }}</td>
+          <td mat-cell *matCellDef="let element">{{ element.description | slice:0:50 }}{{ element.description?.length > 50 ? '...' : '' }}</td>
         </ng-container>
 
         <!-- File Attachment Column -->
@@ -78,30 +94,25 @@
             <a *ngIf="element.fileUrl" [href]="element.fileUrl" target="_blank" download>
               <mat-icon>attach_file</mat-icon>
             </a>
-            <span *ngIf="!element.fileUrl">N/A</span>
+            <span *ngIf="!element.fileUrl">-</span>
           </td>
-        </ng-container>
-
-        <!-- Assigned To Column -->
-        <ng-container matColumnDef="assignedTo">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Assigné à</th>
-          <td mat-cell *matCellDef="let element"> {{element.assignedTo}} </td>
         </ng-container>
 
         <!-- Action Column -->
         <ng-container matColumnDef="action">
           <th mat-header-cell *matHeaderCellDef>Action</th>
           <td mat-cell *matCellDef="let element">
-            <a mat-icon-button [routerLink]="['/apps/editRequest', element.id]">
-              <mat-icon>edit</mat-icon>
+            <a [routerLink]="['/apps/ticket', element.idR]" mat-icon-button matTooltip="Voir détails">
+              <mat-icon>visibility</mat-icon>
             </a>
-          <a [routerLink]="['/viewInvoice', element.idR]" mat-icon-button>
-            <mat-icon>visibility</mat-icon>
-          </a>
-          <a mat-icon-button (click)="deleteRequest(element.idR)">
-            <mat-icon>delete</mat-icon>
-          </a>
-          
+            @if (element.status === 'PENDING' && !isAgent) {
+              <a mat-icon-button [routerLink]="['/apps/editinvoice', element.idR]" matTooltip="Modifier">
+                <mat-icon>edit</mat-icon>
+              </a>
+              <button mat-icon-button (click)="deleteRequest(element.idR)" matTooltip="Supprimer" color="warn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            }
           </td>
         </ng-container>
 

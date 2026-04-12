@@ -1,5 +1,25 @@
 <mat-card>
     <mat-card-content>
+
+      <!-- Status + Approve/Reject Header -->
+      <div class="d-flex justify-content-between align-items-center p-y-16">
+        <div>
+          <span class="f-w-600 f-s-15">Statut:</span>
+          <span class="badge rounded-pill ms-2" [class]="getStatusClass(requestDetail()?.status)">
+            {{ requestDetail()?.status }}
+          </span>
+        </div>
+        <div class="d-flex gap-2" *ngIf="requestDetail()?.status === 'PENDING'">
+          <button mat-flat-button color="primary" (click)="approveRequest()">
+            <mat-icon>check_circle</mat-icon> Approuver
+          </button>
+          <button mat-flat-button color="warn" (click)="rejectRequest()">
+            <mat-icon>cancel</mat-icon> Rejeter
+          </button>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
   
       <!-- Description & Request Type -->
       <div class="row p-y-24">

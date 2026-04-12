@@ -62,7 +62,7 @@ export class ReportService {
   }
 
   getReportStatus(requestId: number): Observable<'NOT_GENERATED' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT'> {
-    return this.http.get<'NOT_GENERATED' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT'>(`${this.apiUrl}/${requestId}/status`);
+    return this.http.get(`${this.apiUrl}/request/${requestId}/status`, { responseType: 'text' }) as Observable<'NOT_GENERATED' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT'>;
   }
 
   getReports(): Observable<Report[]> {
