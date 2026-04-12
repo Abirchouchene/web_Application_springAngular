@@ -1,0 +1,71 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: contact-service
+  datasource:
+    url: jdbc:mysql://192.168.10.161:3306/contact?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  mvc:
+    format:
+      date: yyyy-MM-dd
+  # Spring Security OAuth2 configuration
+#  security:
+#    oauth2:
+#      client:
+#        registration:
+#          keycloak:
+#            client-id: callcenter-backend
+#            client-secret: IGNpcgyHlDiFcubxhQo9nxeItxkl6Rgr
+#        provider:
+#          keycloak:
+#            authorization-uri: http://192.168.10.161:8080/realms/Portal/auth
+#            token-uri: http://192.168.10.161:8080/realms/Portal/token
+#            user-info-uri: http://192.168.10.161:8080/realms/Portal/userinfo
+#            jwk-set-uri: http://192.168.10.161:8080/realms/Portal/certs
+
+
+logging:
+  level:
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{45} - %msg %n"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: false
+    hostname: localhost
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+
+## Keycloak Configuration
+#keycloak:
+#  auth-server-url: http://192.168.10.161:8080/realms/Portal  # URL du serveur Keycloak
+#  realm: Portal  # Le nom du realm dans Keycloak
+#  client-id: callcenter-backend  # ID du client Keycloak
+#  client-secret: lGNpcgyHlDiFcubxhQo9nxeItxkl6Rgr  # Secret du client Keycloak
+
+#
+## JWT converter configuration
+#jwt:
+#  auth:
+#    converter:
+#      principal-attribute: sub  # ou tout autre attribut principal que vous souhaitez utiliser

@@ -1,0 +1,5 @@
+include:
+  - project: "the-portal/ci-templates"
+    ref: "main"
+    file: "/.gitlab-ci-template.yml"
+

@@ -1,0 +1,27 @@
+# Build outputs
+**/target/
+**/build/
+**/.angular/
+
+# Dependencies
+**/node_modules/
+
+# IDE
+**/.idea/
+**/.vscode/
+**/*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+**/*.log
+
+# Env files
+**/.env
+
+# Compiled
+**/*.class
+**/*.jar
+**/*.war
