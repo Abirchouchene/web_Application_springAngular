@@ -1,24 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MaterialModule } from 'src/app/material.module';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatSortModule } from '@angular/material/sort';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
-import { Status } from 'src/app/models/Status';
-import { RequestType } from 'src/app/models/RequestType';
-import { ReportDetailsComponent } from '../report-details/report-details.component';
+import { ReportService } from 'src/app/services/apps/report.service';
 
 interface Report {
   id: number;
   request?: { idR: number; title?: string; [key: string]: any };
   requestTitle: string;
-  requestType: RequestType;
+  requestType: string;
   generatedDate: Date;
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SENT';
   approvedDate?: Date;
@@ -26,7 +18,7 @@ interface Report {
   totalContacts?: number;
   contactedContacts?: number;
   contactRate?: number;
-  statisticsData?: string;
+  pdfPath?: string;
 }
 
 @Component({
@@ -34,33 +26,22 @@ interface Report {
   templateUrl: './report-list.component.html',
   styleUrls: ['./report-list.component.scss'],
   standalone: true,
-  imports: [
-    CommonModule,
-    MaterialModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatSortModule,
-    MatButtonModule,
-    MatIconModule,
-    MatChipsModule,
-  ]
+  imports: [CommonModule, MaterialModule]
 })
 export class ReportListComponent implements OnInit {
   displayedColumns: string[] = [
-    'requestId',
-    'requestTitle',
-    'requestType',
-    'generatedDate',
-    'status',
-    'actions'
+    'requestTitle', 'requestType', 'generatedDate', 'status',
+    'totalContacts', 'contactRate', 'actions'
   ];
-  
+
   reports: Report[] = [];
-  isLoading: boolean = false;
-  
+  isLoading = false;
+  isAutoGenerating = false;
+
   constructor(
     private requestService: RequestService,
-    private dialog: MatDialog,
+    private reportService: ReportService,
+    private router: Router,
     private snackBar: MatSnackBar
   ) {}
 
@@ -75,39 +56,66 @@ export class ReportListComponent implements OnInit {
         this.reports = reports;
         this.isLoading = false;
       },
-      error: (error) => {
-        console.error('Error loading reports:', error);
+      error: () => {
         this.isLoading = false;
-        const msg = error.status === 401
-          ? 'Session expirée — veuillez vous reconnecter.'
-          : 'Erreur lors du chargement des rapports.';
-        this.showMessage(msg);
+        this.showMessage('Erreur lors du chargement des rapports.');
+      }
+    });
+  }
+
+  triggerAutoGenerate(): void {
+    this.isAutoGenerating = true;
+    this.reportService.triggerAutoGenerate().subscribe({
+      next: (result) => {
+        this.isAutoGenerating = false;
+        if (result.reportsGenerated > 0) {
+          this.showMessage(`${result.reportsGenerated} rapport(s) généré(s) et approuvé(s) automatiquement`);
+          this.loadReports();
+        } else {
+          this.showMessage('Aucune demande complétée en attente de rapport');
+        }
+      },
+      error: () => {
+        this.isAutoGenerating = false;
+        this.showMessage('Erreur lors de l\'auto-génération');
       }
     });
   }
 
   viewReportDetails(report: Report): void {
-    this.dialog.open(ReportDetailsComponent, {
-      width: '800px',
-      data: { requestId: report.id },
-      disableClose: true
-    });
+    this.router.navigate(['/apps/reports/details', report.id]);
   }
 
   generatePdf(report: Report): void {
+    // Try to get stored PDF URL (MinIO or local)
+    this.reportService.getDownloadUrl(report.id).subscribe({
+      next: (result) => {
+        if (result.stored === 'minio' && result.url) {
+          window.open(result.url, '_blank');
+          this.showMessage('PDF téléchargé depuis MinIO');
+        } else {
+          // For local storage or no storage, download via backend (handles auth + local cache)
+          this.downloadPdfViaBackend(report);
+          this.downloadPdfViaBackend(report);
+        }
+      },
+      error: () => this.downloadPdfViaBackend(report)
+    });
+  }
+
+  private downloadPdfViaBackend(report: Report): void {
     this.requestService.generateReportPdf(report.id).subscribe({
       next: (pdfBlob) => {
         const url = window.URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `report-${report.id}.pdf`;
+        link.download = `rapport-${report.id}.pdf`;
         link.click();
         window.URL.revokeObjectURL(url);
+        this.showMessage('PDF téléchargé');
+        this.loadReports(); // Refresh to show updated pdfPath
       },
-      error: (error) => {
-        console.error('Error generating PDF:', error);
-        this.showMessage('Échec de la génération du PDF');
-      }
+      error: () => this.showMessage('Échec de la génération du PDF')
     });
   }
 
@@ -117,10 +125,7 @@ export class ReportListComponent implements OnInit {
         this.showMessage('Rapport approuvé avec succès');
         this.loadReports();
       },
-      error: (error) => {
-        console.error('Error approving report:', error);
-        this.showMessage('Échec de l\'approbation du rapport');
-      }
+      error: () => this.showMessage('Échec de l\'approbation du rapport')
     });
   }
 
@@ -130,26 +135,39 @@ export class ReportListComponent implements OnInit {
         this.showMessage('Rapport rejeté');
         this.loadReports();
       },
-      error: (error) => {
-        console.error('Error rejecting report:', error);
-        this.showMessage('Échec du rejet du rapport');
-      }
+      error: () => this.showMessage('Échec du rejet du rapport')
     });
   }
 
-  getStatusColor(status: string): string {
+  getStatusLabel(status: string): string {
     switch (status) {
-      case 'PENDING_APPROVAL':
-        return 'warn';
-      case 'APPROVED':
-        return 'accent';
-      case 'REJECTED':
-        return 'error';
-      case 'SENT':
-        return 'success';
-      default:
-        return 'primary';
+      case 'PENDING_APPROVAL': return 'En attente d\'approbation';
+      case 'APPROVED': return 'Approuvé';
+      case 'REJECTED': return 'Rejeté';
+      case 'SENT': return 'Envoyé';
+      default: return status;
     }
+  }
+
+  formatDate(date: Date | string): string {
+    if (!date) return '—';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  getPendingCount(): number {
+    return this.reports.filter(r => r.status === 'PENDING_APPROVAL').length;
+  }
+
+  getApprovedCount(): number {
+    return this.reports.filter(r => r.status === 'APPROVED' || r.status === 'SENT').length;
+  }
+
+  getRejectedCount(): number {
+    return this.reports.filter(r => r.status === 'REJECTED').length;
   }
 
   private showMessage(message: string): void {

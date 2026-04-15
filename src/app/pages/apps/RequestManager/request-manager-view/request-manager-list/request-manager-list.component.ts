@@ -22,6 +22,7 @@ import { environment } from 'src/environments/environment';
 
 interface RequestData {
   idR: number;
+  title: string;
   requestType: string;
   description: string;
   status: string;
@@ -30,7 +31,8 @@ interface RequestData {
   createdAt: string | Date;
   deadline: string | Date | null;
   note: string;
-  user?: { name: string };
+  user?: { fullName?: string; username?: string; name?: string };
+  agent?: { fullName?: string; username?: string };
 }
 
 @Component({
@@ -64,14 +66,13 @@ export class RequestManagerListComponent implements OnInit {
 
   displayedColumns: string[] = [
     'idR',
+    'title',
     'requestType',
     'requester',
-    'description',
     'status',
     'priority',
     'categoryRequest',
     'createdAt',
-    'deadline',
     'action'
   ];
   
@@ -205,6 +206,36 @@ export class RequestManagerListComponent implements OnInit {
       case 'MEDIUM': return 'text-info';
       case 'LOW': return 'text-success';
       default: return '';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING': return 'PENDING';
+      case 'APPROVED': return 'APPROVED';
+      case 'REJECTED': return 'REJECTED';
+      case 'ASSIGNED': return 'ASSIGNED';
+      case 'IN_PROGRESS': return 'IN_PROGRESS';
+      case 'RESOLVED': return 'RESOLVED';
+      case 'CLOSED': return 'CLOSED';
+      case 'AUTO_GENERATED': return 'AUTO_GENERATED';
+      default: return status;
+    }
+  }
+
+  getCategoryLabel(category: string): string {
+    switch (category) {
+      case 'PRODUCT_SATISFACTION': return 'PRODUIT';
+      case 'SERVICE_FEEDBACK': return 'SERVICE';
+      case 'MARKET_RESEARCH': return 'MARCHE';
+      case 'CUSTOMER_NEEDS': return 'CLIENT';
+      case 'GENERAL_INQUIRY': return 'GENERAL';
+      case 'RECLAMATION': return 'RECLAMATION';
+      case 'COMMANDE': return 'COMMANDE';
+      case 'DEVIS': return 'DEVIS';
+      case 'INTERVENTION': return 'INTERVENTION';
+      case 'OTHER': return 'AUTRE';
+      default: return category || 'N/A';
     }
   }
 

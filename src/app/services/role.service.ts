@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of, firstValueFrom } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, retry, delay } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface UserInfo {
@@ -25,10 +25,13 @@ export class RoleService {
 
   /** Fetch user info from backend (which reads from Keycloak JWT) */
   loadUserInfo(): Observable<UserInfo> {
-    if (this.loaded) {
+    if (this.loaded && this.userInfo$.getValue()?.role) {
       return of(this.userInfo$.getValue()!);
     }
+    this.loaded = false;
+    this.loadPromise = null;
     const obs = this.http.get<UserInfo>(`${environment.apiUrl}/user/me`).pipe(
+      retry({ count: 2, delay: 1000 }),
       tap(info => {
         this.userInfo$.next(info);
         this.loaded = true;
@@ -49,7 +52,7 @@ export class RoleService {
 
   /** Returns a promise that resolves when user info is loaded (used by guards) */
   ensureLoaded(): Promise<UserInfo> {
-    if (this.loaded) {
+    if (this.loaded && this.userInfo$.getValue()?.role) {
       return Promise.resolve(this.userInfo$.getValue()!);
     }
     if (!this.loadPromise) {

@@ -5,7 +5,7 @@ import {
   HttpHandler,
   HttpEvent,
 } from '@angular/common/http';
-import { Observable, from, switchMap } from 'rxjs';
+import { Observable, from, switchMap, catchError } from 'rxjs';
 import { KeycloakService } from 'keycloak-angular';
 import { environment } from '../../environments/environment';
 
@@ -26,16 +26,21 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    // Récupérer le token Keycloak (le rafraîchit si expiré)
-    return from(this.keycloakService.getToken()).pipe(
+    // Rafraîchir le token si expiré, puis l'ajouter au header
+    return from(this.keycloakService.updateToken(20)).pipe(
+      switchMap(() => from(this.keycloakService.getToken())),
       switchMap((token) => {
+        if (!token) {
+          return next.handle(req);
+        }
         const authReq = req.clone({
           setHeaders: {
             Authorization: `Bearer ${token}`,
           },
         });
         return next.handle(authReq);
-      })
+      }),
+      catchError(() => next.handle(req))
     );
   }
 }

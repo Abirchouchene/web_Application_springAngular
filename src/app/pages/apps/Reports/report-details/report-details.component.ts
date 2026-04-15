@@ -1,29 +1,62 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MaterialModule } from 'src/app/material.module';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { RequestService } from 'src/app/services/apps/ticket/request.service';
-import { Request } from 'src/app/models/Request';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ReportService } from 'src/app/services/apps/report.service';
 import { RequestType } from 'src/app/models/RequestType';
-import { QuestionType } from 'src/app/models/QuestionType';
-import { Contact } from 'src/app/models/Contact';
-import { ContactStatus } from 'src/app/models/ContactStatus';
 
-interface ReportDetails {
-  request: Request;
-  statistics?: {
-    totalContacts: number;
-    contactedContacts: number;
-    questionResponses: {
-      questionId: number;
-      questionText: string;
-      responses: {
-        [key: string]: number;
-      };
-    }[];
+interface QuestionSummary {
+  questionId: number;
+  questionText: string;
+  type: string;
+  optionCounts?: { [key: string]: number };
+  responses?: any[];
+  stats?: { average: number; min: number; max: number };
+}
+
+interface ContactEntry {
+  contactId: number;
+  submissionDate: string;
+  answers: {
+    questionId: number;
+    questionText: string;
+    answer: string;
+    multiAnswer: string[];
+    booleanAnswer: boolean;
+    numberAnswer: number;
+    dateAnswer: string;
+    timeAnswer: string;
+  }[];
+}
+
+interface ReportData {
+  id: number;
+  requestTitle: string;
+  requestType: RequestType;
+  generatedDate: string;
+  status: string;
+  approvedDate: string;
+  sentDate: string;
+  totalContacts: number;
+  contactedContacts: number;
+  contactRate: number;
+  statisticsData: string;
+  aiInsightsData: string;
+  aiGeneratedDate: string;
+  request?: {
+    idR: number;
+    title: string;
+    description: string;
+    status: string;
+    requestType: string;
+    requesterName: string;
+    agentName: string;
   };
 }
 
@@ -34,75 +67,167 @@ interface ReportDetails {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MaterialModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatTabsModule
   ]
 })
 export class ReportDetailsComponent implements OnInit {
-  reportDetails: ReportDetails | null = null;
-  isLoading: boolean = true;
-  isGeneratingPdf: boolean = false;
-  RequestType = RequestType;
-  QuestionType = QuestionType;
-  ContactStatus = ContactStatus;
+  report: ReportData | null = null;
+  isLoading = true;
+  isGeneratingPdf = false;
+  selectedTab = 0;
+
+  // Parsed statistics
+  summaryByQuestion: QuestionSummary[] = [];
+  byContact: ContactEntry[] = [];
+  filteredQuestions: QuestionSummary[] = [];
+  searchText = '';
+  filterType = '';
+
+  // AI insights
+  aiInsights: any = null;
+
+  questionTypes = ['MULTIPLE_CHOICE', 'DROPDOWN', 'CHECKBOXES', 'YES_OR_NO', 'NUMBER', 'SHORT_ANSWER', 'PARAGRAPH', 'DATE', 'TIME'];
 
   constructor(
-    private dialogRef: MatDialogRef<ReportDetailsComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { requestId: number },
-    private requestService: RequestService
+    private route: ActivatedRoute,
+    private router: Router,
+    private reportService: ReportService,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
-    this.loadReportDetails();
+    const reportId = this.route.snapshot.paramMap.get('id');
+    if (reportId) {
+      this.loadReport(+reportId);
+    }
   }
 
-  loadReportDetails(): void {
+  loadReport(reportId: number): void {
     this.isLoading = true;
-    this.requestService.getReportDetails(this.data.requestId).subscribe({
-      next: (details) => {
-        this.reportDetails = details;
+    this.reportService.getReportDetails(reportId).subscribe({
+      next: (report: any) => {
+        this.report = report;
+        this.parseStatistics();
+        this.parseAiInsights();
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading report details:', error);
+        console.error('Error loading report:', error);
         this.isLoading = false;
+        this.snackBar.open('Erreur lors du chargement du rapport', 'Fermer', { duration: 3000 });
       }
+    });
+  }
+
+  parseStatistics(): void {
+    if (this.report?.statisticsData) {
+      try {
+        const stats = JSON.parse(this.report.statisticsData);
+        this.summaryByQuestion = stats.summaryByQuestion || [];
+        this.byContact = stats.byContact || [];
+        this.filteredQuestions = [...this.summaryByQuestion];
+      } catch (e) {
+        console.error('Error parsing statistics:', e);
+      }
+    }
+  }
+
+  parseAiInsights(): void {
+    if (this.report?.aiInsightsData) {
+      try {
+        this.aiInsights = JSON.parse(this.report.aiInsightsData);
+      } catch (e) {
+        console.error('Error parsing AI insights:', e);
+      }
+    }
+  }
+
+  filterQuestions(): void {
+    this.filteredQuestions = this.summaryByQuestion.filter(q => {
+      const matchText = !this.searchText || q.questionText.toLowerCase().includes(this.searchText.toLowerCase());
+      const matchType = !this.filterType || q.type === this.filterType;
+      return matchText && matchType;
     });
   }
 
   generatePdf(): void {
-    if (!this.reportDetails) return;
-
+    if (!this.report) return;
     this.isGeneratingPdf = true;
-    this.requestService.generateReportPdf(this.data.requestId).subscribe({
-      next: (pdfBlob) => {
+    this.reportService.generateReportPdf(this.report.id).subscribe({
+      next: (pdfBlob: Blob) => {
         this.isGeneratingPdf = false;
-        // Create a download link for the PDF
         const url = window.URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `report-${this.data.requestId}.pdf`;
+        link.download = `rapport-${this.report!.id}.pdf`;
         link.click();
         window.URL.revokeObjectURL(url);
+        this.snackBar.open('PDF généré avec succès', 'Fermer', { duration: 3000 });
       },
       error: (error) => {
         console.error('Error generating PDF:', error);
         this.isGeneratingPdf = false;
+        this.snackBar.open('Échec de la génération du PDF', 'Fermer', { duration: 3000 });
       }
     });
   }
 
-  getContactStatusLabel(status: ContactStatus): string {
-    return status.toString().replace(/_/g, ' ');
+  goBack(): void {
+    this.router.navigate(['/apps/reports/list']);
   }
 
-  getQuestionTypeLabel(type: QuestionType): string {
-    return type.toString().replace(/_/g, ' ');
+  getStatusLabel(status: string): string {
+    const labels: { [key: string]: string } = {
+      'PENDING_APPROVAL': 'En attente',
+      'APPROVED': 'Approuvé',
+      'REJECTED': 'Rejeté',
+      'SENT': 'Envoyé'
+    };
+    return labels[status] || status;
   }
 
-  close(): void {
-    this.dialogRef.close();
+  getTotalResponses(optionCounts: { [key: string]: number }): number {
+    return Object.values(optionCounts).reduce((sum, count) => sum + count, 0);
+  }
+
+  getPercentage(count: number, total: number): number {
+    return total > 0 ? Math.round((count / total) * 100) : 0;
+  }
+
+  getBarWidth(count: number, optionCounts: { [key: string]: number }): number {
+    const total = this.getTotalResponses(optionCounts);
+    return total > 0 ? (count / total) * 100 : 0;
+  }
+
+  getContactAnswer(contact: ContactEntry, questionId: number): string {
+    const answer = contact.answers?.find(a => a.questionId === questionId);
+    if (!answer) return '—';
+    if (answer.answer) return answer.answer;
+    if (answer.multiAnswer?.length) return answer.multiAnswer.join(', ');
+    if (answer.booleanAnswer !== null && answer.booleanAnswer !== undefined) return answer.booleanAnswer ? 'Oui' : 'Non';
+    if (answer.numberAnswer !== null && answer.numberAnswer !== undefined) return answer.numberAnswer.toString();
+    if (answer.dateAnswer) return answer.dateAnswer;
+    if (answer.timeAnswer) return answer.timeAnswer;
+    return '—';
+  }
+
+  getTypeLabel(type: string): string {
+    const labels: { [key: string]: string } = {
+      'MULTIPLE_CHOICE': 'Choix multiple',
+      'DROPDOWN': 'Liste déroulante',
+      'CHECKBOXES': 'Cases à cocher',
+      'YES_OR_NO': 'Oui/Non',
+      'NUMBER': 'Nombre',
+      'SHORT_ANSWER': 'Réponse courte',
+      'PARAGRAPH': 'Paragraphe',
+      'DATE': 'Date',
+      'TIME': 'Heure'
+    };
+    return labels[type] || type;
   }
 } 

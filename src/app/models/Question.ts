@@ -1,4 +1,5 @@
 import { QuestionType } from "./QuestionType";
+import { Response as AppResponse } from "./Response";
 
 export interface Question {
   id: number;
@@ -6,7 +7,8 @@ export interface Question {
   questionType: QuestionType;
   /** Alias possible côté API */
   type?: QuestionType;
-  responses?: Response[];
+  options?: string[];
+  responses?: AppResponse[];
   response?: string;
 }
   

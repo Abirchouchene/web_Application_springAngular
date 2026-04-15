@@ -3,7 +3,13 @@ import {
   provideZoneChangeDetection,
   importProvidersFrom,
   APP_INITIALIZER,
+  LOCALE_ID,
 } from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
+
+registerLocaleData(localeFr);
+
 import {
   HttpClient,
   provideHttpClient,
@@ -118,6 +124,10 @@ export const appConfig: ApplicationConfig = {
       useFactory: keycloakInitializer,
       deps: [KeycloakInitService],
       multi: true,
+    },
+    {
+      provide: LOCALE_ID,
+      useValue: 'fr-FR',
     },
   ],
 };

@@ -19,6 +19,10 @@ export interface Report {
   approvedBy?: string;
   approvedDate?: Date;
   sentDate?: Date;
+  totalContacts?: number;
+  contactedContacts?: number;
+  contactRate?: number;
+  pdfPath?: string;
 }
 
 export interface ReportDetails {
@@ -73,6 +77,14 @@ export class ReportService {
     return this.http.get(`${this.apiUrl}/${requestId}/pdf`, {
       responseType: 'blob'
     });
+  }
+
+  triggerAutoGenerate(): Observable<{ message: string; reportsGenerated: number }> {
+    return this.http.post<{ message: string; reportsGenerated: number }>(`${this.apiUrl}/auto-generate`, {});
+  }
+
+  getDownloadUrl(reportId: number): Observable<{ url: string; stored: string }> {
+    return this.http.get<{ url: string; stored: string }>(`${this.apiUrl}/${reportId}/download-url`);
   }
 
   // Helper method to calculate statistics for a request

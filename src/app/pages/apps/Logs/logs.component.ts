@@ -12,6 +12,7 @@ import { LogsService, LogEntry } from 'src/app/services/apps/logs.service';
 @Component({
   selector: 'app-logs',
   templateUrl: './logs.component.html',
+  styleUrls: ['./logs.component.scss'],
   standalone: true,
   imports: [
     CommonModule,
@@ -25,8 +26,7 @@ export class LogsComponent implements OnInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   displayedColumns: string[] = [
-    'id', 'logAction', 'actionDescription', 'requestId',
-    'oldStatus', 'newStatus', 'details', 'timestamp', 'ipAddress'
+    'timestamp', 'logAction', 'request', 'performedByUserName', 'details', 'changes'
   ];
 
   dataSource = new MatTableDataSource<LogEntry>([]);
@@ -34,17 +34,19 @@ export class LogsComponent implements OnInit {
 
   // Pagination
   totalElements = 0;
-  pageSize = 20;
+  pageSize = 10;
   pageIndex = 0;
 
   // Filters
+  searchText = '';
   selectedAction = '';
+  selectedRequestId: string = '';
+  selectedUser = '';
   startDate = '';
-  endDate = '';
-  searchRequestId = '';
 
-  // Stats
-  stats: any = {};
+  // Dropdown data
+  users: string[] = [];
+  requests: { idR: number; title: string }[] = [];
 
   actions = [
     'REQUEST_CREATED', 'REQUEST_UPDATED', 'STATUS_CHANGED',
@@ -78,14 +80,26 @@ export class LogsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadLogs();
-    this.loadStats();
+    this.loadFilterData();
+  }
+
+  loadFilterData(): void {
+    this.logsService.getDistinctUsers().subscribe({
+      next: (users) => this.users = users,
+      error: () => {}
+    });
+    this.logsService.getDistinctRequests().subscribe({
+      next: (requests) => this.requests = requests,
+      error: () => {}
+    });
   }
 
   loadLogs(): void {
     this.isLoading = true;
 
-    if (this.searchRequestId) {
-      this.logsService.getLogsByRequestId(+this.searchRequestId, this.pageIndex, this.pageSize).subscribe({
+    // If searching by request ID from dropdown
+    if (this.selectedRequestId) {
+      this.logsService.getLogsByRequestId(+this.selectedRequestId, this.pageIndex, this.pageSize).subscribe({
         next: (page) => {
           this.dataSource.data = page.content;
           this.totalElements = page.totalElements;
@@ -97,22 +111,22 @@ export class LogsComponent implements OnInit {
     }
 
     const start = this.startDate ? new Date(this.startDate).toISOString() : undefined;
-    const end = this.endDate ? new Date(this.endDate).toISOString() : undefined;
+    const search = this.searchText?.trim() || (this.selectedUser || undefined);
 
-    this.logsService.getAllLogs(this.pageIndex, this.pageSize, this.selectedAction || undefined, start, end).subscribe({
+    this.logsService.getAllLogs(
+      this.pageIndex,
+      this.pageSize,
+      this.selectedAction || undefined,
+      start,
+      undefined,
+      search
+    ).subscribe({
       next: (page) => {
         this.dataSource.data = page.content;
         this.totalElements = page.totalElements;
         this.isLoading = false;
       },
       error: (err) => this.handleError(err)
-    });
-  }
-
-  loadStats(): void {
-    this.logsService.getLogStatistics().subscribe({
-      next: (stats) => this.stats = stats,
-      error: () => {}
     });
   }
 
@@ -128,10 +142,11 @@ export class LogsComponent implements OnInit {
   }
 
   clearFilters(): void {
+    this.searchText = '';
     this.selectedAction = '';
+    this.selectedRequestId = '';
+    this.selectedUser = '';
     this.startDate = '';
-    this.endDate = '';
-    this.searchRequestId = '';
     this.pageIndex = 0;
     this.loadLogs();
   }
@@ -140,33 +155,33 @@ export class LogsComponent implements OnInit {
     return this.actionLabels[action] || action;
   }
 
-  getActionIcon(action: string): string {
+  getActionColor(action: string): string {
     switch (action) {
-      case 'REQUEST_CREATED': return 'file-plus';
-      case 'REQUEST_UPDATED': return 'edit';
-      case 'STATUS_CHANGED': return 'refresh';
-      case 'PRIORITY_CHANGED': return 'flag';
-      case 'AGENT_ASSIGNED': return 'user-plus';
-      case 'AGENT_UNASSIGNED': return 'user-minus';
-      case 'REQUEST_DELETED': return 'trash';
-      case 'REQUEST_APPROVED': return 'circle-check';
-      case 'REQUEST_REJECTED': return 'circle-x';
-      case 'REQUEST_CLOSED': return 'lock';
-      default: return 'activity';
+      case 'REQUEST_CREATED': return '#1e88e5';
+      case 'REQUEST_APPROVED': return '#43a047';
+      case 'REQUEST_REJECTED':
+      case 'REQUEST_DELETED': return '#e53935';
+      case 'STATUS_CHANGED':
+      case 'AGENT_ASSIGNED': return '#00acc1';
+      case 'PRIORITY_CHANGED': return '#fb8c00';
+      default: return '#78909c';
     }
   }
 
-  getActionColor(action: string): string {
-    switch (action) {
-      case 'REQUEST_CREATED': return 'text-primary';
-      case 'REQUEST_APPROVED': return 'text-success';
-      case 'REQUEST_REJECTED':
-      case 'REQUEST_DELETED': return 'text-danger';
-      case 'STATUS_CHANGED':
-      case 'AGENT_ASSIGNED': return 'text-info';
-      case 'PRIORITY_CHANGED': return 'text-warning';
-      default: return 'text-muted';
+  getChanges(log: LogEntry): { oldValue: string; newValue: string } | null {
+    if (log.oldStatus && log.newStatus) {
+      return { oldValue: log.oldStatus, newValue: log.newStatus };
     }
+    if (log.oldPriority && log.newPriority) {
+      return { oldValue: log.oldPriority, newValue: log.newPriority };
+    }
+    if (log.oldAssignedAgent || log.newAssignedAgent) {
+      return {
+        oldValue: log.oldAssignedAgent || 'Aucun',
+        newValue: log.newAssignedAgent || 'Aucun'
+      };
+    }
+    return null;
   }
 
   private handleError(err: any): void {

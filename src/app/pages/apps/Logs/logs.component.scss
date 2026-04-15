@@ -1,0 +1,154 @@
+.logs-page {
+  padding: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.breadcrumb-nav {
+  color: #888;
+  font-size: 14px;
+}
+
+.filters-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  .filter-field {
+    flex: 1;
+    min-width: 160px;
+    max-width: 220px;
+  }
+
+  .search-field {
+    min-width: 180px;
+  }
+}
+
+.filters-row-2 {
+  margin-bottom: 16px;
+
+  .date-field {
+    max-width: 220px;
+  }
+}
+
+.logs-table {
+  th.mat-mdc-header-cell {
+    font-weight: 600;
+    font-size: 13px;
+    color: #555;
+    background: #fafbfc;
+    border-bottom: 2px solid #e0e0e0;
+  }
+
+  td.mat-mdc-cell {
+    font-size: 13px;
+    padding: 10px 12px;
+    vertical-align: top;
+  }
+
+  tr.mat-mdc-row:hover {
+    background: #f8f9fa;
+  }
+}
+
+.date-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #555;
+
+  .date-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #999;
+  }
+}
+
+.action-badge {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.request-ref {
+  font-weight: 500;
+  font-size: 13px;
+
+  small {
+    font-size: 11px;
+    color: #999;
+  }
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.details-cell {
+  max-width: 260px;
+  font-size: 13px;
+
+  .detail-desc {
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .detail-reason {
+    font-size: 12px;
+    word-break: break-word;
+  }
+}
+
+.changes-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.change-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.old {
+    background: #fce4ec;
+    color: #c62828;
+  }
+
+  &.new {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+}
+
+.change-arrow {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #999;
+}

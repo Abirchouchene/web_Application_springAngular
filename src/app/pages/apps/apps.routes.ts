@@ -365,7 +365,7 @@ export const AppsRoutes: Routes = [
         canActivate: [AuthGuard],
         data: {
           title: 'Journal d\'Activités',
-          roles: ['MANAGER', 'ADMIN'],
+          roles: ['AGENT', 'MANAGER', 'ADMIN'],
           urls: [
             { title: 'Dashboard', url: '/dashboards/dashboard1' },
             { title: 'Journal d\'Activités' },

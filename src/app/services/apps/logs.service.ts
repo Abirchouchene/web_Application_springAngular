@@ -5,7 +5,7 @@ import { environment } from 'src/environments/environment';
 
 export interface LogEntry {
   id: number;
-  request?: { idR: number; description?: string };
+  request?: { idR: number; title?: string; description?: string };
   logAction: string;
   actionDescription: string;
   details: string;
@@ -15,6 +15,8 @@ export interface LogEntry {
   newPriority: string;
   oldAssignedAgent: string;
   newAssignedAgent: string;
+  performedByUserId: number;
+  performedByUserName: string;
   timestamp: string;
   ipAddress: string;
   userAgent: string;
@@ -34,13 +36,14 @@ export class LogsService {
 
   constructor(private http: HttpClient) {}
 
-  getAllLogs(page = 0, size = 50, action?: string, startDate?: string, endDate?: string): Observable<PageResponse<LogEntry>> {
+  getAllLogs(page = 0, size = 50, action?: string, startDate?: string, endDate?: string, search?: string): Observable<PageResponse<LogEntry>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
     if (action) params = params.set('action', action);
     if (startDate) params = params.set('startDate', startDate);
     if (endDate) params = params.set('endDate', endDate);
+    if (search) params = params.set('search', search);
     return this.http.get<PageResponse<LogEntry>>(this.apiUrl, { params });
   }
 
@@ -72,5 +75,13 @@ export class LogsService {
     return this.http.get<LogEntry[]>(`${this.apiUrl}/recent`, {
       params: new HttpParams().set('limit', limit.toString())
     });
+  }
+
+  getDistinctUsers(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/users`);
+  }
+
+  getDistinctRequests(): Observable<{ idR: number; title: string }[]> {
+    return this.http.get<{ idR: number; title: string }[]>(`${this.apiUrl}/requests`);
   }
 }

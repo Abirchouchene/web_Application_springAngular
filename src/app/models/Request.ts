@@ -8,6 +8,7 @@ import { Contact } from "./Contact";
 
 export interface Request {
   idR: number;
+  title?: string;
   userId: number;
   requestType: RequestType;
   status: Status;
