@@ -1,0 +1,89 @@
+<mat-card class="request-manager-card">
+  <mat-card-content>
+    <!-- Search Field -->
+    <div class="table-toolbar mb-4">
+      <mat-form-field appearance="outline" class="w-100">
+        <mat-label>Rechercher</mat-label>
+        <input matInput (keyup)="onKeyup($event)" placeholder="Rechercher des demandes..." />
+      </mat-form-field>
+    </div>
+  
+    <!-- Table Container -->
+    <div class="table-container mat-elevation-z8">
+      <div class="table-responsive">
+        <table mat-table [dataSource]="dataSource" matSort class="w-100">
+          <!-- Existing column definitions... -->
+          <ng-container matColumnDef="idR">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+            <td mat-cell *matCellDef="let element"> {{ element.idR }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="requestType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Type </th>
+            <td mat-cell *matCellDef="let element"> {{ element.requestType }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="requester">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Demandeur </th>
+            <td mat-cell *matCellDef="let element"> {{ element.user?.name }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Description </th>
+            <td mat-cell *matCellDef="let element"> {{ element.description }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Statut </th>
+            <td mat-cell *matCellDef="let element"> {{ element.status }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Priorité </th>
+            <td mat-cell *matCellDef="let element"> {{ element.priority }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="categoryRequest">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Catégorie </th>
+            <td mat-cell *matCellDef="let element"> {{ element.categoryRequest }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Créé le </th>
+            <td mat-cell *matCellDef="let element"> {{ element.createdAt | date:'medium' }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="deadline">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Date Limite </th>
+            <td mat-cell *matCellDef="let element">
+              {{ element.deadline ? (element.deadline | date:'dd/MM/yyyy') : 'N/A' }}
+            </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="note">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header> Note </th>
+            <td mat-cell *matCellDef="let element"> {{ element.note }} </td>
+          </ng-container>
+    
+          <ng-container matColumnDef="action">
+            <th mat-header-cell *matHeaderCellDef> Action </th>
+            <td mat-cell *matCellDef="let element">
+              <button mat-icon-button [routerLink]="['/apps/request-manager/viewRequest', element.idR]" matTooltip="Voir les Détails">
+                <mat-icon>visibility</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+    
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+
+      <mat-paginator
+        [length]="totalCount"
+        [pageSize]="10"
+        [pageSizeOptions]="[5, 10, 20]">
+      </mat-paginator>
+    </div>
+  </mat-card-content>
+</mat-card> 

@@ -103,9 +103,17 @@ public class LogsController {
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(required = false) LogAction action,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) String search) {
         
         Pageable pageable = PageRequest.of(page, size);
+        
+        // If search is provided, use search method
+        if (search != null && !search.trim().isEmpty()) {
+            Page<Logs> logs = logsService.searchLogs(search.trim(), pageable);
+            return ResponseEntity.ok(logs);
+        }
+        
         Page<Logs> logs = logsService.getAllLogsPaginated(pageable, action, startDate, endDate);
         return ResponseEntity.ok(logs);
     }
@@ -175,5 +183,23 @@ public class LogsController {
     public ResponseEntity<List<Logs>> getRecentActivity(@RequestParam(defaultValue = "10") int limit) {
         List<Logs> logs = logsService.getRecentActivity(limit);
         return ResponseEntity.ok(logs);
+    }
+    
+    /**
+     * Get distinct user names for filter dropdown
+     */
+    @GetMapping("/users")
+    public ResponseEntity<List<String>> getDistinctUserNames() {
+        List<String> users = logsService.getDistinctUserNames();
+        return ResponseEntity.ok(users);
+    }
+    
+    /**
+     * Get distinct requests for filter dropdown
+     */
+    @GetMapping("/requests")
+    public ResponseEntity<List<Map<String, Object>>> getDistinctRequests() {
+        List<Map<String, Object>> requests = logsService.getDistinctRequests();
+        return ResponseEntity.ok(requests);
     }
 } 

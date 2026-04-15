@@ -1,0 +1,568 @@
+<!-- Loading -->
+<div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px">
+  <mat-spinner diameter="48"></mat-spinner>
+</div>
+
+<div *ngIf="!isLoading && stats" class="dashboard-container">
+
+  <!-- ===== HEADER BAR ===== -->
+  <div class="d-flex align-items-center justify-content-between m-b-16">
+    <div>
+      <h2 class="mat-headline-5 f-w-600 m-0">Tableau de bord</h2>
+      <span class="f-s-12 text-muted" *ngIf="lastUpdated">Mis à jour : {{ lastUpdated | date:'HH:mm:ss' }}</span>
+    </div>
+    <div class="d-flex align-items-center gap-8">
+      <div class="live-indicator">
+        <span class="live-dot"></span> LIVE
+      </div>
+      <button mat-stroked-button color="primary" (click)="refreshDashboard()">
+        <i-tabler name="refresh" class="icon-18 m-r-4"></i-tabler> Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== PERFORMANCE SCORE + KPI CARDS ROW ===== -->
+  <div class="row">
+    <!-- Performance Score -->
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow performance-card">
+        <mat-card-content class="p-24 text-center">
+          <div class="score-ring" [style.--score-color]="stats.performanceScore >= 80 ? '#13deb9' : stats.performanceScore >= 60 ? '#ffb22b' : '#fa896b'">
+            <div class="score-value">{{ stats.performanceScore }}</div>
+            <div class="score-label">Score Global</div>
+          </div>
+          <div class="d-flex justify-content-center gap-8 m-t-12 flex-wrap">
+            <div *ngFor="let m of stats.performanceBreakdown" class="metric-badge" [style.border-color]="m.color">
+              <span class="f-s-11 f-w-600" [style.color]="m.color">{{ m.score }}%</span>
+              <span class="f-s-10 text-muted">{{ m.label }}</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- KPI: Total Requests -->
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow kpi-card">
+        <mat-card-content class="p-24">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="f-s-13 text-muted">Total Demandes</span>
+              <h3 class="m-t-4 mat-headline-5 f-w-600">{{ stats.totalRequests }}</h3>
+              <div class="kpi-sub">
+                <span class="f-s-12" [ngClass]="stats.weekOverWeekChange >= 0 ? 'text-success' : 'text-warn'">
+                  <i-tabler [name]="stats.weekOverWeekChange >= 0 ? 'trending-up' : 'trending-down'" class="icon-14"></i-tabler>
+                  {{ stats.weekOverWeekChange > 0 ? '+' : '' }}{{ stats.weekOverWeekChange }}%
+                </span>
+                <span class="f-s-11 text-muted">vs semaine dern.</span>
+              </div>
+            </div>
+            <div class="kpi-icon bg-light-primary text-primary">
+              <i-tabler name="clipboard-list" class="icon-24"></i-tabler>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- KPI: Resolution Rate -->
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow kpi-card">
+        <mat-card-content class="p-24">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="f-s-13 text-muted">Taux de résolution</span>
+              <h3 class="m-t-4 mat-headline-5 f-w-600" [ngClass]="stats.resolutionRate >= 80 ? 'text-success' : stats.resolutionRate >= 50 ? 'text-warning' : 'text-warn'">
+                {{ stats.resolutionRate }}%
+              </h3>
+              <div class="kpi-sub">
+                <span class="f-s-12 text-muted">{{ stats.resolvedRequests }} résolues</span>
+              </div>
+            </div>
+            <div class="kpi-icon bg-light-success text-success">
+              <i-tabler name="circle-check" class="icon-24"></i-tabler>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- KPI: SLA Compliance -->
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow kpi-card">
+        <mat-card-content class="p-24">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <span class="f-s-13 text-muted">Conformité SLA</span>
+              <h3 class="m-t-4 mat-headline-5 f-w-600" [ngClass]="stats.slaComplianceRate >= 90 ? 'text-success' : stats.slaComplianceRate >= 70 ? 'text-warning' : 'text-warn'">
+                {{ stats.slaComplianceRate }}%
+              </h3>
+              <div class="kpi-sub">
+                <span class="f-s-12 text-muted">Avg. {{ stats.avgResolutionHours }}h</span>
+              </div>
+            </div>
+            <div class="kpi-icon bg-light-accent text-accent">
+              <i-tabler name="shield-check" class="icon-24"></i-tabler>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== ALERT KPI STRIP ===== -->
+  <div class="row m-t-12">
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow mini-kpi" [ngClass]="{'alert-card': stats.urgentOpenRequests > 0}">
+        <mat-card-content class="p-16 d-flex align-items-center gap-12">
+          <div class="mini-icon bg-light-warn text-warn">
+            <i-tabler name="urgent" class="icon-20"></i-tabler>
+          </div>
+          <div>
+            <h4 class="m-0 f-w-600">{{ stats.urgentOpenRequests }}</h4>
+            <span class="f-s-12 text-muted">Urgences ouvertes</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow mini-kpi" [ngClass]="{'alert-card': stats.overdueRequests > 0}">
+        <mat-card-content class="p-16 d-flex align-items-center gap-12">
+          <div class="mini-icon bg-light-warn text-warn">
+            <i-tabler name="clock-exclamation" class="icon-20"></i-tabler>
+          </div>
+          <div>
+            <h4 class="m-0 f-w-600">{{ stats.overdueRequests }}</h4>
+            <span class="f-s-12 text-muted">En retard</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow mini-kpi">
+        <mat-card-content class="p-16 d-flex align-items-center gap-12">
+          <div class="mini-icon bg-light-primary text-primary">
+            <i-tabler name="calendar-plus" class="icon-20"></i-tabler>
+          </div>
+          <div>
+            <h4 class="m-0 f-w-600">{{ stats.requestsToday }}</h4>
+            <span class="f-s-12 text-muted">Créées aujourd'hui</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <mat-card class="cardWithShadow mini-kpi">
+        <mat-card-content class="p-16 d-flex align-items-center gap-12">
+          <div class="mini-icon bg-light-success text-success">
+            <i-tabler name="checks" class="icon-20"></i-tabler>
+          </div>
+          <div>
+            <h4 class="m-0 f-w-600">{{ stats.resolvedToday }}</h4>
+            <span class="f-s-12 text-muted">Résolues aujourd'hui</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== AI RECOMMENDATIONS ===== -->
+  <div class="row m-t-16">
+    <div class="col-12">
+      <mat-card class="cardWithShadow ai-card">
+        <mat-card-header>
+          <div class="d-flex align-items-center gap-8">
+            <div class="ai-badge">
+              <i-tabler name="brain" class="icon-18"></i-tabler>
+              IA
+            </div>
+            <mat-card-title class="m-b-0">Recommandations Intelligentes</mat-card-title>
+          </div>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <div class="ai-recommendations-grid">
+            <div *ngFor="let rec of stats.aiRecommendations"
+                 class="ai-rec-item"
+                 [ngClass]="'ai-rec-' + rec.severity">
+              <div class="d-flex align-items-start gap-12">
+                <div class="ai-rec-icon" [ngClass]="'bg-light-' + getSeverityColor(rec.severity)">
+                  <i-tabler [name]="rec.icon || getSeverityIcon(rec.severity)" class="icon-20"></i-tabler>
+                </div>
+                <div>
+                  <h5 class="m-0 f-w-600 f-s-14">{{ rec.title }}</h5>
+                  <p class="m-0 f-s-13 text-muted m-t-4">{{ rec.message }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== TREND + PERFORMANCE RADIAL ===== -->
+  <div class="row m-t-16">
+    <div class="col-lg-8">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Évolution (30 jours) — Créées vs Résolues</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart
+            [series]="trendChart.series"
+            [chart]="trendChart.chart"
+            [colors]="trendChart.colors"
+            [fill]="trendChart.fill"
+            [stroke]="trendChart.stroke"
+            [xaxis]="trendChart.xaxis"
+            [yaxis]="trendChart.yaxis"
+            [dataLabels]="trendChart.dataLabels"
+            [tooltip]="trendChart.tooltip"
+            [legend]="trendChart.legend"
+            [grid]="trendChart.grid"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-4">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Performance</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart *ngIf="performanceChart.series"
+            [series]="performanceChart.series"
+            [chart]="performanceChart.chart"
+            [labels]="performanceChart.labels"
+            [colors]="performanceChart.colors"
+            [plotOptions]="performanceChart.plotOptions"
+            [legend]="performanceChart.legend"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== STATUS DONUT + PRIORITY BAR ===== -->
+  <div class="row m-t-16">
+    <div class="col-lg-4">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Par statut</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart
+            [series]="statusChart.series"
+            [chart]="statusChart.chart"
+            [labels]="statusChart.labels"
+            [colors]="statusChart.colors"
+            [plotOptions]="statusChart.plotOptions"
+            [legend]="statusChart.legend"
+            [dataLabels]="statusChart.dataLabels"
+            [tooltip]="statusChart.tooltip"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-4">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Par priorité</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart
+            [series]="priorityChart.series"
+            [chart]="priorityChart.chart"
+            [colors]="priorityChart.colors"
+            [plotOptions]="priorityChart.plotOptions"
+            [xaxis]="priorityChart.xaxis"
+            [yaxis]="priorityChart.yaxis"
+            [dataLabels]="priorityChart.dataLabels"
+            [legend]="priorityChart.legend"
+            [tooltip]="priorityChart.tooltip"
+            [grid]="priorityChart.grid"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-4">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Contact distribution</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart
+            [series]="contactStatusChart.series"
+            [chart]="contactStatusChart.chart"
+            [labels]="contactStatusChart.labels"
+            [colors]="contactStatusChart.colors"
+            [legend]="contactStatusChart.legend"
+            [dataLabels]="contactStatusChart.dataLabels"
+            [tooltip]="contactStatusChart.tooltip"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== HOURLY ACTIVITY + CATEGORY ===== -->
+  <div class="row m-t-16">
+    <div class="col-lg-7">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Activité par heure</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart *ngIf="hourlyChart.series"
+            [series]="hourlyChart.series"
+            [chart]="hourlyChart.chart"
+            [colors]="hourlyChart.colors"
+            [plotOptions]="hourlyChart.plotOptions"
+            [xaxis]="hourlyChart.xaxis"
+            [yaxis]="hourlyChart.yaxis"
+            [dataLabels]="hourlyChart.dataLabels"
+            [tooltip]="hourlyChart.tooltip"
+            [grid]="hourlyChart.grid"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-5">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Par catégorie</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <apx-chart
+            [series]="categoryChart.series"
+            [chart]="categoryChart.chart"
+            [colors]="categoryChart.colors"
+            [plotOptions]="categoryChart.plotOptions"
+            [xaxis]="categoryChart.xaxis"
+            [dataLabels]="categoryChart.dataLabels"
+            [tooltip]="categoryChart.tooltip"
+            [grid]="categoryChart.grid"
+          ></apx-chart>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== REPORTS MINI-CARDS + AGENTS TABLE ===== -->
+  <div class="row m-t-16">
+    <div class="col-lg-3">
+      <div class="row">
+        <div class="col-12">
+          <mat-card class="cardWithShadow kpi-card">
+            <mat-card-content class="p-24 text-center">
+              <i-tabler name="file-analytics" class="icon-32 text-primary d-block m-b-8"></i-tabler>
+              <h3 class="mat-headline-5 f-w-600">{{ stats.totalReports }}</h3>
+              <span class="f-s-13 text-muted">Rapports</span>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        <div class="col-12 m-t-12">
+          <mat-card class="cardWithShadow kpi-card">
+            <mat-card-content class="p-24 text-center">
+              <i-tabler name="clock-check" class="icon-32 text-warning d-block m-b-8"></i-tabler>
+              <h3 class="mat-headline-5 f-w-600 text-warning">{{ stats.pendingReports }}</h3>
+              <span class="f-s-13 text-muted">En attente</span>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        <div class="col-12 m-t-12">
+          <mat-card class="cardWithShadow kpi-card">
+            <mat-card-content class="p-24 text-center">
+              <i-tabler name="percentage" class="icon-32 text-accent d-block m-b-8"></i-tabler>
+              <h3 class="mat-headline-5 f-w-600">{{ stats.avgContactRate | number:'1.1-1' }}%</h3>
+              <span class="f-s-13 text-muted">Taux contact moyen</span>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-9">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Performance des agents</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <div *ngIf="stats.agentWorkload && stats.agentWorkload.length > 0">
+            <table class="agent-table w-100">
+              <thead>
+                <tr>
+                  <th>Agent</th>
+                  <th class="text-center">Assignées</th>
+                  <th class="text-center">Résolues</th>
+                  <th class="text-center">Résolution</th>
+                  <th class="text-center">Contact</th>
+                  <th class="text-center">Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of stats.agentWorkload">
+                  <td class="f-w-600">{{ a.agentName }}</td>
+                  <td class="text-center">{{ a.assignedRequests }}</td>
+                  <td class="text-center">{{ a.resolvedRequests }}</td>
+                  <td class="text-center">{{ a.resolutionRate }}%</td>
+                  <td class="text-center">{{ a.contactRate }}%</td>
+                  <td class="text-center">
+                    <span class="status-chip" [style.background]="getAgentStatusColor(a.status)">
+                      {{ getAgentStatusLabel(a.status) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="!stats.agentWorkload || stats.agentWorkload.length === 0" class="text-center p-24">
+            <i-tabler name="users-minus" class="icon-48 text-muted d-block m-b-8"></i-tabler>
+            <span class="mat-body-1">Aucun agent assigné</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== AGENT WORKLOAD CHART + RECENT ACTIVITY ===== -->
+  <div class="row m-t-16">
+    <div class="col-lg-7">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Charge de travail des agents</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <div *ngIf="stats.agentWorkload && stats.agentWorkload.length > 0">
+            <apx-chart
+              [series]="agentChart.series"
+              [chart]="agentChart.chart"
+              [colors]="agentChart.colors"
+              [plotOptions]="agentChart.plotOptions"
+              [xaxis]="agentChart.xaxis"
+              [yaxis]="agentChart.yaxis"
+              [dataLabels]="agentChart.dataLabels"
+              [legend]="agentChart.legend"
+              [tooltip]="agentChart.tooltip"
+              [grid]="agentChart.grid"
+            ></apx-chart>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+    <div class="col-lg-5">
+      <mat-card class="cardWithShadow">
+        <mat-card-header>
+          <mat-card-title>Activité récente</mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="p-24" style="max-height: 380px; overflow-y: auto;">
+          <div *ngIf="stats.recentActivity && stats.recentActivity.length > 0">
+            <div *ngFor="let activity of stats.recentActivity" class="activity-item d-flex align-items-start gap-12 m-b-16">
+              <div class="activity-icon" [ngClass]="'bg-light-' + getActionColor(activity.action)">
+                <i-tabler [name]="getActionIcon(activity.action)" class="icon-18"></i-tabler>
+              </div>
+              <div class="flex-grow-1">
+                <p class="m-0 f-s-13 f-w-600">{{ activity.description }}</p>
+                <span class="f-s-12 text-muted">{{ activity.timestamp }}</span>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="!stats.recentActivity || stats.recentActivity.length === 0" class="text-center p-24">
+            <i-tabler name="activity" class="icon-48 text-muted d-block m-b-8"></i-tabler>
+            <span class="mat-body-1">Aucune activité récente</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- ===== AI CHAT + REAL-TIME METRICS ===== -->
+  <div class="row m-t-16">
+    <div class="col-lg-5">
+      <app-ai-chat></app-ai-chat>
+    </div>
+    <div class="col-lg-7">
+      <!-- Real-time Status Overview -->
+      <mat-card class="cardWithShadow realtime-card">
+        <mat-card-header>
+          <div class="d-flex align-items-center gap-8">
+            <div class="rt-badge">
+              <i-tabler name="activity-heartbeat" class="icon-18"></i-tabler>
+            </div>
+            <mat-card-title class="m-b-0">Monitoring Temps Réel</mat-card-title>
+            <span class="live-dot-sm"></span>
+          </div>
+        </mat-card-header>
+        <mat-card-content class="p-24">
+          <!-- Mini gauges row -->
+          <div class="rt-gauges">
+            <div class="rt-gauge">
+              <div class="gauge-circle" [style.--pct]="stats.resolutionRate + '%'" [style.--gauge-color]="stats.resolutionRate >= 80 ? '#13deb9' : stats.resolutionRate >= 50 ? '#ffb22b' : '#fa896b'">
+                <span class="gauge-val">{{ stats.resolutionRate | number:'1.0-0' }}%</span>
+              </div>
+              <span class="gauge-label">Résolution</span>
+            </div>
+            <div class="rt-gauge">
+              <div class="gauge-circle" [style.--pct]="stats.slaComplianceRate + '%'" [style.--gauge-color]="stats.slaComplianceRate >= 90 ? '#13deb9' : '#ffb22b'">
+                <span class="gauge-val">{{ stats.slaComplianceRate | number:'1.0-0' }}%</span>
+              </div>
+              <span class="gauge-label">SLA</span>
+            </div>
+            <div class="rt-gauge">
+              <div class="gauge-circle" [style.--pct]="stats.avgContactRate + '%'" [style.--gauge-color]="stats.avgContactRate >= 70 ? '#13deb9' : '#ffb22b'">
+                <span class="gauge-val">{{ stats.avgContactRate | number:'1.0-0' }}%</span>
+              </div>
+              <span class="gauge-label">Contact</span>
+            </div>
+            <div class="rt-gauge">
+              <div class="gauge-circle" [style.--pct]="stats.performanceScore + '%'" [style.--gauge-color]="stats.performanceScore >= 80 ? '#13deb9' : stats.performanceScore >= 60 ? '#ffb22b' : '#fa896b'">
+                <span class="gauge-val">{{ stats.performanceScore }}</span>
+              </div>
+              <span class="gauge-label">Score Global</span>
+            </div>
+          </div>
+
+          <!-- Live counters -->
+          <div class="rt-counters m-t-16">
+            <div class="rt-counter">
+              <i-tabler name="clock-play" class="icon-20 text-primary"></i-tabler>
+              <div>
+                <span class="counter-val">{{ stats.inProgressRequests }}</span>
+                <span class="counter-label">En cours</span>
+              </div>
+            </div>
+            <div class="rt-counter">
+              <i-tabler name="hourglass-high" class="icon-20 text-warning"></i-tabler>
+              <div>
+                <span class="counter-val">{{ stats.pendingRequests }}</span>
+                <span class="counter-label">En attente</span>
+              </div>
+            </div>
+            <div class="rt-counter">
+              <i-tabler name="users" class="icon-20 text-accent"></i-tabler>
+              <div>
+                <span class="counter-val">{{ stats.activeAgents }}/{{ stats.totalAgents }}</span>
+                <span class="counter-label">Agents actifs</span>
+              </div>
+            </div>
+            <div class="rt-counter" [class.alert-pulse]="stats.overdueRequests > 0">
+              <i-tabler name="alert-circle" class="icon-20 text-warn"></i-tabler>
+              <div>
+                <span class="counter-val">{{ stats.overdueRequests }}</span>
+                <span class="counter-label">En retard</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI insights text -->
+          <div class="rt-insights m-t-16" *ngIf="stats.aiInsights">
+            <div class="d-flex align-items-center gap-8 m-b-8">
+              <i-tabler name="sparkles" class="icon-16 text-primary"></i-tabler>
+              <span class="f-s-12 f-w-600 text-primary">ANALYSE IA EN DIRECT</span>
+            </div>
+            <p class="f-s-13 text-muted m-0" style="line-height: 1.6;">{{ stats.aiInsights }}</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

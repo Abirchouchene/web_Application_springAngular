@@ -1,0 +1,255 @@
+<div class="report-details-page">
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="text-center p-5">
+    <mat-spinner diameter="40" class="m-auto"></mat-spinner>
+    <p class="mt-3 text-muted">Chargement du rapport...</p>
+  </div>
+
+  <div *ngIf="!isLoading && report">
+    <!-- Header -->
+    <div class="page-header">
+      <h2 class="page-title">Détails du Rapport</h2>
+      <button mat-raised-button color="primary" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon> Retour à la liste
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <mat-tab-group [(selectedIndex)]="selectedTab" class="report-tabs">
+      <!-- ===== TAB RÉSUMÉ ===== -->
+      <mat-tab label="Résumé">
+        <div class="tab-content">
+          <!-- PDF Button -->
+          <div class="pdf-action">
+            <a class="pdf-link" (click)="generatePdf()" [class.disabled]="isGeneratingPdf">
+              <mat-icon>picture_as_pdf</mat-icon>
+              {{ isGeneratingPdf ? 'Génération en cours...' : 'Générer PDF – Résumé' }}
+            </a>
+          </div>
+
+          <!-- Report Info -->
+          <mat-card class="info-card">
+            <mat-card-content>
+              <h3 class="report-title">{{ report.requestTitle }}</h3>
+              <p class="report-date text-muted">
+                Rapport généré le {{ report.generatedDate | date:'EEEE, MMMM d, y':'':'fr-FR' }}
+              </p>
+              <div class="info-row">
+                <div class="info-item">
+                  <span class="label">ID Demande:</span>
+                  <span class="value">{{ report.request?.idR }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Type de Demande:</span>
+                  <span class="value">{{ report.requestType }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Statut du Rapport:</span>
+                  <span class="value">{{ getStatusLabel(report.status) }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Campaign Statistics -->
+          <h4 class="section-title">Statistiques de la Campagne</h4>
+          <div class="stats-grid">
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <span class="stat-label">Total Contacts:</span>
+                <span class="stat-value">{{ report.totalContacts }}</span>
+              </mat-card-content>
+            </mat-card>
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <span class="stat-label">Contacts Atteints:</span>
+                <span class="stat-value">{{ report.contactedContacts }}</span>
+              </mat-card-content>
+            </mat-card>
+            <mat-card class="stat-card">
+              <mat-card-content>
+                <span class="stat-label">Taux de Contact:</span>
+                <span class="stat-value">{{ report.contactRate | number:'1.0-0' }}%</span>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Questions Summary -->
+          <h4 class="section-title">Détails par Question</h4>
+
+          <div class="question-filters">
+            <mat-form-field appearance="outline" class="search-field">
+              <input matInput [(ngModel)]="searchText" placeholder="Rechercher..." (input)="filterQuestions()">
+              <mat-icon matSuffix>search</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="type-filter">
+              <mat-label>Filtrer par type</mat-label>
+              <mat-select [(ngModel)]="filterType" (selectionChange)="filterQuestions()">
+                <mat-option value="">Tous les types</mat-option>
+                <mat-option *ngFor="let type of questionTypes" [value]="type">
+                  {{ getTypeLabel(type) }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Question Cards -->
+          <mat-card class="question-card" *ngFor="let question of filteredQuestions">
+            <mat-card-content>
+              <h5 class="question-title">{{ question.questionText }} ({{ getTypeLabel(question.type) }})</h5>
+
+              <!-- Multiple Choice / Dropdown / Checkboxes / Yes-No -->
+              <div *ngIf="question.optionCounts" class="option-bars">
+                <div class="option-row" *ngFor="let entry of question.optionCounts | keyvalue">
+                  <span class="option-label">{{ entry.key }}</span>
+                  <div class="bar-container">
+                    <div class="bar-fill" [style.width.%]="getBarWidth(entry.value, question.optionCounts!)">
+                      <span class="bar-text">{{ entry.value }}({{ getPercentage(entry.value, getTotalResponses(question.optionCounts!)) }}%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Number -->
+              <div *ngIf="question.type === 'NUMBER' && question.stats" class="number-stats">
+                <table class="stats-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre de réponses</th>
+                      <th>Valeur minimale</th>
+                      <th>Valeur maximale</th>
+                      <th>Moyenne</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{{ question.responses?.length || 0 }}</td>
+                      <td>{{ question.stats.min }}</td>
+                      <td>{{ question.stats.max }}</td>
+                      <td>{{ question.stats.average | number:'1.2-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Text responses -->
+              <div *ngIf="(question.type === 'SHORT_ANSWER' || question.type === 'PARAGRAPH' || question.type === 'DATE' || question.type === 'TIME') && question.responses?.length" class="text-responses">
+                <ul>
+                  <li *ngFor="let response of question.responses">{{ response }}</li>
+                </ul>
+              </div>
+
+              <div *ngIf="!question.optionCounts && !question.stats && (!question.responses || question.responses.length === 0)" class="no-data">
+                Aucune réponse
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- ===== TAB INDIVIDUEL ===== -->
+      <mat-tab label="Individuel">
+        <div class="tab-content">
+          <mat-card class="contact-card" *ngFor="let contact of byContact; let i = index">
+            <mat-card-content>
+              <h5>Contact #{{ contact.contactId }}</h5>
+              <p class="text-muted" *ngIf="contact.submissionDate">
+                Soumission le {{ contact.submissionDate | date:'dd/MM/yyyy HH:mm' }}
+              </p>
+              <table class="contact-answers-table">
+                <thead>
+                  <tr>
+                    <th>Question</th>
+                    <th>Réponse</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let q of summaryByQuestion">
+                    <td>{{ q.questionText }}</td>
+                    <td>{{ getContactAnswer(contact, q.questionId) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </mat-card-content>
+          </mat-card>
+
+          <div *ngIf="byContact.length === 0" class="text-center p-5">
+            <mat-icon class="text-muted" style="font-size: 48px; width: 48px; height: 48px;">people</mat-icon>
+            <p class="text-muted mt-2">Aucune donnée individuelle disponible</p>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- ===== TAB ANALYSE IA ===== -->
+      <mat-tab label="Analyse IA">
+        <div class="tab-content">
+          <div *ngIf="aiInsights">
+            <!-- Summary -->
+            <mat-card class="ai-card" *ngIf="aiInsights.summary">
+              <mat-card-content>
+                <h4><mat-icon>psychology</mat-icon> Résumé exécutif</h4>
+                <p>{{ aiInsights.summary }}</p>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Key Findings -->
+            <mat-card class="ai-card" *ngIf="aiInsights.keyFindings?.length">
+              <mat-card-content>
+                <h4><mat-icon>insights</mat-icon> Observations clés</h4>
+                <div class="finding-item" *ngFor="let finding of aiInsights.keyFindings">
+                  <strong>{{ finding.finding }}</strong>
+                  <p class="text-muted">{{ finding.evidence }}</p>
+                  <span class="impact-badge">Impact: {{ finding.impact }}</span>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Recommendations -->
+            <mat-card class="ai-card" *ngIf="aiInsights.recommendations?.length">
+              <mat-card-content>
+                <h4><mat-icon>lightbulb</mat-icon> Recommandations</h4>
+                <div class="rec-item" *ngFor="let rec of aiInsights.recommendations">
+                  <div class="rec-header">
+                    <strong>{{ rec.title }}</strong>
+                    <span class="priority-badge" [class]="'priority-' + (rec.priority || 'LOW').toLowerCase()">
+                      {{ rec.priority }}
+                    </span>
+                  </div>
+                  <p>{{ rec.description }}</p>
+                  <p class="text-muted" *ngIf="rec.actionable">→ {{ rec.actionable }}</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Sentiment -->
+            <mat-card class="ai-card" *ngIf="aiInsights.sentimentAnalysis">
+              <mat-card-content>
+                <h4><mat-icon>sentiment_satisfied</mat-icon> Analyse de sentiment</h4>
+                <div class="sentiment-grid">
+                  <div class="sentiment-item positive">
+                    <span class="label">Positif</span>
+                    <span class="value">{{ aiInsights.sentimentAnalysis.positivePercent | number:'1.1-1' }}%</span>
+                  </div>
+                  <div class="sentiment-item neutral">
+                    <span class="label">Neutre</span>
+                    <span class="value">{{ aiInsights.sentimentAnalysis.neutralPercent | number:'1.1-1' }}%</span>
+                  </div>
+                  <div class="sentiment-item negative">
+                    <span class="label">Négatif</span>
+                    <span class="value">{{ aiInsights.sentimentAnalysis.negativePercent | number:'1.1-1' }}%</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <div *ngIf="!aiInsights" class="text-center p-5">
+            <mat-icon class="text-muted" style="font-size: 48px; width: 48px; height: 48px;">psychology</mat-icon>
+            <p class="text-muted mt-2">Aucune analyse IA disponible pour ce rapport</p>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div> 

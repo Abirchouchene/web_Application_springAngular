@@ -1,0 +1,52 @@
+.p-24 { padding: 24px; }
+.m-b-4 { margin-bottom: 4px; }
+.m-b-16 { margin-bottom: 16px; }
+.m-t-24 { margin-top: 24px; }
+.m-r-8 { margin-right: 8px; }
+.f-w-500 { font-weight: 500; }
+.f-w-600 { font-weight: 600; }
+.f-s-14 { font-size: 14px; }
+.text-muted { color: #757575; }
+.text-center { text-align: center; }
+.w-100 { width: 100%; }
+.table-responsive { overflow-x: auto; }
+
+.summary-card {
+  padding: 20px 16px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  h2 { margin: 0; font-size: 32px; color: white; }
+  span { font-size: 14px; color: white; }
+  &.total-card { background: #4285f4; }
+  &.pending-card { background: #f4b400; }
+  &.approved-card { background: #34a853; }
+  &.rejected-card { background: #ea4335; }
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #1565c0;
+  color: white;
+  &.type-STATISTICS { background: #1565c0; }
+  &.type-SURVEY { background: #7b1fa2; }
+  &.type-ENQUETE { background: #00897b; }
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  &.status-PENDING_APPROVAL { background: #fff8e1; color: #f57f17; border-color: #f57f17; }
+  &.status-APPROVED { background: #e8f5e9; color: #2e7d32; border-color: #2e7d32; }
+  &.status-REJECTED { background: #fce4ec; color: #c62828; border-color: #c62828; }
+  &.status-SENT { background: #e3f2fd; color: #1565c0; border-color: #1565c0; }
+} 

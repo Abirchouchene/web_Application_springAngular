@@ -1,0 +1,103 @@
+<div class="ai-chat-container" [class.minimized]="!isOpen">
+  <!-- Header -->
+  <div class="chat-header" (click)="toggleChat()">
+    <div class="d-flex align-items-center gap-8">
+      <div class="chat-ai-badge">
+        <i-tabler name="brain" class="icon-18"></i-tabler>
+      </div>
+      <span class="f-w-600 f-s-14">Assistant IA</span>
+      <span class="live-dot"></span>
+    </div>
+    <div class="d-flex align-items-center gap-4">
+      <button mat-icon-button class="icon-btn" (click)="clearChat(); $event.stopPropagation()" matTooltip="Effacer">
+        <i-tabler name="trash" class="icon-16"></i-tabler>
+      </button>
+      <button mat-icon-button class="icon-btn" (click)="$event.stopPropagation(); toggleChat()">
+        <i-tabler [name]="isOpen ? 'chevron-down' : 'chevron-up'" class="icon-16"></i-tabler>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Prompts (shown when few messages) -->
+  <div class="quick-prompts" *ngIf="isOpen && messages.length <= 1 && quickPrompts.length > 0">
+    <span class="f-s-12 text-muted m-b-8 d-block">Suggestions rapides :</span>
+    <div class="prompts-grid">
+      <button *ngFor="let p of quickPrompts"
+              mat-stroked-button
+              class="prompt-chip"
+              (click)="sendMessage(p.prompt)">
+        <i-tabler [name]="p.icon" class="icon-14 m-r-4"></i-tabler>
+        {{ p.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Body -->
+  <div class="chat-body" #chatBody *ngIf="isOpen">
+    <div *ngFor="let msg of messages" class="chat-message" [ngClass]="'msg-' + msg.role">
+      <!-- Avatar -->
+      <div class="msg-avatar" *ngIf="msg.role === 'assistant'">
+        <i-tabler name="robot" class="icon-18"></i-tabler>
+      </div>
+
+      <div class="msg-content" [ngClass]="{'msg-alert': msg.type === 'alert', 'msg-chart': msg.type === 'chart'}">
+        <!-- Type indicator -->
+        <div class="msg-type-badge" *ngIf="msg.type && msg.type !== 'text'">
+          <i-tabler [name]="getTypeIcon(msg.type || 'text')" class="icon-12"></i-tabler>
+          {{ msg.type === 'alert' ? 'Alerte' : msg.type === 'chart' ? 'Analyse' : msg.type === 'kpi' ? 'KPI' : '' }}
+        </div>
+
+        <!-- Message text with markdown-like formatting -->
+        <div class="msg-text" [innerHTML]="msg.content | formatChatMessage"></div>
+
+        <!-- Suggested actions -->
+        <div class="msg-actions" *ngIf="msg.actions && msg.actions.length > 0">
+          <button *ngFor="let action of msg.actions"
+                  mat-stroked-button
+                  class="action-chip"
+                  (click)="onActionClick(action)">
+            {{ action.label }}
+          </button>
+        </div>
+
+        <!-- Timestamp -->
+        <span class="msg-time">{{ msg.timestamp | date:'HH:mm' }}</span>
+      </div>
+
+      <div class="msg-avatar user-avatar" *ngIf="msg.role === 'user'">
+        <i-tabler name="user" class="icon-18"></i-tabler>
+      </div>
+    </div>
+
+    <!-- Typing indicator -->
+    <div class="chat-message msg-assistant" *ngIf="isLoading">
+      <div class="msg-avatar">
+        <i-tabler name="robot" class="icon-18"></i-tabler>
+      </div>
+      <div class="msg-content typing">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input" *ngIf="isOpen">
+    <input
+      type="text"
+      [(ngModel)]="userInput"
+      (keydown)="onKeyDown($event)"
+      placeholder="Posez votre question..."
+      [disabled]="isLoading"
+      class="chat-input-field"
+    />
+    <button mat-icon-button
+            color="primary"
+            (click)="sendMessage()"
+            [disabled]="!userInput.trim() || isLoading"
+            class="send-btn">
+      <i-tabler name="send" class="icon-20"></i-tabler>
+    </button>
+  </div>
+</div>

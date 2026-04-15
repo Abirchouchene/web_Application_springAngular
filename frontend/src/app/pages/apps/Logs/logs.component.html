@@ -1,0 +1,155 @@
+<div class="logs-page">
+  <!-- Header -->
+  <div class="page-header">
+    <h2 class="page-title">Journalisation</h2>
+    <div class="breadcrumb-nav">
+      Dashboard &nbsp;&bull;&nbsp; Journalisation
+    </div>
+  </div>
+
+  <mat-card class="cardWithShadow">
+    <mat-card-content>
+      <!-- Filters Row -->
+      <div class="filters-row">
+        <mat-form-field appearance="outline" class="filter-field search-field">
+          <input matInput [(ngModel)]="searchText" placeholder="Rechercher..." (keyup.enter)="applyFilters()">
+          <mat-icon matSuffix (click)="applyFilters()" style="cursor:pointer;">search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Type d'action</mat-label>
+          <mat-select [(ngModel)]="selectedAction" (selectionChange)="applyFilters()">
+            <mat-option value="">Toutes les actions</mat-option>
+            <mat-option *ngFor="let action of actions" [value]="action">
+              {{ getActionLabel(action) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Demande</mat-label>
+          <mat-select [(ngModel)]="selectedRequestId" (selectionChange)="applyFilters()">
+            <mat-option value="">Toutes les demandes</mat-option>
+            <mat-option *ngFor="let req of requests" [value]="req.idR.toString()">
+              {{ req.title || ('Demande #' + req.idR) }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-field">
+          <mat-label>Utilisateur</mat-label>
+          <mat-select [(ngModel)]="selectedUser" (selectionChange)="applyFilters()">
+            <mat-option value="">Tous les utilisate...</mat-option>
+            <mat-option *ngFor="let user of users" [value]="user">
+              {{ user }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="filters-row-2">
+        <mat-form-field appearance="outline" class="filter-field date-field">
+          <mat-label>Date de début</mat-label>
+          <input matInput type="date" [(ngModel)]="startDate" (change)="applyFilters()">
+          <mat-icon matSuffix>calendar_today</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="isLoading" class="text-center p-5">
+        <mat-spinner diameter="40" class="m-auto"></mat-spinner>
+        <p class="mt-2 text-muted">Chargement des journaux...</p>
+      </div>
+
+      <!-- Table -->
+      <div class="table-responsive" *ngIf="!isLoading">
+        <table mat-table [dataSource]="dataSource" class="w-100 logs-table">
+
+          <!-- Date & Heure -->
+          <ng-container matColumnDef="timestamp">
+            <th mat-header-cell *matHeaderCellDef> Date &amp; Heure </th>
+            <td mat-cell *matCellDef="let log">
+              <div class="date-cell">
+                <mat-icon class="date-icon">schedule</mat-icon>
+                <span>{{ log.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Action -->
+          <ng-container matColumnDef="logAction">
+            <th mat-header-cell *matHeaderCellDef> Action </th>
+            <td mat-cell *matCellDef="let log">
+              <span class="action-badge" [style.color]="getActionColor(log.logAction)">
+                {{ getActionLabel(log.logAction) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Demande -->
+          <ng-container matColumnDef="request">
+            <th mat-header-cell *matHeaderCellDef> Demande </th>
+            <td mat-cell *matCellDef="let log">
+              <span *ngIf="log.request" class="request-ref">
+                {{ log.request.title || ('Demande') }}
+                <small class="text-muted d-block">#{{ log.request.idR }}</small>
+              </span>
+              <span *ngIf="!log.request" class="text-muted">—</span>
+            </td>
+          </ng-container>
+
+          <!-- Utilisateur -->
+          <ng-container matColumnDef="performedByUserName">
+            <th mat-header-cell *matHeaderCellDef> Utilisateur </th>
+            <td mat-cell *matCellDef="let log">
+              <span class="user-name">{{ log.performedByUserName || '—' }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Détails -->
+          <ng-container matColumnDef="details">
+            <th mat-header-cell *matHeaderCellDef> Détails </th>
+            <td mat-cell *matCellDef="let log">
+              <div class="details-cell">
+                <div *ngIf="log.actionDescription" class="detail-desc">{{ log.actionDescription }}</div>
+                <div *ngIf="log.details" class="detail-reason text-muted">{{ log.details }}</div>
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Changements -->
+          <ng-container matColumnDef="changes">
+            <th mat-header-cell *matHeaderCellDef> Changements </th>
+            <td mat-cell *matCellDef="let log">
+              <div class="changes-cell" *ngIf="getChanges(log) as changes">
+                <span class="change-pill old">{{ changes.oldValue }}</span>
+                <mat-icon class="change-arrow">arrow_forward</mat-icon>
+                <span class="change-pill new">{{ changes.newValue }}</span>
+              </div>
+              <span *ngIf="!getChanges(log)" class="text-muted">—</span>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+
+        <!-- No data -->
+        <div *ngIf="dataSource.data.length === 0 && !isLoading" class="text-center p-5">
+          <mat-icon class="text-muted" style="font-size: 64px; width: 64px; height: 64px;">history</mat-icon>
+          <h5 class="mt-3 f-w-600">Aucun journal trouvé</h5>
+          <p class="text-muted f-s-14">Les activités apparaîtront ici une fois que des actions seront effectuées.</p>
+        </div>
+      </div>
+
+      <!-- Paginator -->
+      <mat-paginator
+        [length]="totalElements"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="onPageChange($event)"
+        showFirstLastButtons>
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>

@@ -1,0 +1,139 @@
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-16 m-b-24">
+      <div>
+        <h2 class="m-0 f-w-600">Gestion des Contacts</h2>
+        <p class="text-muted m-t-8 m-b-0 f-s-14">
+          Dashboard • Gestion des Contacts
+        </p>
+      </div>
+      <button mat-flat-button color="primary" type="button" (click)="openAddDialog()">
+        <i-tabler name="plus" class="icon-18 m-r-8"></i-tabler>
+        Ajouter un contact
+      </button>
+    </div>
+
+    <div class="row g-3 m-b-24">
+      <div class="col-md-4">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Rechercher un contact</mat-label>
+          <input
+            matInput
+            [(ngModel)]="searchText"
+            (ngModelChange)="applyFilters()"
+            placeholder="Nom ou téléphone"
+          />
+          <mat-icon matSuffix>
+            <i-tabler name="search" class="icon-20"></i-tabler>
+          </mat-icon>
+        </mat-form-field>
+      </div>
+      <div class="col-md-5">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Filtrer par étiquettes</mat-label>
+          <mat-select
+            multiple
+            [(ngModel)]="selectedTagIds"
+            (ngModelChange)="applyFilters()"
+          >
+            <mat-option *ngFor="let t of allTags" [value]="t.id">
+              {{ t.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="col-md-3 d-flex align-items-start">
+        <button mat-stroked-button type="button" (click)="resetFilters()" class="m-t-4">
+          <i-tabler name="x" class="icon-18 m-r-8"></i-tabler>
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+
+    <div class="table-responsive rounded border">
+      <table mat-table [dataSource]="dataSource" class="w-100 contact-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Contact</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="f-w-500">{{ row.name || '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="phone">
+          <th mat-header-cell *matHeaderCellDef>Téléphone</th>
+          <td mat-cell *matCellDef="let row">{{ row.phoneNumber || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="status-pill"
+              [class.status-ok]="row.callStatus === 'CONTACTED_AVAILABLE'"
+              [class.status-warn]="row.callStatus === 'NOT_CONTACTED'"
+            >
+              {{ statusDisplay(row) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="lastCall">
+          <th mat-header-cell *matHeaderCellDef>Dernier appel</th>
+          <td mat-cell *matCellDef="let row">
+            {{ formatLastCall(row.lastCallAttempt) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tags">
+          <th mat-header-cell *matHeaderCellDef>Étiquettes</th>
+          <td mat-cell *matCellDef="let row">
+            <mat-chip-set>
+              <mat-chip *ngFor="let tag of row.tags || []" disabled>
+                {{ tag.name }}
+              </mat-chip>
+              <span *ngIf="!row.tags?.length" class="text-muted">—</span>
+            </mat-chip-set>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="text-end">Actions</th>
+          <td mat-cell *matCellDef="let row" class="text-end">
+            <button
+              mat-icon-button
+              color="primary"
+              type="button"
+              matTooltip="Modifier"
+              (click)="openEditDialog(row)"
+            >
+              <i-tabler name="pencil" class="icon-20"></i-tabler>
+            </button>
+            <button
+              mat-icon-button
+              color="warn"
+              type="button"
+              matTooltip="Supprimer"
+              (click)="deleteContact(row)"
+            >
+              <i-tabler name="trash" class="icon-20"></i-tabler>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell p-24 text-center text-muted" [attr.colspan]="displayedColumns.length">
+            Aucun contact à afficher
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      [pageSizeOptions]="[5, 10, 25]"
+      [pageSize]="10"
+      showFirstLastButtons
+    ></mat-paginator>
+  </mat-card-content>
+</mat-card>

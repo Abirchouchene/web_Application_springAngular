@@ -1,0 +1,51 @@
+.summary-card {
+  padding: 24px 16px;
+  border-radius: 12px;
+  margin-bottom: 0;
+  h2 { margin: 0; font-size: 28px; }
+  span { font-size: 14px; }
+  &.primary-card { background: #e3f2fd; color: #1565c0; }
+  &.success-card { background: #e8f5e9; color: #2e7d32; }
+  &.warn-card { background: #fff3e0; color: #e65100; }
+}
+
+.time-remaining {
+  color: #1565c0;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  &.status-SCHEDULED { background: #e3f2fd; color: #1565c0; }
+  &.status-COMPLETED { background: #e8f5e9; color: #2e7d32; }
+  &.status-CANCELLED { background: #fce4ec; color: #c62828; }
+  &.status-MISSED { background: #fff3e0; color: #e65100; }
+  &.status-PROGRAMMÉ { background: #e3f2fd; color: #1565c0; }
+}
+
+.link-primary {
+  color: #1565c0;
+  text-decoration: none;
+  font-weight: 500;
+  &:hover { text-decoration: underline; }
+}
+
+.icon-18 { width: 18px; height: 18px; }
+.m-r-8 { margin-right: 8px; }
+.m-b-4 { margin-bottom: 4px; }
+.m-b-24 { margin-bottom: 24px; }
+.m-t-16 { margin-top: 16px; }
+.p-24 { padding: 24px; }
+.f-w-500 { font-weight: 500; }
+.f-w-600 { font-weight: 600; }
+.f-s-14 { font-size: 14px; }
+.text-muted { color: #757575; }
+.table-responsive { overflow-x: auto; }
+.w-100 { width: 100%; }

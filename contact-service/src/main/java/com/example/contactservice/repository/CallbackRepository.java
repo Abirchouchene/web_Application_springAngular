@@ -14,4 +14,9 @@ public interface CallbackRepository extends JpaRepository<Callback, Long> {
         LocalDateTime startDate, 
         LocalDateTime endDate
     );
+
+    List<Callback> findByStatusAndScheduledDateAfter(
+        com.example.contactservice.entity.CallbackStatus status,
+        LocalDateTime date
+    );
 } 

@@ -1,0 +1,252 @@
+// ==================== Layout ====================
+.manager-list-container {
+  padding: 0;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.breadcrumb-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.breadcrumb-item {
+  color: #999;
+
+  &.active {
+    color: #666;
+  }
+}
+
+.breadcrumb-dot {
+  color: #ccc;
+}
+
+// ==================== Card ====================
+.list-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+// ==================== Search ====================
+.search-section {
+  margin-bottom: 16px;
+}
+
+.search-field {
+  max-width: 400px;
+  width: 100%;
+}
+
+// ==================== Table ====================
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.manager-table {
+  width: 100%;
+
+  th.mat-header-cell {
+    font-weight: 600;
+    font-size: 13px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 16px 12px;
+    background: #fafafa;
+    border-bottom: 2px solid #eee;
+  }
+
+  td.mat-cell {
+    padding: 14px 12px;
+    font-size: 13px;
+    color: #444;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+  }
+}
+
+.table-row {
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #f8f9ff;
+  }
+}
+
+.requester-cell {
+  font-weight: 500;
+  color: #333;
+}
+
+// ==================== Status Badges ====================
+.status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-assigned {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.status-in_progress {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-resolved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-closed {
+  background: #e2e3e5;
+  color: #383d41;
+}
+
+.status-auto_generated {
+  background: #e8daef;
+  color: #6c3483;
+}
+
+// ==================== Priority Pills ====================
+.priority-pill {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.priority-urgent {
+  background: #f8d7da;
+  color: #c0392b;
+  border: 1px solid #f5c6cb;
+}
+
+.priority-high {
+  background: #ffeeba;
+  color: #d68910;
+  border: 1px solid #ffc107;
+}
+
+.priority-immediate {
+  background: #f8d7da;
+  color: #c0392b;
+  border: 1px solid #f5c6cb;
+}
+
+.priority-medium {
+  background: #d1ecf1;
+  color: #2980b9;
+  border: 1px solid #bee5eb;
+}
+
+.priority-low {
+  background: #d4edda;
+  color: #27ae60;
+  border: 1px solid #c3e6cb;
+}
+
+// ==================== Action Buttons (Circular) ====================
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.action-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: white;
+  }
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+.action-view {
+  background: #3498db;
+}
+
+.action-approve {
+  background: #27ae60;
+}
+
+.action-reject {
+  background: #e74c3c;
+}
+
+.action-assign {
+  background: #2980b9;
+}
+
+// ==================== Paginator ====================
+mat-paginator {
+  border-top: 1px solid #f0f0f0;
+  background: transparent;
+}

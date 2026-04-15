@@ -1,0 +1,460 @@
+<div class="container-fluid">
+  <div class="card">
+    <div class="card-body">
+      <div class="row justify-content-center">
+        <div class="col-12">
+          <form [formGroup]="requestForm" (ngSubmit)="onSubmit()" class="position-relative">
+            <mat-horizontal-stepper #stepper [linear]="false" class="request-stepper mb-4">
+              <!-- Étape 1 -->
+              <mat-step>
+                <ng-template matStepLabel>Informations générales</ng-template>
+
+                <div class="section-container mb-4">
+                  <div class="d-flex align-items-center mb-4">
+                    <div class="section-icon me-3">
+                      <i-tabler name="file-description" class="icon-28"></i-tabler>
+                    </div>
+                    <h3 class="section-title m-0">Informations de la Demande</h3>
+                  </div>
+
+                  <div class="row g-4">
+                    <div class="col-md-4">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Type de Demande</mat-label>
+                        <mat-select formControlName="requestType">
+                          <mat-option *ngFor="let type of requestTypes" [value]="type">{{ type }}</mat-option>
+                        </mat-select>
+                        <mat-hint>Sélectionnez le type de demande</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="col-md-4">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Catégorie</mat-label>
+                        <mat-select formControlName="category">
+                          <mat-option *ngFor="let category of categoryRequests" [value]="category">{{ category }}</mat-option>
+                        </mat-select>
+                        <mat-hint>Choisissez une catégorie pour votre demande</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="col-md-4">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Niveau de Priorité</mat-label>
+                        <mat-select formControlName="priorityLevel">
+                          <mat-option *ngFor="let priority of priorityLevels" [value]="priority">{{ priority }}</mat-option>
+                        </mat-select>
+                        <mat-hint>Définissez le niveau d'urgence</mat-hint>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="col-md-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Date Limite</mat-label>
+                        <input matInput [matDatepicker]="picker" formControlName="deadline" placeholder="Choisissez une date" />
+                        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+                        <mat-datepicker #picker></mat-datepicker>
+                        <mat-hint>Sélectionnez la date limite d'achèvement</mat-hint>
+                      </mat-form-field>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="section-container mb-4">
+                  <div class="d-flex align-items-center mb-4">
+                    <div class="section-icon me-3">
+                      <i-tabler name="notes" class="icon-28"></i-tabler>
+                    </div>
+                    <h3 class="section-title m-0">Description</h3>
+                  </div>
+
+                  <mat-form-field appearance="outline" class="w-100">
+                    <mat-label>Description</mat-label>
+                    <textarea matInput formControlName="description" rows="4" placeholder="Fournissez des informations détaillées sur votre demande"></textarea>
+                    <mat-hint>Soyez précis et incluez tous les détails pertinents</mat-hint>
+                  </mat-form-field>
+                </div>
+
+                <div class="section-container mb-4">
+                  <div class="d-flex align-items-center mb-4">
+                    <div class="section-icon me-3">
+                      <i-tabler name="users" class="icon-28"></i-tabler>
+                    </div>
+                    <h3 class="section-title m-0">Sélectionner des Contacts</h3>
+                  </div>
+
+                  <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Rechercher des Contacts par Tag</mat-label>
+                        <input matInput [(ngModel)]="searchTag" (keyup.enter)="fetchContactsByTag()" [ngModelOptions]="{ standalone: true }" placeholder="Tag ou laisser vide pour tout afficher" />
+                        <mat-icon matSuffix>search</mat-icon>
+                      </mat-form-field>
+                    </div>
+
+                    <div class="col-md-6 d-flex gap-3">
+                      <button mat-flat-button color="primary" type="button" (click)="fetchContactsByTag()" class="flex-grow-1">
+                        <i-tabler name="search" class="icon-20 me-2"></i-tabler>
+                        Rechercher
+                      </button>
+
+                      <button mat-flat-button color="accent" type="button" (click)="openAddContactDialog()" class="flex-grow-1">
+                        <i-tabler name="user-plus" class="icon-20 me-2"></i-tabler>
+                        Ajouter Nouveau Contact
+                      </button>
+                    </div>
+                  </div>
+
+                  <p *ngIf="contactsLoadError" class="text-warning small mb-2">
+                    Chargement des contacts en échec.
+                    <a href="javascript:void(0)" (click)="loadAllContacts()" class="text-primary">Réessayer</a>
+                  </p>
+
+                  <div class="row g-3">
+                    <div class="col-lg-6">
+                      <div class="contact-transfer-panel mat-elevation-z1 rounded p-3 h-100">
+                        <h4 class="contact-panel-title m-0 mb-3">Contacts disponibles</h4>
+                        <div class="contact-transfer-scroll" *ngIf="contacts.length > 0; else emptyAvailable">
+                          <div *ngFor="let contact of contacts" class="contact-transfer-row d-flex align-items-center gap-2 p-2 rounded mb-2">
+                            <mat-checkbox [checked]="isContactSelected(contact)" (change)="toggleContactSelection(contact, $event.checked)" />
+                            <i-tabler name="user" class="icon-24 text-primary flex-shrink-0"></i-tabler>
+                            <div class="min-w-0 flex-grow-1">
+                              <div class="fw-medium text-truncate">{{ contact.name }}</div>
+                              <small class="text-muted text-truncate d-block">{{ contact.phoneNumber }}</small>
+                            </div>
+                          </div>
+                        </div>
+                        <ng-template #emptyAvailable>
+                          <p class="text-muted small m-0 mb-0">Aucun contact. Vérifiez le service contacts ou ajoutez un contact.</p>
+                        </ng-template>
+                      </div>
+                    </div>
+                    <div class="col-lg-6">
+                      <div class="contact-transfer-panel mat-elevation-z1 rounded p-3 h-100">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap">
+                          <h4 class="contact-panel-title m-0">Contacts sélectionnés</h4>
+                          <button mat-button color="warn" type="button" (click)="clearSelectedContacts()" [disabled]="selectedContacts.length === 0">
+                            <i-tabler name="trash" class="icon-18 me-1"></i-tabler>
+                            Effacer tout
+                          </button>
+                        </div>
+                        <div class="contact-transfer-scroll" *ngIf="selectedContactsOrdered.length > 0; else emptySelected">
+                          <div *ngFor="let contact of selectedContactsOrdered" class="contact-transfer-row contact-transfer-row--selected d-flex align-items-center gap-2 p-2 rounded mb-2">
+                            <i-tabler name="user" class="icon-24 text-primary flex-shrink-0"></i-tabler>
+                            <div class="min-w-0 flex-grow-1">
+                              <div class="fw-medium text-truncate">{{ contact.name }}</div>
+                              <small class="text-muted text-truncate d-block">{{ contact.phoneNumber }}</small>
+                            </div>
+                            <button mat-icon-button type="button" aria-label="Retirer" (click)="removeSelectedContactRow(contact)" matTooltip="Retirer">
+                              <mat-icon>close</mat-icon>
+                            </button>
+                          </div>
+                        </div>
+                        <ng-template #emptySelected>
+                          <p class="text-muted small m-0">Sélectionnez au moins un contact pour continuer.</p>
+                        </ng-template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-end mt-3">
+                  <button mat-flat-button color="primary" type="button" (click)="canGoToQuestionsStep(stepper)">
+                    Suivant
+                    <mat-icon class="ms-1">arrow_forward</mat-icon>
+                  </button>
+                </div>
+              </mat-step>
+
+              <!-- Étape 2 : Questions -->
+              <mat-step>
+                <ng-template matStepLabel>Questions</ng-template>
+
+                <div class="section-container mb-4">
+                  <div class="d-flex align-items-center mb-3">
+                    <div class="section-icon me-3">
+                      <i-tabler name="list-numbers" class="icon-28"></i-tabler>
+                    </div>
+                    <h3 class="section-title m-0">Questions</h3>
+                  </div>
+
+                  <p class="text-muted small mb-3">
+                    Rédigez votre question ci-dessous, choisissez le type, puis cliquez sur
+                    <strong>Ajouter cette question</strong>. Vous pourrez encore modifier le texte, le type et les
+                    options dans la liste « Nouvelles questions ».
+                  </p>
+
+                  <mat-form-field appearance="outline" class="w-100 mb-3">
+                    <mat-label>Votre question personnalisée</mat-label>
+                    <textarea
+                      matInput
+                      rows="3"
+                      [(ngModel)]="draftQuestionText"
+                      [ngModelOptions]="{ standalone: true }"
+                      placeholder="Ex. : Le client est-il satisfait du produit ?"
+                    ></textarea>
+                    <mat-hint>Champ obligatoire avant d’ajouter la question à la liste</mat-hint>
+                  </mat-form-field>
+
+                  <div class="row g-3 align-items-start mb-4">
+                    <div class="col-md-5">
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Type de question</mat-label>
+                        <mat-select
+                          [(ngModel)]="draftQuestionType"
+                          (ngModelChange)="onDraftQuestionTypeChange()"
+                          [ngModelOptions]="{ standalone: true }"
+                        >
+                          <mat-option *ngFor="let t of questionTypes" [value]="t">
+                            {{ questionTypeLabel(t) }}
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                    <div class="col-md-7 d-flex flex-wrap gap-2 align-items-start">
+                      <button mat-stroked-button color="primary" type="button" (click)="addInlineQuestion()">
+                        <i-tabler name="plus" class="icon-20 me-2"></i-tabler>
+                        Ajouter cette question
+                      </button>
+                      <button mat-stroked-button type="button" (click)="openAddQuestionDialog()">
+                        <i-tabler name="window" class="icon-20 me-2"></i-tabler>
+                        Saisie dans une fenêtre
+                      </button>
+                      <button mat-stroked-button color="primary" type="button" (click)="openSelectLibraryQuestionsDialog()">
+                        <i-tabler name="database" class="icon-20 me-2"></i-tabler>
+                        Questions existantes
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    *ngIf="questionTypeNeedsOptions(draftQuestionType)"
+                    class="draft-options-block mat-elevation-z1 p-3 mb-4 rounded"
+                  >
+                    <div class="text-muted small mb-2">
+                      Options de réponse (au moins 2 remplies) — ex. choix multiple, cases à cocher, liste déroulante
+                    </div>
+                    <div
+                      *ngFor="let _ of draftQuestionOptions; let j = index"
+                      class="d-flex align-items-center gap-2 mb-2"
+                    >
+                      <mat-icon class="text-muted">radio_button_unchecked</mat-icon>
+                      <mat-form-field appearance="outline" class="flex-grow-1 m-0">
+                        <mat-label>Option {{ j + 1 }}</mat-label>
+                        <input matInput [(ngModel)]="draftQuestionOptions[j]" [ngModelOptions]="{ standalone: true }" />
+                      </mat-form-field>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        color="warn"
+                        (click)="removeDraftOptionRow(j)"
+                        [disabled]="draftQuestionOptions.length <= 2"
+                        aria-label="Supprimer l’option"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                    <button mat-button color="primary" type="button" (click)="addDraftOptionRow()">
+                      + Ajouter une option
+                    </button>
+                  </div>
+
+                  <div *ngIf="selectedLibraryQuestions.length > 0" class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                      <span class="fw-medium">Questions enregistrées sélectionnées ({{ selectedLibraryQuestions.length }})</span>
+                      <button mat-button color="warn" type="button" (click)="clearLibraryQuestions()">Tout retirer</button>
+                    </div>
+                    <div class="selected-question-pills">
+                      <div *ngFor="let q of selectedLibraryQuestions" class="selected-q-row d-flex align-items-center gap-2 p-2 mb-2 rounded">
+                        <mat-chip-set>
+                          <mat-chip color="primary" disabled>{{ questionTypeLabel(q.questionType) }}</mat-chip>
+                        </mat-chip-set>
+                        <span class="flex-grow-1 small">{{ q.text }}</span>
+                        <button mat-icon-button type="button" (click)="removeLibraryQuestion(q.id)" matTooltip="Retirer" aria-label="Retirer">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <h4 class="questions-block-title mb-3">Nouvelles questions ({{ newQuestions.length }})</h4>
+
+                  <div formArrayName="newQuestions" class="questions-container">
+                    <div *ngFor="let questionCtrl of newQuestions.controls; let i = index" [formGroupName]="i" class="question-item mat-elevation-z1 p-4 mb-3 rounded">
+                      <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                        <span class="step-badge">{{ i + 1 }}</span>
+                        <button mat-icon-button color="warn" type="button" (click)="removeNewQuestion(i)" matTooltip="Supprimer">
+                          <i-tabler name="trash" class="icon-20"></i-tabler>
+                        </button>
+                      </div>
+
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Question</mat-label>
+                        <input matInput formControlName="text" placeholder="Intitulé de la question" />
+                      </mat-form-field>
+
+                      <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Type</mat-label>
+                        <mat-select formControlName="type" (selectionChange)="onInlineQuestionTypeChange(i, $event.value)">
+                          <mat-option *ngFor="let t of questionTypes" [value]="t">
+                            {{ questionTypeLabel(t) }}
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
+
+                      <div class="d-flex align-items-center mb-3">
+                        <mat-slide-toggle formControlName="mandatory" color="primary">Question obligatoire</mat-slide-toggle>
+                      </div>
+
+                      <div *ngIf="questionTypeNeedsOptions(questionCtrl.get('type')?.value)" class="options-block" formArrayName="options">
+                        <div class="text-muted small mb-2">Options</div>
+                        <div *ngFor="let _ of questionOptionsAt(i).controls; let j = index" class="d-flex align-items-center gap-2 mb-2">
+                          <mat-icon class="text-muted">radio_button_unchecked</mat-icon>
+                          <mat-form-field appearance="outline" class="flex-grow-1 m-0">
+                            <input matInput [formControlName]="j" placeholder="Option {{ j + 1 }}" />
+                          </mat-form-field>
+                          <button mat-icon-button type="button" color="warn" (click)="removeQuestionOption(i, j)" [disabled]="questionOptionsAt(i).length <= 1">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                        </div>
+                        <button mat-button color="primary" type="button" (click)="addQuestionOption(i)">+ Ajouter une option</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p *ngIf="newQuestions.length === 0 && selectedLibraryQuestions.length === 0" class="text-muted small">
+                    Ajoutez des questions personnalisées ou choisissez des questions existantes. Vous pouvez soumettre sans question si le back-end l’autorise.
+                  </p>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4">
+                  <button mat-button type="button" matStepperPrevious>
+                    <mat-icon class="me-1">arrow_back</mat-icon>
+                    Précédent
+                  </button>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="requestForm.invalid" class="px-4">
+                    <i-tabler name="send" class="icon-20 me-2"></i-tabler>
+                    Soumettre la Demande
+                  </button>
+                </div>
+              </mat-step>
+            </mat-horizontal-stepper>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .request-stepper ::ng-deep .mat-horizontal-stepper-header-container {
+    margin-bottom: 1rem;
+  }
+
+  .section-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: #2c3e50;
+  }
+
+  .section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background-color: #f8f9fa;
+    color: #3f51b5;
+  }
+
+  .questions-block-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .questions-container {
+    max-height: none;
+    padding-right: 0;
+  }
+
+  .question-item {
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+  }
+
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #3f51b5;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .contact-panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .contact-transfer-panel {
+    background-color: #ffffff;
+  }
+
+  .contact-transfer-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .contact-transfer-row {
+    border: 1px solid #e9ecef;
+    background: #fafbfc;
+    transition: background 0.2s ease;
+  }
+
+  .contact-transfer-row:hover {
+    background: #f1f3f5;
+  }
+
+  .contact-transfer-row--selected {
+    background: #f8f9ff;
+    border-color: #c5cae9;
+  }
+
+  .draft-options-block {
+    background: #fafbfc;
+    border: 1px solid #e9ecef;
+  }
+
+  .options-block {
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+    margin-top: 8px;
+  }
+
+  .selected-q-row {
+    border: 1px solid #e9ecef;
+    background: #f8f9ff;
+  }
+
+  mat-form-field {
+    margin-bottom: 8px;
+  }
+
+  ::ng-deep .mat-form-field-wrapper {
+    margin-bottom: 0;
+  }
+</style>

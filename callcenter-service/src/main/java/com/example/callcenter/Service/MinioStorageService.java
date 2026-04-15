@@ -2,6 +2,7 @@ package com.example.callcenter.Service;
 
 import io.minio.*;
 import io.minio.errors.*;
+import io.minio.http.Method;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -90,7 +92,38 @@ public class MinioStorageService {
         } catch (ErrorResponseException e) {
             return false;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to check MinIO object: " + e.getMessage(), e);
+            log.warn("MinIO fileExists check failed (treating as not found): {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if MinIO is reachable.
+     */
+    public boolean isAvailable() {
+        try {
+            minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
+            return true;
+        } catch (Exception e) {
+            log.warn("MinIO is not available: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Generate a presigned URL for downloading an object (valid for 1 hour).
+     */
+    public String getPresignedUrl(String objectName) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucket)
+                            .object(objectName)
+                            .expiry(1, TimeUnit.HOURS)
+                            .build());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate presigned URL: " + e.getMessage(), e);
         }
     }
 }

@@ -1,0 +1,167 @@
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+
+    @if(requestDetail()) {
+    <div>
+      <div class="row m-b-24">
+        <div class="col-sm-4 d-flex align-items-center">
+          <h4 class="f-s-14 f-s-18 f-w-600">
+            Demande #{{ requestDetail()?.idR }}
+          </h4>
+        </div>
+        <div class="col-sm-8 text-right">
+          <a routerLink="/apps/tickets" mat-stroked-button class="m-r-10">Retour aux Demandes</a>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15"> Statut de la Demande: </span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+            {{ requestDetail()?.status }}
+          </h6>
+        </div>
+        <div class="col-sm-6 text-right">
+          <span class="f-w-600 f-s-15"> Date de Création: </span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+            {{ requestDetail()?.createdAt | date : 'fullDate' }}
+          </h6>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Agent Selection Section -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15"> Sélectionner un Agent: </span>
+
+          <!-- Filter Buttons -->
+          <div class="m-b-10">
+            <button mat-button color="primary" (click)="loadAvailableAgents()">Agents Disponibles</button>
+            <button mat-button color="accent" (click)="loadAgents()">Tous les Agents</button>
+          </div>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Sélectionner un agent</mat-label>
+            <mat-select
+              [value]="selectedAgentId()" 
+              (selectionChange)="selectedAgentId.set($event.value)"
+            >
+              <mat-option *ngFor="let agent of availableAgents()" [value]="agent.agentId">
+                {{ agent.agentName }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          
+
+          <div class="text-right m-t-10">
+            <button mat-flat-button color="primary" (click)="assignAgent()">Assigner l'Agent</button>
+          </div>
+
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Request Info -->
+      <div class="row p-y-24">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15"> Titre: </span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.title }}</h6>
+        </div>
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15"> Type: </span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.requestType }}</h6>
+        </div>
+      </div>
+      <div class="row p-y-12">
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15"> Catégorie: </span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.categoryRequest }}</h6>
+        </div>
+        <div class="col-sm-6">
+          <span class="f-w-600 f-s-15"> Priorité: </span>
+          <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestDetail()?.priority }}</h6>
+        </div>
+      </div>
+      <div class="row p-y-12">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15"> Description: </span>
+          <p class="m-t-5 m-b-0 f-w-400 f-s-14">{{ requestDetail()?.description }}</p>
+        </div>
+      </div>
+      @if (requestDetail()?.note) {
+      <div class="row p-y-12">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15"> Note: </span>
+          <p class="m-t-5 m-b-0 f-w-400 f-s-14">{{ requestDetail()?.note }}</p>
+        </div>
+      </div>
+      }
+
+      <mat-divider></mat-divider>
+
+      <!-- Questions -->
+      @if (requestDetail()?.questions?.length) {
+      <div class="row p-y-24">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15"> Questions ({{ requestDetail()?.questions?.length }}): </span>
+          <div class="m-t-10">
+            @for (q of requestDetail()?.questions; track q.id) {
+            <div class="m-b-8 p-12 bg-light rounded">
+              <strong>{{ q.text }}</strong> <span class="text-muted">({{ q.questionType }})</span>
+              @if (q.options?.length) {
+              <div class="m-t-5 text-muted f-s-12">Options: {{ q.options.join(', ') }}</div>
+              }
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+      }
+
+      <mat-divider></mat-divider>
+
+      <!-- Submissions -->
+      <div class="row p-y-24">
+        <div class="col-sm-12">
+          <span class="f-w-600 f-s-15"> Contacts / Soumissions ({{ requestDetail()?.submissionList?.length || 0 }}): </span>
+          @if (requestDetail()?.submissionList?.length) {
+          <table class="table m-t-10">
+            <thead>
+              <tr>
+                <th>ID Soumission</th>
+                <th>Contact ID</th>
+                <th>Date</th>
+                <th>Réponses</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sub of requestDetail()?.submissionList; track sub.id) {
+              <tr>
+                <td>{{ sub.id }}</td>
+                <td>{{ sub.contactId }}</td>
+                <td>{{ sub.submissionDate }}</td>
+                <td>{{ sub.responses?.length || 0 }}</td>
+              </tr>
+              }
+            </tbody>
+          </table>
+          } @else {
+          <p class="text-muted m-t-10">Aucune soumission pour cette demande.</p>
+          }
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Optional: Details about request contacts/questions can go here -->
+
+    </div>
+    }
+    
+  </mat-card-content>
+</mat-card>

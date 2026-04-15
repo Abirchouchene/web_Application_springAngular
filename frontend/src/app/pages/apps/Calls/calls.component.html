@@ -1,0 +1,435 @@
+<!-- ======================== LIST VIEW ======================== -->
+<ng-container *ngIf="!showDetail">
+  <!-- Summary Cards -->
+  <div class="summary-row">
+    <div class="summary-card total">
+      <span class="summary-count">{{ assignedRequests.length }}</span>
+      <span class="summary-label">Total des Appels</span>
+    </div>
+    <div class="summary-card en-cours">
+      <span class="summary-count">{{ countByStatus('IN_PROGRESS') }}</span>
+      <span class="summary-label">En Cours</span>
+    </div>
+    <div class="summary-card ouvert">
+      <span class="summary-count">{{ countByStatus('ASSIGNED') }}</span>
+      <span class="summary-label">Ouvert</span>
+    </div>
+    <div class="summary-card ferme">
+      <span class="summary-count">{{ countByStatus('RESOLVED') }}</span>
+      <span class="summary-label">Fermé</span>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <mat-card class="cardWithShadow m-t-24">
+    <mat-card-content class="p-24">
+      <div class="search-section m-b-16">
+        <mat-form-field appearance="outline" class="search-field">
+          <input matInput [(ngModel)]="searchFilter" (ngModelChange)="applyFilter()" placeholder="Rechercher des appels" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <div *ngIf="isLoading" class="d-flex justify-content-center p-48">
+        <mat-spinner diameter="48"></mat-spinner>
+      </div>
+
+      <div *ngIf="!isLoading && assignedRequests.length === 0" class="text-center p-48">
+        <i-tabler name="phone-off" class="icon-64 text-muted"></i-tabler>
+        <h5 class="m-t-16 text-muted">Aucune demande assignée</h5>
+      </div>
+
+      <div class="table-responsive" *ngIf="!isLoading && assignedRequests.length > 0">
+        <table mat-table [dataSource]="dataSource" class="w-100 request-table">
+          <ng-container matColumnDef="idR">
+            <th mat-header-cell *matHeaderCellDef>ID</th>
+            <td mat-cell *matCellDef="let req">{{ req.idR }}</td>
+          </ng-container>
+          <ng-container matColumnDef="requestType">
+            <th mat-header-cell *matHeaderCellDef>Type Demande</th>
+            <td mat-cell *matCellDef="let req">{{ req.requestType === 'STATISTICS' ? 'Statistique' : 'Information' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="requester">
+            <th mat-header-cell *matHeaderCellDef>Demandeur</th>
+            <td mat-cell *matCellDef="let req">{{ req.user?.fullName || req.user?.username || 'N/A' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
+            <td mat-cell *matCellDef="let req">
+              <span class="status-badge" [class]="'status-' + req.status">{{ getRequestStatusLabel(req.status) }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef>Priorité</th>
+            <td mat-cell *matCellDef="let req">{{ getPriorityLabel(req.priority) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="category">
+            <th mat-header-cell *matHeaderCellDef>Catégorie</th>
+            <td mat-cell *matCellDef="let req">{{ getCategoryLabel(req.categoryRequest) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Créé le</th>
+            <td mat-cell *matCellDef="let req">{{ formatDate(req.createdAt) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="deadline">
+            <th mat-header-cell *matHeaderCellDef>Date Limite</th>
+            <td mat-cell *matCellDef="let req">{{ req.deadline ? formatDateOnly(req.deadline) : 'N/A' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let req">
+              <div class="d-flex align-items-center gap-12">
+                <button class="call-btn" (click)="openDetailView(req)">
+                  <i-tabler name="phone" class="icon-18"></i-tabler>
+                  <span>Appeler</span>
+                </button>
+                <mat-form-field appearance="outline" class="status-select">
+                  <mat-select [value]="req.status" (selectionChange)="onStatusChange(req, $event.value)">
+                    <mat-option value="IN_PROGRESS">En cours</mat-option>
+                    <mat-option value="RESOLVED">Resolue</mat-option>
+                    <mat-option value="CLOSED">Terminée</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell text-center p-24" [attr.colspan]="displayedColumns.length">Aucun appel trouvé</td>
+          </tr>
+        </table>
+      </div>
+      <mat-paginator [pageSize]="10" [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</ng-container>
+
+<!-- ======================== DETAIL VIEW ======================== -->
+<ng-container *ngIf="showDetail && selectedRequest">
+
+  <!-- Header -->
+  <div class="detail-header">
+    <h3 class="detail-title">Demande #{{ selectedRequest.idR }}</h3>
+    <button mat-stroked-button class="back-btn" (click)="closeDetailView()">Retour aux Tickets</button>
+  </div>
+
+  <!-- ===== SECTION 1: Détails de la Demande ===== -->
+  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
+    <mat-expansion-panel-header>
+      <mat-panel-title class="f-w-600">Détails de la Demande</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="detail-grid">
+      <div class="detail-field">
+        <span class="detail-label">Statut:</span>
+        <span class="detail-value">{{ getRequestStatusLabel(selectedRequest.status) }}</span>
+      </div>
+      <div class="detail-field text-right">
+        <span class="detail-label">Date Limite:</span>
+        <span class="detail-value">{{ selectedRequest.deadline ? formatDateFull(selectedRequest.deadline) : 'N/A' }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Demandeur:</span>
+        <span class="detail-value">{{ selectedRequest.user.fullName || selectedRequest.user.username || 'Inconnu' }}</span>
+      </div>
+      <div class="detail-field text-right">
+        <span class="detail-label">Type:</span>
+        <span class="detail-value">{{ selectedRequest.requestType === 'STATISTICS' ? 'Statistique' : 'Information' }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Priorité:</span>
+        <span class="detail-value" [class]="'priority-text-' + selectedRequest.priority">{{ selectedRequest.priority }}</span>
+      </div>
+      <div class="detail-field text-right">
+        <span class="detail-label">Catégorie:</span>
+        <span class="detail-value">{{ getCategoryLabel(selectedRequest.categoryRequest).toUpperCase() }}</span>
+      </div>
+    </div>
+    <div class="m-t-16" *ngIf="selectedRequest.description">
+      <span class="detail-label">Description:</span>
+      <p class="detail-value m-t-4">{{ selectedRequest.description }}</p>
+    </div>
+  </mat-expansion-panel>
+
+  <!-- ===== SECTION 2: Contacts / Appels ===== -->
+  <div class="contacts-section m-b-24">
+    <div class="contacts-header">
+      <h4 class="f-w-600">Workflow Agent – Appels et Réponses</h4>
+      <div class="contacts-stats">
+        <span>{{ treatedContacts }}/{{ totalContacts }} contacts traités</span>
+        <span class="text-muted m-l-16">{{ remainingContacts }} restants</span>
+      </div>
+    </div>
+
+    <!-- Search + Filter -->
+    <div class="contacts-filters m-b-16">
+      <mat-form-field appearance="outline" class="search-field">
+        <input matInput [(ngModel)]="contactSearch" (ngModelChange)="applyContactFilter()" placeholder="Rechercher un contact" />
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Filtrer par statut</mat-label>
+        <mat-select [(ngModel)]="contactStatusFilter" (ngModelChange)="applyContactFilter()">
+          <mat-option value="ALL">Tous les statuts</mat-option>
+          <mat-option value="NOT_CONTACTED">Not Contacted</mat-option>
+          <mat-option value="CONTACTED_AVAILABLE">Contacté</mat-option>
+          <mat-option value="NO_ANSWER">Pas de réponse</mat-option>
+          <mat-option value="WRONG_NUMBER">Mauvais numéro</mat-option>
+          <mat-option value="CALL_BACK_LATER">Rappeler</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="contacts-count">{{ contactDataSource.data.length }} sur {{ totalContacts }} contacts</span>
+    </div>
+
+    <!-- Contacts Table -->
+    <mat-card class="cardWithShadow">
+      <mat-card-content>
+        <table mat-table [dataSource]="contactDataSource" class="w-100 contact-table">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nom</th>
+            <td mat-cell *matCellDef="let entry">
+              <div class="d-flex align-items-center gap-8">
+                <i-tabler name="phone" class="icon-18 text-muted"></i-tabler>
+                <span>{{ entry.contact.name }}</span>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="phone">
+            <th mat-header-cell *matHeaderCellDef>Téléphone</th>
+            <td mat-cell *matCellDef="let entry">
+              <div class="d-flex align-items-center gap-4">
+                <i-tabler name="phone" class="icon-14 text-muted"></i-tabler>
+                {{ entry.contact.phoneNumber }}
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="contactStatus">
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
+            <td mat-cell *matCellDef="let entry">
+              <span class="contact-status">{{ getStatusLabel(entry.contactStatus) }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="contactActions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let entry">
+              <div class="d-flex align-items-center gap-8">
+                <button class="call-btn" (click)="openCallStatusDialog(entry)">
+                  <i-tabler name="phone" class="icon-16"></i-tabler>
+                  <span>Appeler</span>
+                </button>
+                <button class="planifier-btn" (click)="openCallbackDialog(entry)">
+                  <i-tabler name="clock" class="icon-16"></i-tabler>
+                  <span>Planifier</span>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="contactColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: contactColumns;"></tr>
+        </table>
+        <mat-paginator #contactPaginator [pageSize]="10" [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons></mat-paginator>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- ===== SECTION 3: Mettre à jour le Statut ===== -->
+  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
+    <mat-expansion-panel-header>
+      <mat-panel-title class="f-w-600">Mettre à jour le Statut</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div class="status-update-section">
+      <div class="d-flex align-items-center gap-12 m-b-16">
+        <span class="f-w-500">Statut actuel:</span>
+        <span class="status-badge-lg" [class]="'status-' + selectedRequest.status">
+          {{ getRequestStatusLabel(selectedRequest.status).toUpperCase() }}
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-16">
+        <mat-form-field appearance="outline" class="flex-1">
+          <mat-label>Mettre à jour le Statut</mat-label>
+          <mat-select [(ngModel)]="newRequestStatus">
+            <mat-option value="IN_PROGRESS">En cours</mat-option>
+            <mat-option value="RESOLVED">Resolue</mat-option>
+            <mat-option value="CLOSED">Terminée</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-flat-button color="primary" class="update-status-btn" (click)="updateDetailStatus()">
+          Mettre à jour la Demande
+        </button>
+      </div>
+    </div>
+  </mat-expansion-panel>
+
+  <!-- ===== SECTION 4: Gestion des Rapports ===== -->
+  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
+    <mat-expansion-panel-header>
+      <mat-panel-title class="f-w-600">Gestion des Rapports</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div>
+      <button mat-stroked-button (click)="generateReport()" class="m-b-12">
+        <i-tabler name="file-report" class="icon-18 m-r-8"></i-tabler>
+        Générer le Rapport
+      </button>
+      <div>
+        <span class="report-status-badge" [class]="'report-' + reportStatus">
+          {{ reportStatus === 'NOT_GENERATED' ? 'Not Generated' : reportStatus }}
+        </span>
+      </div>
+    </div>
+  </mat-expansion-panel>
+
+  <!-- ===== SECTION 5: Historique des Appels et Activités ===== -->
+  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
+    <mat-expansion-panel-header>
+      <mat-panel-title class="f-w-600">Historique des Appels et Activités</mat-panel-title>
+    </mat-expansion-panel-header>
+    <div *ngIf="logsLoading" class="text-center p-24">
+      <mat-spinner diameter="32" class="mx-auto"></mat-spinner>
+    </div>
+    <div class="timeline" *ngIf="!logsLoading && logs.length > 0">
+      <div class="timeline-item" *ngFor="let log of logs">
+        <div class="timeline-icon" [style.background-color]="getLogColor(log.logAction)">
+          <i-tabler [name]="getLogIcon(log.logAction)" class="icon-16"></i-tabler>
+        </div>
+        <div class="timeline-content">
+          <div class="d-flex justify-content-between">
+            <span class="f-w-600">{{ log.actionDescription || log.logAction }}</span>
+            <span class="text-muted f-s-12">{{ formatDate(log.timestamp) }}</span>
+          </div>
+          <p class="text-muted f-s-13 m-t-4" *ngIf="log.details">{{ log.details }}</p>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!logsLoading && logs.length === 0" class="text-center p-24 text-muted">
+      Aucun historique pour cette demande
+    </div>
+  </mat-expansion-panel>
+</ng-container>
+
+<!-- ===== CALL STATUS DIALOG ===== -->
+<ng-template #callStatusDialog>
+  <h2 mat-dialog-title>Statut de l'appel – {{ selectedEntry?.contact?.name }}</h2>
+  <mat-dialog-content>
+    <div class="d-flex align-items-center gap-8 m-b-24">
+      <i-tabler name="phone" class="icon-20 text-muted"></i-tabler>
+      <span class="f-s-16">{{ selectedEntry?.contact?.phoneNumber }}</span>
+    </div>
+    <div class="d-flex gap-16">
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>Statut de l'Appel</mat-label>
+        <mat-select [formControl]="callStatusForm.controls.status">
+          <mat-option *ngFor="let s of callStatuses" [value]="s.value">{{ s.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>Note d'Appel</mat-label>
+        <textarea matInput [formControl]="callStatusForm.controls.note" rows="2"></textarea>
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Annuler</button>
+    <button mat-flat-button color="primary" (click)="saveAndContinue()" [disabled]="!callStatusForm.valid">
+      <mat-icon>save</mat-icon> Enregistrer et Continuer
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- ===== RESPONSE COLLECTION DIALOG ===== -->
+<ng-template #responseDialog>
+  <h2 mat-dialog-title>Collecte des Réponses – {{ responseContact?.name }}</h2>
+  <mat-dialog-content>
+    <div class="m-b-16">
+      <div class="d-flex align-items-center gap-8 m-b-8">
+        <span class="response-info-dot"></span>
+        <span>Vous êtes sur le point de collecter les réponses pour <strong>{{ responseContact?.name }}</strong>.</span>
+      </div>
+      <div class="response-status-badge" *ngIf="responseContactStatus">
+        Statut: {{ getStatusLabel(responseContactStatus) }}
+      </div>
+    </div>
+    <h6 class="f-w-600 m-b-16">Questions à poser</h6>
+    <div *ngFor="let q of responseQuestions; let i = index" class="question-card m-b-16">
+      <div class="d-flex align-items-center justify-content-between m-b-8">
+        <div class="d-flex align-items-center gap-8">
+          <span class="question-number">{{ i + 1 }}</span>
+          <span class="f-w-500">{{ q.text }}</span>
+        </div>
+        <span class="question-type-badge">Type: {{ getQuestionTypeLabel(q.questionType || q.type!) }}</span>
+      </div>
+      <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.YES_OR_NO" class="d-flex gap-16">
+        <mat-radio-button value="true">Oui</mat-radio-button>
+        <mat-radio-button value="false">Non</mat-radio-button>
+      </mat-radio-group>
+      <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.MULTIPLE_CHOICE" class="d-flex flex-column gap-8">
+        <mat-radio-button *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-radio-button>
+      </mat-radio-group>
+      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DROPDOWN">
+        <mat-label>Sélectionner</mat-label>
+        <mat-select [(ngModel)]="q.response">
+          <mat-option *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.SHORT_ANSWER">
+        <mat-label>Réponse</mat-label>
+        <input matInput [(ngModel)]="q.response" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.PARAGRAPH">
+        <mat-label>Réponse</mat-label>
+        <textarea matInput [(ngModel)]="q.response" rows="3"></textarea>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.NUMBER">
+        <mat-label>Nombre</mat-label>
+        <input matInput type="number" [(ngModel)]="q.response" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DATE">
+        <mat-label>Date</mat-label>
+        <input matInput [(ngModel)]="q.response" type="date" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.TIME">
+        <mat-label>Heure</mat-label>
+        <input matInput [(ngModel)]="q.response" type="time" />
+      </mat-form-field>
+    </div>
+    <div *ngIf="responseQuestions.length === 0" class="text-center p-24 text-muted">Aucune question définie.</div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Annuler</button>
+    <button mat-flat-button color="primary" (click)="saveResponses()" [disabled]="isSavingResponses">
+      <mat-icon>save</mat-icon> {{ isSavingResponses ? 'Enregistrement...' : 'Enregistrer les Réponses' }}
+    </button>
+  </mat-dialog-actions>
+</ng-template>
+
+<!-- ===== CALLBACK SCHEDULING DIALOG ===== -->
+<ng-template #callbackDialog>
+  <h2 mat-dialog-title>Planifier un Rappel – {{ callbackContact?.name }}</h2>
+  <mat-dialog-content>
+    <div class="d-flex align-items-center gap-8 m-b-16">
+      <i-tabler name="phone" class="icon-20 text-muted"></i-tabler>
+      <span>{{ callbackContact?.phoneNumber }}</span>
+    </div>
+    <div class="d-flex gap-16">
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="picker" [formControl]="$any(callbackForm.controls['date'])">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="flex-1">
+        <mat-label>Heure</mat-label>
+        <input matInput type="time" [formControl]="$any(callbackForm.controls['time'])">
+      </mat-form-field>
+    </div>
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Notes</mat-label>
+      <textarea matInput [formControl]="$any(callbackForm.controls['notes'])" rows="2"></textarea>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Annuler</button>
+    <button mat-flat-button color="primary" (click)="scheduleCallback()" [disabled]="!callbackForm.valid">
+      <i-tabler name="clock" class="icon-18 m-r-4"></i-tabler> Planifier
+    </button>
+  </mat-dialog-actions>
+</ng-template>

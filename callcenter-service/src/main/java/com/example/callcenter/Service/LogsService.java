@@ -55,6 +55,10 @@ public class LogsService {
         log.setOldAssignedAgent(logDTO.getOldAssignedAgent());
         log.setNewAssignedAgent(logDTO.getNewAssignedAgent());
         
+        // Set user who performed the action
+        log.setPerformedByUserId(logDTO.getUserId());
+        log.setPerformedByUserName(logDTO.getUserFullName());
+        
         // Set request reference
         if (logDTO.getRequestId() != null) {
             Request request = requestRepository.findById(logDTO.getRequestId())
@@ -313,9 +317,18 @@ public class LogsService {
             return logsRepository.findByLogActionOrderByTimestampDesc(action, pageable);
         } else if (startDate != null && endDate != null) {
             return logsRepository.findByTimestampBetweenOrderByTimestampDesc(startDate, endDate, pageable);
+        } else if (startDate != null) {
+            return logsRepository.findByTimestampAfterOrderByTimestampDesc(startDate, pageable);
         } else {
-            return logsRepository.findAll(pageable);
+            return logsRepository.findAllByOrderByTimestampDesc(pageable);
         }
+    }
+    
+    /**
+     * Search logs by text (user name, details, description)
+     */
+    public Page<Logs> searchLogs(String search, Pageable pageable) {
+        return logsRepository.searchLogs(search, pageable);
     }
     
     /**
@@ -353,9 +366,9 @@ public class LogsService {
     public Map<String, Object> getLogStatistics() {
         Map<String, Object> statistics = new HashMap<>();
         statistics.put("totalLogs", logsRepository.count());
-        statistics.put("logsToday", logsRepository.countByTimestampAfter(LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)));
-        statistics.put("logsThisWeek", logsRepository.countByTimestampAfter(LocalDateTime.now().minusWeeks(1)));
-        statistics.put("logsThisMonth", logsRepository.countByTimestampAfter(LocalDateTime.now().minusMonths(1)));
+        statistics.put("todayLogs", logsRepository.countByTimestampAfter(LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)));
+        statistics.put("statusChanges", logsRepository.findStatusChangeLogs().size());
+        statistics.put("agentAssignments", logsRepository.findAgentAssignmentLogs().size());
         return statistics;
     }
     
@@ -364,5 +377,27 @@ public class LogsService {
      */
     public List<Logs> getRecentActivity(int limit) {
         return logsRepository.findTopNByOrderByTimestampDesc(limit);
+    }
+    
+    /**
+     * Get distinct user names for filter dropdowns
+     */
+    public List<String> getDistinctUserNames() {
+        return logsRepository.findDistinctUserNames();
+    }
+    
+    /**
+     * Get distinct requests for filter dropdowns
+     */
+    public List<Map<String, Object>> getDistinctRequests() {
+        List<Object[]> results = logsRepository.findDistinctRequests();
+        List<Map<String, Object>> requests = new java.util.ArrayList<>();
+        for (Object[] row : results) {
+            Map<String, Object> req = new HashMap<>();
+            req.put("idR", row[0]);
+            req.put("title", row[1]);
+            requests.add(req);
+        }
+        return requests;
     }
 } 

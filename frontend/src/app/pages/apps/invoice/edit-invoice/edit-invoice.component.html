@@ -1,0 +1,144 @@
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+    @if (loading()) {
+      <div class="text-center p-y-24">
+        <mat-spinner diameter="40" class="m-auto"></mat-spinner>
+        <p class="m-t-16">Chargement de la demande...</p>
+      </div>
+    } @else if (!requestData()) {
+      <div class="text-center p-y-24">
+        <p>Demande introuvable.</p>
+        <a routerLink="/apps/invoice" mat-flat-button color="primary">Retour</a>
+      </div>
+    } @else {
+      <div class="row m-b-24">
+        <div class="col-sm-6 d-flex align-items-center">
+          <h4 class="f-s-18 f-w-600 m-0">
+            Modifier la demande #{{ id() }}
+          </h4>
+          <span class="m-l-16 badge"
+            [ngClass]="{
+              'bg-light-warning text-warning': requestData().status === 'PENDING',
+              'bg-light-success text-success': requestData().status === 'APPROVED',
+              'bg-light-error text-error': requestData().status === 'REJECTED'
+            }">
+            {{ requestData().status }}
+          </span>
+        </div>
+        <div class="col-sm-6 text-right">
+          <a routerLink="/apps/invoice" mat-flat-button class="bg-light m-r-10">
+            Annuler
+          </a>
+          @if (canEdit()) {
+            <button mat-flat-button color="warn" class="m-r-10" (click)="onDelete()">
+              <i-tabler name="trash" class="icon-18 m-r-4"></i-tabler>
+              Supprimer
+            </button>
+            <button mat-flat-button color="primary" (click)="onSave()">
+              <i-tabler name="device-floppy" class="icon-18 m-r-4"></i-tabler>
+              Enregistrer
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (!canEdit()) {
+        <div class="alert bg-light-warning p-16 m-b-24 rounded">
+          <strong>Information :</strong> Cette demande ne peut plus etre modifiee car son statut est <strong>{{ requestData().status }}</strong>.
+        </div>
+      }
+
+      <mat-divider></mat-divider>
+
+      <form [formGroup]="editForm" class="m-t-24">
+        <div class="row">
+          <div class="col-sm-12 m-b-16">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Description</mat-label>
+              <textarea matInput formControlName="description" rows="4"
+                placeholder="Description de la demande"></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="col-sm-4">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Priorite</mat-label>
+              <mat-select formControlName="priority">
+                @for (p of priorityLevels; track p) {
+                  <mat-option [value]="p">{{ p }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="col-sm-4">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Categorie</mat-label>
+              <mat-select formControlName="categoryRequest">
+                @for (c of categoryRequests; track c) {
+                  <mat-option [value]="c">{{ c }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="col-sm-4">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Date limite</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="deadline"
+                placeholder="Choisir une date">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+          </div>
+        </div>
+      </form>
+
+      <!-- Contacts -->
+      <mat-divider class="m-b-24"></mat-divider>
+      <h5 class="f-w-600 m-b-16">Contacts associes ({{ selectedContacts.length }} selectionne(s))</h5>
+
+      @if (contacts.length === 0) {
+        <p class="text-muted">Aucun contact disponible.</p>
+      } @else {
+        <div class="contact-chips d-flex flex-wrap gap-8 m-b-24">
+          @for (contact of contacts; track contact.id) {
+            <mat-chip-option
+              [selected]="isContactSelected(contact.id)"
+              (click)="canEdit() && toggleContact(contact.id)"
+              [disabled]="!canEdit()"
+              class="m-r-8 m-b-8">
+              {{ contact.firstName }} {{ contact.lastName }}
+            </mat-chip-option>
+          }
+        </div>
+      }
+
+      <!-- Questions -->
+      @if (requestData().questions?.length) {
+        <mat-divider class="m-b-24"></mat-divider>
+        <h5 class="f-w-600 m-b-16">Questions ({{ requestData().questions.length }})</h5>
+        <div class="table-responsive m-b-24">
+          <table class="table table-hover no-wrap w-100">
+            <thead>
+              <tr>
+                <th class="p-16">#</th>
+                <th class="p-16">Question</th>
+                <th class="p-16">Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (q of requestData().questions; track q.id; let i = $index) {
+                <tr>
+                  <td class="p-16">{{ i + 1 }}</td>
+                  <td class="p-16">{{ q.questionText || q.text }}</td>
+                  <td class="p-16">{{ q.questionType || q.type }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+  </mat-card-content>
+</mat-card>

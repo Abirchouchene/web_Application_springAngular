@@ -17,14 +17,18 @@ public class ResponseController {
     private final ResponseService responseService;
 
     @PostMapping("/request/{requestId}/question/{questionId}/contact/{contactId}")
-    public ResponseEntity<ResponseDTO> addResponsesToQuestion(
+    public ResponseEntity<?> addResponsesToQuestion(
             @PathVariable Long requestId,
             @PathVariable Long questionId,
             @PathVariable Long contactId,
             @RequestBody List<String> responseValues
     ) {
-        ResponseDTO responseDTO = responseService.addResponseToQuestion(requestId, questionId, contactId, responseValues);
-        return ResponseEntity.ok(responseDTO);
+        try {
+            ResponseDTO responseDTO = responseService.addResponseToQuestion(requestId, questionId, contactId, responseValues);
+            return ResponseEntity.ok(responseDTO);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
     }
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteResponse(@PathVariable Long id) {

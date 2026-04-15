@@ -26,6 +26,8 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     Optional<Submission> findByRequestIdRAndContactId(Long requestIdR, Long contactId);
 
+    List<Submission> findAllByRequestIdRAndContactId(Long requestIdR, Long contactId);
+
     @Modifying
     @Query("DELETE FROM Submission s WHERE s.request.idR = :requestId")
     void deleteByRequestId(@Param("requestId") Long requestId);

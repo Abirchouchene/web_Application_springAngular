@@ -1,6 +1,7 @@
 package com.example.callcenter.Entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,11 +28,11 @@ public class Notification implements Serializable {
 
     private LocalDateTime timestamp;
 
+    @JsonProperty("isRead")
     private boolean isRead;
 
     @ManyToOne
     @JsonBackReference
-
     private User agent;
 
 }

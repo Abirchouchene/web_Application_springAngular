@@ -1,0 +1,238 @@
+<!-- Listing and total number of counts -->
+<div class="row">
+  <div class="col-sm-6 col-lg-3">
+    <mat-card
+      class="shadow-none p-30 bg-light-primary text-center cursor-pointer rounded"
+      (click)="btnCategoryClick('')"
+    >
+      <h3 class="f-s-24 text-primary f-w-600 m-b-4">{{ totalCount }}</h3>
+      <h6 class="text-primary f-w-600 m-0 f-s-16">Total des Tickets</h6>
+    </mat-card>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <mat-card
+      class="shadow-none p-30 bg-light-warning text-center cursor-pointer rounded"
+      (click)="btnCategoryClick('InProgress')"
+    >
+      <h3 class="f-s-24 text-warning m-b-4">
+        {{ countTicketsByStatus("Inprogress") }}
+      </h3>
+      <h6 class="text-warning f-w-600 m-0 f-s-16">En Cours</h6>
+    </mat-card>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <mat-card
+      class="shadow-none p-30 bg-light-success text-center cursor-pointer rounded"
+      (click)="btnCategoryClick('Open')"
+    >
+      <h3 class="f-s-24 text-success m-b-4">
+        {{ countTicketsByStatus("Open") }}
+      </h3>
+      <h6 class="text-success f-w-600 m-0 f-s-16">Ouvert</h6>
+    </mat-card>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <mat-card
+      class="shadow-none p-30 bg-light-error text-center cursor-pointer rounded"
+      (click)="btnCategoryClick('Closed')"
+    >
+      <h3 class="f-s-24 text-error m-b-4">
+        {{ countTicketsByStatus("Closed") }}
+      </h3>
+      <h6 class="text-error f-w-600 m-0 f-s-16">Fermé</h6>
+    </mat-card>
+  </div>
+</div>
+
+
+<!-- Add and search tickets -->
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+    <div class="row justify-content-between gap-16">
+      <div class="col-sm-4">
+        <mat-form-field appearance="outline" class="hide-hint">
+          <input
+            matInput
+            (keyup)="onKeyup($event)"
+            placeholder="Rechercher Tickets"
+          />
+
+          <mat-icon matSuffix>
+            <i-tabler name="search" class="icon-20 d-flex m-t-2"></i-tabler>
+          </mat-icon>
+        </mat-form-field>
+      </div>
+
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- Table -->
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+    <div class="table-responsive">
+      <table mat-table [dataSource]="dataSource" class="w-100 f-w-500 no-wrap">
+
+        <!-- ID -->
+        <ng-container matColumnDef="idR">
+          <th mat-header-cell *matHeaderCellDef> ID </th>
+          <td mat-cell *matCellDef="let element"> {{ element.idR }} </td>
+        </ng-container>
+
+        <!-- Request Type -->
+        <ng-container matColumnDef="requestType">
+          <th mat-header-cell *matHeaderCellDef> Type Demande </th>
+          <td mat-cell *matCellDef="let element"> {{ element.requestType }} </td>
+        </ng-container>
+
+        <!-- Assigned To -->
+        <ng-container matColumnDef="requester">
+          <th mat-header-cell *matHeaderCellDef class="f-s-16 f-w-600"> Nom de demandeur  </th>
+          <td mat-cell *matCellDef="let element">
+           
+              <span class="f-w-600 f-s-16">{{ element.agent?.fullName || 'N/A' }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Description -->
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef> Description </th>
+          <td mat-cell *matCellDef="let element"> {{ element.description }} </td>
+        </ng-container>
+
+        <!-- Status -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef> Statut </th>
+          <td mat-cell *matCellDef="let element"> {{ element.status }} </td>
+        </ng-container>
+
+        <!-- Priority -->
+        <ng-container matColumnDef="priority">
+          <th mat-header-cell *matHeaderCellDef> Priorité </th>
+          <td mat-cell *matCellDef="let element"> {{ element.priority || 'N/A' }} </td>
+        </ng-container>
+
+        <!-- Category -->
+        <ng-container matColumnDef="categoryRequest">
+          <th mat-header-cell *matHeaderCellDef> Catégorie </th>
+          <td mat-cell *matCellDef="let element"> {{ element.categoryRequest }} </td>
+        </ng-container>
+
+        <!-- Note -->
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef> Créé le </th>
+          <td mat-cell *matCellDef="let element"> {{ formatFullDate(element.createdAt) }} </td>
+        </ng-container>
+        
+          
+          
+        <!-- Deadline -->
+        <ng-container matColumnDef="deadline">
+          <th mat-header-cell *matHeaderCellDef class="f-s-16 f-w-600"> Date Limite </th>
+          <td mat-cell *matCellDef="let element" class="f-s-14">
+            {{ element.deadline ? (element.deadline | date:'dd/MM/yyyy') : 'N/A' }}
+          </td>
+        </ng-container>
+         <!-- note -->
+        <ng-container matColumnDef="note">
+          <th mat-header-cell *matHeaderCellDef> Note </th>
+          <td mat-cell *matCellDef="let element"> {{ element.note }} </td>
+        </ng-container>
+        
+      
+<!-- Action -->
+<ng-container matColumnDef="action">
+  <th mat-header-cell *matHeaderCellDef class="f-s-16 f-w-600"> Action </th>
+  <td mat-cell *matCellDef="let element" class="action-link d-flex align-items-center gap-2">
+    <a (click)="openDialog('Update', element)" class="cursor-pointer d-flex align-items-center">
+      <i-tabler name="edit" class="icon-18"></i-tabler>
+    </a>
+    
+    <a
+      [routerLink]="['/apps/ticket', element.idR]"
+      class="cursor-pointer d-flex align-items-center"
+    >
+      <i-tabler name="eye" class="icon-18"></i-tabler>
+    </a>
+
+    <a (click)="openDialog('Delete', element)" class="cursor-pointer d-flex align-items-center">
+      <i-tabler name="trash" class="icon-18"></i-tabler>
+    </a>
+  </td>
+</ng-container>
+
+
+        <!-- Header and Row Definitions -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+  </mat-card-content>
+</mat-card>
+
+<div *ngIf="upcomingCallbacks.length > 0">
+  <mat-card class="cardWithShadow my-4">
+    <mat-card-header>
+      <mat-card-title>Rappels à venir</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="table-responsive">
+        <table mat-table [dataSource]="upcomingCallbacks" class="w-100">
+          
+          <!-- Contact Column -->
+          <ng-container matColumnDef="contact">
+            <th mat-header-cell *matHeaderCellDef>Contact</th>
+            <td mat-cell *matCellDef="let callback">
+              {{ callback.contactId }}
+            </td>
+          </ng-container>
+          
+          <!-- Request ID Column -->
+          <ng-container matColumnDef="requestId">
+            <th mat-header-cell *matHeaderCellDef>ID Demande</th>
+            <td mat-cell *matCellDef="let callback">
+              <a [routerLink]="['/apps/ticket', callback.requestId]">
+                {{ callback.requestId }}
+              </a>
+            </td>
+          </ng-container>
+          
+          <!-- Scheduled Date Column -->
+          <ng-container matColumnDef="scheduledDate">
+            <th mat-header-cell *matHeaderCellDef>Rappel prévu</th>
+            <td mat-cell *matCellDef="let callback">
+              {{ formatCallbackDate(callback.scheduledDate) }}
+            </td>
+          </ng-container>
+          
+          <!-- Notes Column -->
+          <ng-container matColumnDef="notes">
+            <th mat-header-cell *matHeaderCellDef>Notes</th>
+            <td mat-cell *matCellDef="let callback">{{ callback.notes || 'N/A' }}</td>
+          </ng-container>
+          
+          <!-- Status Column -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
+            <td mat-cell *matCellDef="let callback">{{ callback.status }}</td>
+          </ng-container>
+          
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let callback">
+              <button mat-icon-button color="primary" (click)="markCallbackAsCompleted(callback.id)">
+                <i-tabler name="check" class="icon-18"></i-tabler>
+              </button>
+            </td>
+          </ng-container>
+          
+          <tr mat-header-row *matHeaderRowDef="['contact', 'requestId', 'scheduledDate', 'notes', 'status', 'actions']"></tr>
+          <tr mat-row *matRowDef="let row; columns: ['contact', 'requestId', 'scheduledDate', 'notes', 'status', 'actions']"></tr>
+        </table>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

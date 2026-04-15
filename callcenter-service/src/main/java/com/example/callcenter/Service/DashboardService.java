@@ -177,6 +177,7 @@ public class DashboardService {
 
     private Map<String, Long> buildStatusMap(List<Request> requests) {
         return requests.stream()
+                .filter(r -> r.getStatus() != null)
                 .collect(Collectors.groupingBy(r -> r.getStatus().name(), Collectors.counting()));
     }
 
@@ -188,6 +189,7 @@ public class DashboardService {
 
     private Map<String, Long> buildTypeMap(List<Request> requests) {
         return requests.stream()
+                .filter(r -> r.getRequestType() != null)
                 .collect(Collectors.groupingBy(r -> r.getRequestType().name(), Collectors.counting()));
     }
 
@@ -199,6 +201,7 @@ public class DashboardService {
 
     private Map<String, Long> buildContactStatusMap(List<RequestContactStatus> statuses) {
         return statuses.stream()
+                .filter(s -> s.getStatus() != null)
                 .collect(Collectors.groupingBy(s -> s.getStatus().name(), Collectors.counting()));
     }
 
@@ -253,7 +256,9 @@ public class DashboardService {
     private List<RecentActivityDTO> buildRecentActivity() {
         List<Logs> recentLogs = logsRepository.findTopNByOrderByTimestampDesc(10);
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        return recentLogs.stream().map(log -> RecentActivityDTO.builder()
+        return recentLogs.stream()
+                .filter(log -> log.getLogAction() != null && log.getTimestamp() != null)
+                .map(log -> RecentActivityDTO.builder()
                 .action(log.getLogAction().name())
                 .description(log.getActionDescription())
                 .timestamp(log.getTimestamp().format(fmt))

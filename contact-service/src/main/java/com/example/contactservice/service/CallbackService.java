@@ -29,10 +29,9 @@ public class CallbackService {
     }
     
     public List<Callback> getAllUpcomingCallbacks() {
-        return callbackRepository.findByStatusAndScheduledDateBetween(
+        return callbackRepository.findByStatusAndScheduledDateAfter(
             CallbackStatus.SCHEDULED,
-            LocalDateTime.now(),
-            LocalDateTime.now().plusDays(7) // Get callbacks for next 7 days
+            LocalDateTime.now()
         );
     }
 

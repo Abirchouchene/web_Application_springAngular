@@ -1,0 +1,478 @@
+<mat-card class="cardWithShadow">
+  <mat-card-content>
+    <ng-container *ngIf="requestData">
+      <!-- Header -->
+      <div class="row m-b-24">
+        <div class="col-sm-4 d-flex align-items-center">
+          <h4 class="f-s-14 f-s-18 f-w-600">Demande #{{ requestData.idR }}</h4>
+        </div>
+        <div class="col-sm-8 text-right">
+          <a routerLink="/apps/tickets" mat-stroked-button class="m-r-10">Retour aux Tickets</a>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Request Details Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Détails de la Demande</h5>
+          <button mat-icon-button (click)="toggleSection('description')">
+            <mat-icon>{{ isDescriptionExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isDescriptionExpanded">
+          <div class="row p-y-24">
+            <div class="col-sm-6">
+              <span class="f-w-600 f-s-15">Statut:</span>
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.status || 'N/A' }}</h6>
+            </div>
+            <div class="col-sm-6 text-right">
+              <span class="f-w-600 f-s-15">Date Limite:</span>
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.deadline| date: 'fullDate' }}</h6>
+            </div>
+          </div>
+
+          <div class="row p-y-24">
+            <div class="col-sm-6">
+              <span class="f-w-600 f-s-15">Demandeur:</span>
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">
+                {{ requestData.user ? requestData.user.fullName : 'Inconnu' }}
+              </h6>
+            </div>
+            <div class="col-sm-6 text-right">
+              <span class="f-w-600 f-s-15">Type:</span>
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.requestType }}</h6>
+            </div>
+          </div>
+
+          <div class="row p-y-24">
+            <div class="col-sm-6">
+              <span class="f-w-600 f-s-15">Priorité:</span>
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.priority }}</h6>
+            </div>
+            <div class="col-sm-6 text-right">
+              <span class="f-w-600 f-s-15">Catégorie:</span>
+              <h6 class="m-t-5 m-b-0 f-w-500 f-s-14">{{ requestData.categoryRequest || 'Aucune catégorie fournie.'}}</h6>
+            </div>
+          </div>
+
+          <!-- Description field -->
+          <div class="row p-y-24">
+            <div class="col-12">
+              <span class="f-w-600 f-s-15">Description:</span>
+              <p class="m-t-5 f-s-14">{{ requestData.description || 'Aucune description fournie.' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Client Response Section - Only for INFORMATION type -->
+      <div class="m-t-20" *ngIf="requestData.requestType === 'INFORMATION'">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Réponse du Client</h5>
+          <button mat-icon-button (click)="toggleSection('clientResponse')">
+            <mat-icon>{{ isClientResponseExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+        
+        <div *ngIf="isClientResponseExpanded">
+          <mat-form-field class="w-100 m-t-10">
+            <textarea matInput [(ngModel)]="note" placeholder="Saisir la réponse du client" rows="4"></textarea>
+          </mat-form-field>
+          
+          <div class="d-flex justify-content-end m-t-10">
+            <button mat-flat-button color="primary" (click)="updateClientResponse()" [disabled]="isLoading">
+              <mat-icon *ngIf="isLoading">
+                <mat-spinner diameter="20"></mat-spinner>
+              </mat-icon>
+              <span>Mettre à jour la Réponse</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider *ngIf="requestData.requestType === 'INFORMATION'" class="m-t-20"></mat-divider>
+
+      <!-- Contacts Management Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Informations de Contact</h5>
+          <button mat-icon-button (click)="toggleSection('contacts')">
+            <mat-icon>{{ isContactsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isContactsExpanded">
+          <!-- Contact Cards -->
+          <mat-card class="m-t-10 p-t-15 p-b-15" *ngFor="let contact of requestData.contacts">
+            <mat-card-content>
+              <!-- Contact Header -->
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="f-s-14 f-w-600 m-b-0">{{ contact.name || 'Aucun nom fourni' }}</h5>
+                  <p class="f-s-13 text-muted m-t-5 m-b-0">
+                    <mat-icon class="f-s-15 align-middle">phone</mat-icon>
+                    {{ contact.phoneNumber || 'Aucun numéro de téléphone' }}
+                  </p>
+                </div>
+                
+                <!-- Current Status -->
+                <div>
+                  <mat-chip-list>
+                    <mat-chip [color]="getStatusColor(contact.callStatus)" [selected]="true">
+                      {{ getContactStatusLabel(contact.callStatus) }}
+                    </mat-chip>
+                  </mat-chip-list>
+                  <small class="d-block text-muted m-t-5" *ngIf="contact.lastCallAttempt">
+                    Dernier appel: {{ formatLastCallAttempt(contact.lastCallAttempt) }}
+                  </small>
+                </div>
+              </div>
+
+              <!-- Call Status and Notes -->
+              <div class="row m-t-10">
+                <div class="col-md-4">
+                  <mat-form-field class="w-100">
+                    <mat-label>Statut d'Appel</mat-label>
+                    <mat-select #statusSelect [value]="contact.callStatus">
+                      <mat-option *ngFor="let status of contactStatusValues" [value]="status">
+                        {{ getContactStatusLabel(status) }}
+                      </mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                <div class="col-md-7">
+                  <mat-form-field class="w-100">
+                    <mat-label>Note d'Appel</mat-label>
+                    <input matInput #noteInput [value]="contact.callNote || ''">
+                  </mat-form-field>
+                </div>
+                
+                <!-- Actions -->
+                <div class="col-md-1 d-flex align-items-center justify-content-end">
+                  <div class="action-buttons-container">
+                    <button mat-icon-button color="primary" 
+                            (click)="updateContactStatus(contact, statusSelect.value, noteInput.value)"
+                            matTooltip="Mettre à jour le Statut">
+                      <mat-icon>save</mat-icon>
+                    </button>
+                    <button mat-icon-button color="accent" 
+                            (click)="updateLastCallAttempt(contact.idC)"
+                            matTooltip="Marquer comme Appelé">
+                      <mat-icon>call</mat-icon>
+                    </button>
+                    <button mat-icon-button color="primary"
+                            (click)="openScheduleCallback(contact)"
+                            matTooltip="Planifier un Rappel">
+                      <mat-icon>schedule</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+          
+              <!-- Tags -->
+              <div class="row m-t-10" *ngIf="contact.tags?.length">
+                <div class="col-12">
+                  <mat-chip-list>
+                    <mat-chip *ngFor="let tag of contact.tags" color="primary" selected>
+                      {{ tag.name }}
+                    </mat-chip>
+                  </mat-chip-list>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- No Contacts Message -->
+          <div *ngIf="!requestData.contacts?.length" class="text-center p-y-24">
+            <p class="text-muted m-0">Aucun contact disponible pour cette demande</p>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Questions Section - Only for STATISTICS type -->
+      <div *ngIf="requestData.requestType === 'STATISTICS'" class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Questions</h5>
+          <button mat-icon-button (click)="toggleSection('questions')">
+            <mat-icon>{{ isQuestionsExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isQuestionsExpanded">
+          <!-- Contact Selector for per-contact responses -->
+          <div class="m-b-16" *ngIf="requestData.contacts?.length">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Sélectionner le contact pour les réponses</mat-label>
+              <mat-select [(ngModel)]="selectedResponseContactId">
+                <mat-option *ngFor="let contact of requestData.contacts" [value]="contact.idC">
+                  {{ contact.name || 'Contact #' + contact.idC }} — {{ contact.phoneNumber || '' }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+            <button mat-stroked-button color="accent" *ngIf="selectedResponseContactId" (click)="loadContactResponses()" class="m-b-8">
+              <mat-icon>download</mat-icon> Charger les réponses existantes
+            </button>
+          </div>
+
+          <div *ngFor="let question of requestData.questions" class="m-b-20">
+            <label class="f-w-500 f-s-14">{{ question.text }}</label>
+            
+            <!-- YES_NO type -->
+            <ng-container *ngIf="question.questionType === QuestionType.YES_OR_NO">
+              <mat-radio-group [(ngModel)]="question.response" class="d-block m-t-5">
+                <mat-radio-button value="YES" class="m-r-20">Oui</mat-radio-button>
+                <mat-radio-button value="NO">Non</mat-radio-button>
+              </mat-radio-group> 
+            </ng-container>
+
+            <!-- NUMBER type -->
+            <ng-container *ngIf="question.questionType === QuestionType.NUMBER">
+              <mat-form-field class="w-100 m-t-5">
+                <input matInput type="number" [(ngModel)]="question.response" placeholder="Saisir un nombre" />
+              </mat-form-field>
+            </ng-container>
+          </div>
+
+          <!-- Save Responses Button -->
+          <div class="d-flex justify-content-end m-t-20">
+            <button mat-flat-button color="primary" (click)="saveResponses()" [disabled]="isSavingResponses || !selectedResponseContactId">
+              <mat-icon *ngIf="isSavingResponses">
+                <mat-spinner diameter="20"></mat-spinner>
+              </mat-icon>
+              <span>Enregistrer les Réponses</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Status Update Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Mettre à jour le Statut</h5>
+          <button mat-icon-button (click)="toggleSection('status')">
+            <mat-icon>{{ isStatusExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isStatusExpanded" class="row p-y-24">
+          <div class="col-sm-6">
+            <mat-form-field class="w-100">
+              <mat-label>Mettre à jour le Statut</mat-label>
+              <mat-select [(ngModel)]="status">
+                <mat-option *ngFor="let s of availableStatuses" [value]="s">
+                  {{ s }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="col-sm-6 d-flex align-items-end justify-content-end">
+            <button mat-flat-button color="primary" (click)="updateRequest()" [disabled]="isLoading">
+              Mettre à jour la Demande
+              <mat-progress-spinner *ngIf="isLoading" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Clarification Request Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Demander des Clarifications</h5>
+          <button mat-icon-button (click)="isClarificationExpanded = !isClarificationExpanded">
+            <mat-icon>{{ isClarificationExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isClarificationExpanded" class="p-y-16">
+          <p class="text-muted f-s-13 m-b-10">
+            Envoyez une demande de clarification au demandeur concernant cette enquête.
+          </p>
+          <mat-form-field class="w-100">
+            <mat-label>Message de clarification</mat-label>
+            <textarea matInput [(ngModel)]="clarificationMessage" 
+                      placeholder="Précisez les informations que vous souhaitez obtenir du demandeur..."
+                      rows="3"></textarea>
+          </mat-form-field>
+          <div class="d-flex justify-content-end m-t-10">
+            <button mat-flat-button color="accent" 
+                    (click)="requestClarification()" 
+                    [disabled]="!clarificationMessage.trim() || isSendingClarification">
+              <mat-icon *ngIf="!isSendingClarification">send</mat-icon>
+              <mat-spinner *ngIf="isSendingClarification" diameter="20"></mat-spinner>
+              <span class="m-l-8">Envoyer la Demande</span>
+            </button>
+          </div>
+          
+          <!-- Sent clarifications history -->
+          <div *ngIf="clarificationHistory.length > 0" class="m-t-16">
+            <h6 class="f-s-14 f-w-600 m-b-8">Historique des demandes</h6>
+            <div *ngFor="let item of clarificationHistory" 
+                 class="p-12 mb-2 rounded bg-light d-flex align-items-start">
+              <mat-icon class="text-accent m-r-8 f-s-18">question_answer</mat-icon>
+              <div class="flex-grow-1">
+                <p class="m-0 f-s-13">{{ item.message }}</p>
+                <span class="text-muted f-s-11">{{ item.timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Report Management Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Gestion des Rapports</h5>
+          <button mat-icon-button (click)="toggleSection('report')">
+            <mat-icon>{{ isReportExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isReportExpanded" class="p-y-24">
+          <!-- Generate Report Button -->
+          <div class="row">
+            <div class="col-12">
+              <button mat-flat-button color="primary" 
+                      [disabled]="!canShowGenerateReport() || isGeneratingReport || reportStatus !== 'NOT_GENERATED'"
+                      (click)="generateReport()">
+                <mat-icon>description</mat-icon>
+                {{ isGeneratingReport ? 'En cours de génération...' : 'Générer le Rapport' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Manager Approval Section -->
+          <div class="row m-t-20" *ngIf="reportStatus === 'PENDING_APPROVAL' && isManager">
+            <div class="col-12">
+              <h6 class="f-s-14 f-w-600 m-b-10">Approbation du Manager Requise</h6>
+              <div class="d-flex gap-2">
+                <button mat-flat-button color="primary" (click)="approveReport()">
+                  <mat-icon>check</mat-icon>
+                  Approuver le Rapport
+                </button>
+                <button mat-flat-button color="warn" (click)="rejectReport()">
+                  <mat-icon>close</mat-icon>
+                  Rejeter le Rapport
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report Status -->
+          <div class="row m-t-20">
+            <div class="col-12">
+              <mat-chip-list>
+                <mat-chip [color]="getReportStatusColor()" selected>
+                  {{ getReportStatusLabel() }}
+                </mat-chip>
+              </mat-chip-list>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider class="m-t-20"></mat-divider>
+
+      <!-- Call History Section -->
+      <div class="m-t-20">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="f-s-16 f-w-600">Historique des Appels et Activités</h5>
+          <button mat-icon-button (click)="toggleSection('history')">
+            <mat-icon>{{ isHistoryExpanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </div>
+
+        <div *ngIf="isHistoryExpanded" class="p-y-24">
+          <!-- Activity Timeline -->
+          <div class="timeline">
+            <div *ngFor="let activity of callHistory" class="timeline-item">
+              <div class="timeline-badge" [ngClass]="getActivityBadgeClass(activity.type)">
+                <mat-icon>{{ getActivityIcon(activity.type) }}</mat-icon>
+              </div>
+              <div class="timeline-content">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="f-s-14 f-w-600 m-0">{{ activity.title }}</h6>
+                  <span class="text-muted f-s-12">{{ activity.timestamp | date:'medium' }}</span>
+                </div>
+                <p class="f-s-13 m-t-5 m-b-0">{{ activity.description }}</p>
+                <div *ngIf="activity.contact" class="m-t-5">
+                  <span class="f-s-12 text-muted">Contact: {{ activity.contact.name }}</span>
+                </div>
+                <div *ngIf="activity.notes" class="m-t-5">
+                  <span class="f-s-12 text-muted">Notes: {{ activity.notes }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- No History Message -->
+            <div *ngIf="!callHistory?.length" class="text-center p-5">
+              <mat-icon class="text-muted" style="font-size: 48px;">history</mat-icon>
+              <h5 class="mt-2">Aucun historique d'appel disponible</h5>
+              <p class="text-muted">Les activités d'appel apparaîtront ici</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </mat-card-content>
+</mat-card>
+
+<!-- Callback Schedule Dialog -->
+<ng-template #callbackDialog>
+  <h2 mat-dialog-title>Planifier un Rappel</h2>
+  <mat-dialog-content>
+    <form [formGroup]="callbackForm" (ngSubmit)="scheduleCallback()">
+      <div class="row">
+        <div class="col-12">
+          <mat-form-field class="w-100">
+            <mat-label>Date du Rappel</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="date">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+            <mat-error *ngIf="callbackForm.get('date')?.hasError('required')">
+              Date est requise
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div class="col-12">
+          <mat-form-field class="w-100">
+            <mat-label>Temps</mat-label>
+            <input matInput type="time" formControlName="time">
+            <mat-error *ngIf="callbackForm.get('time')?.hasError('required')">
+              Temps est requis
+            </mat-error>
+          </mat-form-field>
+        </div>
+        <div class="col-12">
+          <mat-form-field class="w-100">
+            <mat-label>Notes</mat-label>
+            <textarea matInput formControlName="notes" 
+                      placeholder="Ajouter des notes sur le rappel"></textarea>
+          </mat-form-field>
+        </div>
+      </div>
+    </form>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button [mat-dialog-close]="false">Annuler</button>
+    <button mat-flat-button color="primary" 
+            type="submit"
+            [disabled]="!callbackForm.valid"
+            (click)="scheduleCallback()">
+      Planifier
+    </button>
+  </mat-dialog-actions>
+</ng-template>

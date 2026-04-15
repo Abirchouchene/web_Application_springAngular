@@ -1,0 +1,4 @@
+export enum RequestType {
+  INFORMATION = 'INFORMATION',
+  STATISTICS = 'STATISTICS'
+}

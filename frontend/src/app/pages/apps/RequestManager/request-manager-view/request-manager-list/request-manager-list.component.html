@@ -1,0 +1,167 @@
+<div class="manager-list-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h2 class="page-title">Liste des Demandes à approuver</h2>
+    <div class="breadcrumb-nav">
+      <span class="breadcrumb-item">Dashboard</span>
+      <span class="breadcrumb-dot">•</span>
+      <span class="breadcrumb-item active">Liste des demandes à approuver</span>
+    </div>
+  </div>
+
+  <!-- Card -->
+  <mat-card class="list-card">
+    <mat-card-content>
+      <!-- Search Bar -->
+      <div class="search-section">
+        <mat-form-field appearance="outline" class="search-field">
+          <input matInput (keyup)="onKeyup($event)" placeholder="Ex: Congé" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table mat-table [dataSource]="dataSource" matSort class="w-100 manager-table">
+          <!-- ID -->
+          <ng-container matColumnDef="idR">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+            <td mat-cell *matCellDef="let element">{{ element.idR }}</td>
+          </ng-container>
+
+          <!-- Title -->
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Titre</th>
+            <td mat-cell *matCellDef="let element">{{ element.title || 'Sans titre' }}</td>
+          </ng-container>
+
+          <!-- Type -->
+          <ng-container matColumnDef="requestType">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+            <td mat-cell *matCellDef="let element">{{ element.requestType }}</td>
+          </ng-container>
+
+          <!-- Requester -->
+          <ng-container matColumnDef="requester">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Demandeur</th>
+            <td mat-cell *matCellDef="let element" class="requester-cell">
+              {{ element.user?.fullName || element.user?.username || element.user?.name || 'N/A' }}
+            </td>
+          </ng-container>
+
+          <!-- Status -->
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Statut</th>
+            <td mat-cell *matCellDef="let element">
+              <span class="status-badge" [class]="'status-' + element.status?.toLowerCase()">
+                {{ getStatusLabel(element.status) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Priority -->
+          <ng-container matColumnDef="priority">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Priorité</th>
+            <td mat-cell *matCellDef="let element">
+              <span class="priority-pill" [class]="'priority-' + element.priority?.toLowerCase()">
+                {{ element.priority }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Category -->
+          <ng-container matColumnDef="categoryRequest">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Catégorie</th>
+            <td mat-cell *matCellDef="let element">{{ getCategoryLabel(element.categoryRequest) }}</td>
+          </ng-container>
+
+          <!-- Created At -->
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Créé le</th>
+            <td mat-cell *matCellDef="let element">{{ element.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+          </ng-container>
+
+          <!-- Actions -->
+          <ng-container matColumnDef="action">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let element">
+              <div class="action-buttons">
+                <!-- View -->
+                <button class="action-btn action-view" [routerLink]="['/apps/request-manager/viewRequest', element.idR]" matTooltip="Voir les détails">
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <!-- Approve -->
+                <button class="action-btn action-approve" *ngIf="element.status === 'PENDING' || element.status === 'AUTO_GENERATED'" (click)="approveRequest(element.idR)" matTooltip="Approuver">
+                  <mat-icon>check</mat-icon>
+                </button>
+                <!-- Reject -->
+                <button class="action-btn action-reject" *ngIf="element.status === 'PENDING' || element.status === 'AUTO_GENERATED'" (click)="rejectRequest(element.idR)" matTooltip="Rejeter">
+                  <mat-icon>close</mat-icon>
+                </button>
+                <!-- Assign Agent (only show when NOT yet assigned) -->
+                <button class="action-btn action-assign" *ngIf="element.status === 'APPROVED'" [routerLink]="['/apps/request-manager/viewRequest', element.idR]" matTooltip="Assigner un agent">
+                  <mat-icon>person_add</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+        </table>
+      </div>
+
+      <mat-paginator [length]="totalCount" [pageSize]="5" [pageSizeOptions]="[5, 10, 20, 50]" showFirstLastButtons></mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Edit Dialog Template -->
+<ng-template #editDialog>
+  <h2 mat-dialog-title>Modifier la Demande #{{ editingRequest?.idR }}</h2>
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="w-100 m-b-8">
+      <mat-label>Description</mat-label>
+      <textarea matInput [(ngModel)]="editForm.description" rows="3"></textarea>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-100 m-b-8">
+      <mat-label>Priorité</mat-label>
+      <mat-select [(ngModel)]="editForm.priority">
+        <mat-option value="LOW">Basse</mat-option>
+        <mat-option value="MEDIUM">Moyenne</mat-option>
+        <mat-option value="HIGH">Haute</mat-option>
+        <mat-option value="URGENT">Urgente</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-100 m-b-8">
+      <mat-label>Catégorie</mat-label>
+      <mat-select [(ngModel)]="editForm.categoryRequest">
+        <mat-option value="PRODUCT_SATISFACTION">Satisfaction Produit</mat-option>
+        <mat-option value="SERVICE_FEEDBACK">Retour Service</mat-option>
+        <mat-option value="MARKET_RESEARCH">Étude de Marché</mat-option>
+        <mat-option value="CUSTOMER_NEEDS">Besoins Client</mat-option>
+        <mat-option value="GENERAL_INQUIRY">Enquête Générale</mat-option>
+        <mat-option value="OTHER">Autre</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-100 m-b-8">
+      <mat-label>Deadline</mat-label>
+      <input matInput type="date" [(ngModel)]="editForm.deadline" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-100 m-b-8">
+      <mat-label>Statut</mat-label>
+      <mat-select [(ngModel)]="editForm.status">
+        <mat-option value="PENDING">En attente</mat-option>
+        <mat-option value="APPROVED">Approuvée</mat-option>
+        <mat-option value="REJECTED">Rejetée</mat-option>
+        <mat-option value="ASSIGNED">Assignée</mat-option>
+        <mat-option value="IN_PROGRESS">En cours</mat-option>
+        <mat-option value="RESOLVED">Résolue</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Annuler</button>
+    <button mat-flat-button color="primary" (click)="saveEdit()">Enregistrer</button>
+  </mat-dialog-actions>
+</ng-template>
