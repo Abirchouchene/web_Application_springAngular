@@ -9,6 +9,8 @@ import com.example.callcenter.Service.RequestService;
 import com.example.callcenter.Service.AutoGenerateSurveyService;
 import com.example.callcenter.client.ContactClient;
 import com.example.callcenter.DTO.ContactResponse;
+import com.example.callcenter.Entity.RequestContactStatus;
+import com.example.callcenter.Repository.RequestContactStatusRepository;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class RequestController {
     private final RequestService requestService;
     private final ContactClient contactClient;
     private final AutoGenerateSurveyService autoGenerateSurveyService;
+    private final RequestContactStatusRepository requestContactStatusRepository;
 
     // Convert entity to DTO
     private RequestResponseDTO convertToResponseDTO(Request request) {
@@ -75,17 +78,26 @@ public class RequestController {
             dto.setSubmissionList(new java.util.ArrayList<>());
         }
 
-        // Extract contactIds from submissions — no Feign calls (avoids timeout)
+        // Load contacts via RequestContactStatus (reliable) + Feign for full details
         try {
-            List<Submission> submissions = dto.getSubmissionList();
-            if (submissions != null && !submissions.isEmpty()) {
-                List<ContactResponse> contacts = submissions.stream()
-                        .map(Submission::getContactId)
-                        .filter(cid -> cid != null)
-                        .distinct()
-                        .map(cid -> {
-                            ContactResponse cr = new ContactResponse();
-                            cr.setIdC(cid);
+            List<RequestContactStatus> statuses = requestContactStatusRepository.findByRequestIdR(request.getIdR());
+            if (statuses != null && !statuses.isEmpty()) {
+                List<ContactResponse> contacts = statuses.stream()
+                        .map(rcs -> {
+                            ContactResponse cr;
+                            try {
+                                cr = contactClient.getContactById(rcs.getContactId());
+                            } catch (Exception ex) {
+                                cr = new ContactResponse();
+                                cr.setIdC(rcs.getContactId());
+                            }
+                            // Override with per-request call status from RequestContactStatus
+                            if (rcs.getStatus() != null) {
+                                cr.setCallStatus(rcs.getStatus().name());
+                            }
+                            if (rcs.getCallNote() != null) {
+                                cr.setCallNote(rcs.getCallNote());
+                            }
                             return cr;
                         })
                         .collect(Collectors.toList());

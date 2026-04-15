@@ -25,4 +25,7 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     @EntityGraph(attributePaths = {"user", "agent", "report"})
     @Query("SELECT r FROM Request r WHERE r.idR = :id")
     Optional<Request> findByIdWithDetails(Long id);
+
+    @Query("SELECT r FROM Request r WHERE r.status IN ('RESOLVED', 'CLOSED') AND r.report IS NULL")
+    List<Request> findCompletedRequestsWithoutReport();
 }

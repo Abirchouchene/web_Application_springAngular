@@ -14,7 +14,9 @@ import java.util.Optional;
 public interface ResponseRepository extends JpaRepository<Response, Long> {
 
     List<Response> findBySubmission(Submission submission);
-    
+
+    List<Response> findBySubmissionAndQuestion(Submission submission, Question question);
+
     @Modifying
     @Query("DELETE FROM Response r WHERE r.submission = :submission")
     void deleteBySubmission(@Param("submission") Submission submission);

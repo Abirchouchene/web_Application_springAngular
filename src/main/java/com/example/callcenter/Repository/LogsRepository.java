@@ -65,4 +65,26 @@ public interface LogsRepository extends JpaRepository<Logs, Long> {
     // Find logs with agent assignments
     @Query("SELECT l FROM Logs l WHERE l.logAction IN ('AGENT_ASSIGNED', 'AGENT_UNASSIGNED') ORDER BY l.timestamp DESC")
     List<Logs> findAgentAssignmentLogs();
+    
+    // Search logs by text (user name, details, description)
+    @Query("SELECT l FROM Logs l WHERE " +
+           "LOWER(l.performedByUserName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(l.actionDescription) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(l.details) LIKE LOWER(CONCAT('%', :search, '%')) " +
+           "ORDER BY l.timestamp DESC")
+    Page<Logs> searchLogs(@Param("search") String search, Pageable pageable);
+    
+    // Find all logs ordered by timestamp desc
+    Page<Logs> findAllByOrderByTimestampDesc(Pageable pageable);
+    
+    // Find logs after a date with pagination
+    Page<Logs> findByTimestampAfterOrderByTimestampDesc(LocalDateTime startDate, Pageable pageable);
+    
+    // Get distinct user names for filter dropdown
+    @Query("SELECT DISTINCT l.performedByUserName FROM Logs l WHERE l.performedByUserName IS NOT NULL ORDER BY l.performedByUserName")
+    List<String> findDistinctUserNames();
+    
+    // Get distinct request IDs and titles for filter dropdown
+    @Query("SELECT DISTINCT l.request.idR, l.request.title FROM Logs l WHERE l.request IS NOT NULL ORDER BY l.request.idR")
+    List<Object[]> findDistinctRequests();
 } 

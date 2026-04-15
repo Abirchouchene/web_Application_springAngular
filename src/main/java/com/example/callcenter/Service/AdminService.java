@@ -193,11 +193,15 @@ public class AdminService {
      */
     static Role mapRoleName(String roleName) {
         if (roleName == null) return null;
-        switch (roleName.toLowerCase()) {
-            case "admin": return Role.ADMIN;
-            case "manager": return Role.MANAGER;
-            case "agent": return Role.AGENT;
+        switch (roleName.toLowerCase().trim()) {
+            case "admin":
+            case "admins": return Role.ADMIN;
+            case "manager":
+            case "managers": return Role.MANAGER;
+            case "agent":
+            case "agents": return Role.AGENT;
             case "demandeur":
+            case "demandeurs":
             case "survey_requester": return Role.SURVEY_REQUESTER;
             default: return null;
         }

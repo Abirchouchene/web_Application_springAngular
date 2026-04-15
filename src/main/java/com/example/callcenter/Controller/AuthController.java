@@ -103,18 +103,21 @@ public class AuthController {
      */
     private String determineAppRole(List<String> realmRoles) {
         for (String role : realmRoles) {
-            if ("admin".equalsIgnoreCase(role)) return "ADMIN";
+            String r = role.toLowerCase().trim();
+            if (r.equals("admin") || r.equals("admins")) return "ADMIN";
         }
         for (String role : realmRoles) {
-            if ("manager".equalsIgnoreCase(role)) return "MANAGER";
+            String r = role.toLowerCase().trim();
+            if (r.equals("manager") || r.equals("managers")) return "MANAGER";
         }
         for (String role : realmRoles) {
-            if ("agent".equalsIgnoreCase(role)) return "AGENT";
+            String r = role.toLowerCase().trim();
+            if (r.equals("agent") || r.equals("agents")) return "AGENT";
         }
         for (String role : realmRoles) {
-            if ("demandeur".equalsIgnoreCase(role)
-                    || "survey_requester".equalsIgnoreCase(role)
-                    || "requester".equalsIgnoreCase(role))
+            String r = role.toLowerCase().trim();
+            if (r.equals("demandeur") || r.equals("survey_requester")
+                    || r.equals("requester") || r.equals("demandeurs"))
                 return "SURVEY_REQUESTER";
         }
         return "AGENT"; // default

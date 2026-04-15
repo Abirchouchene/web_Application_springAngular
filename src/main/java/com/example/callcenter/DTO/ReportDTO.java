@@ -26,4 +26,5 @@ public class ReportDTO {
     private String statisticsData;
     private String aiInsightsData;
     private LocalDateTime aiGeneratedDate;
+    private String pdfPath;
 }

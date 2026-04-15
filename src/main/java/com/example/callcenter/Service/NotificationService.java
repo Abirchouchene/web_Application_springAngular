@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +29,10 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
     private final ContactClient contactClient;
+
+    // Track callback IDs for which reminders/due notifications have already been sent
+    private final Set<Long> sentReminderCallbackIds = ConcurrentHashMap.newKeySet();
+    private final Set<Long> sentDueCallbackIds = ConcurrentHashMap.newKeySet();
 
     public Notification createNotification(Long agentId, String message, NotificationType type) {
         log.info("Creating notification for agent {}: {}", agentId, message);
@@ -144,6 +150,10 @@ public class NotificationService {
     
     private boolean shouldSendReminder(Map<String, Object> callbackObj, LocalDateTime now, LocalDateTime in15Minutes) {
         try {
+            Long callbackId = extractCallbackId(callbackObj);
+            if (callbackId != null && sentReminderCallbackIds.contains(callbackId)) {
+                return false;
+            }
             String scheduledDateStr = (String) callbackObj.get("scheduledDate");
             if (scheduledDateStr != null) {
                 LocalDateTime scheduledDate = LocalDateTime.parse(scheduledDateStr);
@@ -157,6 +167,10 @@ public class NotificationService {
     
     private boolean isCallbackDue(Map<String, Object> callbackObj, LocalDateTime now, LocalDateTime in5Minutes) {
         try {
+            Long callbackId = extractCallbackId(callbackObj);
+            if (callbackId != null && sentDueCallbackIds.contains(callbackId)) {
+                return false;
+            }
             String scheduledDateStr = (String) callbackObj.get("scheduledDate");
             if (scheduledDateStr != null) {
                 LocalDateTime scheduledDate = LocalDateTime.parse(scheduledDateStr);
@@ -171,6 +185,7 @@ public class NotificationService {
     
     private void sendCallbackReminder(Map<String, Object> callbackObj) {
         try {
+            Long callbackId = extractCallbackId(callbackObj);
             Long agentId = extractAgentId(callbackObj);
             Long contactId = extractContactId(callbackObj);
             Long requestId = extractRequestId(callbackObj);
@@ -181,7 +196,8 @@ public class NotificationService {
             );
             
             createNotification(agentId, message, NotificationType.REMINDER);
-            log.info("Callback reminder sent for callback: {}", callbackObj);
+            if (callbackId != null) sentReminderCallbackIds.add(callbackId);
+            log.info("Callback reminder sent for callback ID: {}", callbackId);
             
         } catch (Exception e) {
             log.error("Error sending callback reminder", e);
@@ -190,6 +206,7 @@ public class NotificationService {
     
     private void sendCallbackDueNotification(Map<String, Object> callbackObj) {
         try {
+            Long callbackId = extractCallbackId(callbackObj);
             Long agentId = extractAgentId(callbackObj);
             Long contactId = extractContactId(callbackObj);
             Long requestId = extractRequestId(callbackObj);
@@ -200,11 +217,17 @@ public class NotificationService {
             );
             
             createNotification(agentId, message, NotificationType.REMINDER);
-            log.info("Callback due notification sent for callback: {}", callbackObj);
+            if (callbackId != null) sentDueCallbackIds.add(callbackId);
+            log.info("Callback due notification sent for callback ID: {}", callbackId);
             
         } catch (Exception e) {
             log.error("Error sending callback due notification", e);
         }
+    }
+    
+    private Long extractCallbackId(Map<String, Object> callbackObj) {
+        Object id = callbackObj.get("id");
+        return id != null ? Long.valueOf(id.toString()) : null;
     }
     
     private Long extractAgentId(Map<String, Object> callbackObj) {

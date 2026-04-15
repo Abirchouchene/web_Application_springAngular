@@ -37,23 +37,42 @@ public class ResponseService {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
-        // Find an existing submission or create a new one
-        Submission submission = submissionRepository.findByRequestIdRAndContactId(requestId, contactId)
-                .orElseGet(() -> {
-                    Request request = requestRepository.findById(requestId)
-                            .orElseThrow(() -> new RuntimeException("Request not found"));
-                    Submission newSubmission = new Submission();
-                    newSubmission.setRequest(request);
-                    newSubmission.setContactId(contactId);
-                    newSubmission.setSubmissionDate(LocalDate.now());
-                    return submissionRepository.save(newSubmission);
-                });
+        // Find an existing submission or create a new one (handle duplicates)
+        List<Submission> submissions = submissionRepository.findAllByRequestIdRAndContactId(requestId, contactId);
+        Submission submission;
+        if (!submissions.isEmpty()) {
+            submission = submissions.get(0);
+            // Clean up duplicate submissions
+            for (int i = 1; i < submissions.size(); i++) {
+                responseRepository.deleteBySubmission(submissions.get(i));
+                submissionRepository.delete(submissions.get(i));
+            }
+        } else {
+            Request request = requestRepository.findById(requestId)
+                    .orElseThrow(() -> new RuntimeException("Request not found"));
+            submission = new Submission();
+            submission.setRequest(request);
+            submission.setContactId(contactId);
+            submission.setSubmissionDate(LocalDate.now());
+            submission = submissionRepository.save(submission);
+        }
 
-        Response response = new Response();
-        response.setSubmission(submission);
-        response.setQuestion(question);
+        // Find existing response or create new (clean up duplicates if any)
+        List<Response> existing = responseRepository.findBySubmissionAndQuestion(submission, question);
+        Response response;
+        if (!existing.isEmpty()) {
+            response = existing.get(0);
+            // Delete duplicates if any
+            for (int i = 1; i < existing.size(); i++) {
+                responseRepository.delete(existing.get(i));
+            }
+        } else {
+            response = new Response();
+            response.setSubmission(submission);
+            response.setQuestion(question);
+        }
 
-        String value = responseValues.get(0); // used for most types
+        String value = responseValues.get(0);
 
         switch (question.getQuestionType()) {
             case MULTIPLE_CHOICE, DROPDOWN -> {
@@ -166,15 +185,13 @@ public class ResponseService {
      * Get all responses for a specific contact and request
      */
     public List<ResponseDTO> getResponsesByContactAndRequest(Long contactId, Long requestId) {
-        // Find the specific submission for this contact and request
-        return submissionRepository.findByRequestIdRAndContactId(requestId, contactId)
-                .map(submission -> {
-                    // If the submission is found, get all responses for it
-                    List<Response> responses = responseRepository.findBySubmission(submission);
-                    return responses.stream()
-                            .map(this::mapToDTO)
-                            .toList();
-                })
-                .orElse(new ArrayList<>()); // If no submission is found, return an empty list
+        List<Submission> submissions = submissionRepository.findAllByRequestIdRAndContactId(requestId, contactId);
+        if (submissions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Response> responses = responseRepository.findBySubmission(submissions.get(0));
+        return responses.stream()
+                .map(this::mapToDTO)
+                .toList();
     }
 }

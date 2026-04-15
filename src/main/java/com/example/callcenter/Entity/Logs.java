@@ -62,6 +62,12 @@ public class Logs implements Serializable {
     @CreationTimestamp
     private LocalDateTime timestamp;
 
+    @Column(name = "performed_by_user_id")
+    private Long performedByUserId;
+
+    @Column(name = "performed_by_user_name", length = 100)
+    private String performedByUserName;
+
     @Column(length = 50)
     private String ipAddress;
 

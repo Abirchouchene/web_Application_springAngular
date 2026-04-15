@@ -20,11 +20,15 @@ import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -32,13 +36,34 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class ReportService {
     private final RequestRepository requestRepository;
     private final SubmissionRepository submissionRepository;
     private final ReportRepository reportRepository;
     private final ObjectMapper objectMapper;
     private final MinioStorageService minioStorageService;
+    private final OpenAiService openAiService;
+    private final EmailService emailService;
+    private final String uploadDir;
+
+    public ReportService(RequestRepository requestRepository,
+                         SubmissionRepository submissionRepository,
+                         ReportRepository reportRepository,
+                         ObjectMapper objectMapper,
+                         MinioStorageService minioStorageService,
+                         OpenAiService openAiService,
+                         EmailService emailService,
+                         @Value("${file.upload-dir}") String uploadDir) {
+        this.requestRepository = requestRepository;
+        this.submissionRepository = submissionRepository;
+        this.reportRepository = reportRepository;
+        this.objectMapper = objectMapper;
+        this.minioStorageService = minioStorageService;
+        this.openAiService = openAiService;
+        this.emailService = emailService;
+        this.uploadDir = uploadDir;
+    }
 
     public Report generateReport(Long requestId) {
         Request request = requestRepository.findById(requestId)
@@ -73,7 +98,25 @@ public class ReportService {
         report.setContactRate(contactRate);
         report.setStatisticsData(statisticsData);
 
-        return reportRepository.save(report);
+        Report savedReport = reportRepository.save(report);
+
+        // Automatically trigger AI analysis
+        try {
+            openAiService.generateInsights(savedReport.getId());
+            log.info("AI insights generated for report {}", savedReport.getId());
+        } catch (Exception e) {
+            log.warn("AI insight generation failed for report {}: {}", savedReport.getId(), e.getMessage());
+        }
+
+        // Auto-generate PDF and store in MinIO
+        try {
+            generatePdf(savedReport.getId());
+            log.info("PDF auto-generated and stored in MinIO for report {}", savedReport.getId());
+        } catch (Exception e) {
+            log.warn("PDF auto-generation failed for report {}: {}", savedReport.getId(), e.getMessage());
+        }
+
+        return savedReport;
     }
 
     public Report getReportByRequest(Long requestId) {
@@ -98,6 +141,27 @@ public class ReportService {
         report.setStatus(ReportStatus.APPROVED);
         report.setApprovedDate(LocalDateTime.now());
         reportRepository.save(report);
+
+        // Send approval email to the requester
+        try {
+            Request request = report.getRequest();
+            if (request != null && request.getUser() != null) {
+                User requester = request.getUser();
+                String email = requester.getEmail();
+                if (email != null && !email.isBlank()) {
+                    emailService.sendReportApprovalEmail(
+                        email, requester.getFullName(),
+                        report.getRequestTitle(), report.getId()
+                    );
+                    report.setStatus(ReportStatus.SENT);
+                    report.setSentDate(LocalDateTime.now());
+                    reportRepository.save(report);
+                    log.info("Approval email sent to requester {} for report {}", email, reportId);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to send approval email for report {}: {}", reportId, e.getMessage());
+        }
     }
 
     public void rejectReport(Long reportId) {
@@ -324,6 +388,8 @@ public class ReportService {
             dto.setRequest(null);
         }
 
+        dto.setPdfPath(report.getPdfPath());
+
         return dto;
     }
 
@@ -340,15 +406,80 @@ public class ReportService {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
 
-        // If PDF already exists in MinIO, download and return it
-        if (report.getPdfPath() != null && minioStorageService.fileExists(report.getPdfPath())) {
-            try (var is = minioStorageService.downloadFile(report.getPdfPath())) {
-                return is.readAllBytes();
+        String objectName = "reports/rapport-" + reportId + ".pdf";
+
+        // 1) Try MinIO cache first
+        if (report.getPdfPath() != null && minioStorageService.isAvailable()) {
+            try {
+                if (minioStorageService.fileExists(report.getPdfPath())) {
+                    try (var is = minioStorageService.downloadFile(report.getPdfPath())) {
+                        return is.readAllBytes();
+                    }
+                }
             } catch (Exception e) {
-                // PDF not found in MinIO, regenerate
+                log.warn("Could not retrieve existing PDF from MinIO, regenerating: {}", e.getMessage());
             }
         }
 
+        // 2) Try local file cache
+        if (report.getPdfPath() != null) {
+            Path localPath = Paths.get(uploadDir, objectName);
+            if (Files.exists(localPath)) {
+                try {
+                    log.info("Serving PDF from local cache: {}", localPath);
+                    byte[] localBytes = Files.readAllBytes(localPath);
+                    // Sync to MinIO if available but not yet uploaded
+                    if (minioStorageService.isAvailable()) {
+                        try {
+                            minioStorageService.uploadFile(objectName, localBytes, "application/pdf");
+                            log.info("Synced local PDF to MinIO: {}", objectName);
+                        } catch (Exception ex) {
+                            log.warn("Failed to sync local PDF to MinIO: {}", ex.getMessage());
+                        }
+                    }
+                    return localBytes;
+                } catch (Exception e) {
+                    log.warn("Could not read local cached PDF, regenerating: {}", e.getMessage());
+                }
+            }
+        }
+
+        // 3) Generate PDF in memory
+        byte[] pdfBytes = buildPdfInMemory(report);
+
+        // 4) Store: try MinIO first, fallback to local file system
+        if (minioStorageService.isAvailable()) {
+            try {
+                minioStorageService.uploadFile(objectName, pdfBytes, "application/pdf");
+                report.setPdfPath(objectName);
+                reportRepository.save(report);
+                log.info("PDF stored in MinIO: {}", objectName);
+            } catch (Exception e) {
+                log.error("Failed to upload PDF to MinIO, falling back to local storage: {}", e.getMessage());
+                storeLocally(objectName, pdfBytes, report);
+            }
+        } else {
+            log.info("MinIO not available — storing PDF locally");
+            storeLocally(objectName, pdfBytes, report);
+        }
+
+        return pdfBytes;
+    }
+
+    private void storeLocally(String objectName, byte[] pdfBytes, Report report) {
+        try {
+            Path localPath = Paths.get(uploadDir, objectName);
+            Files.createDirectories(localPath.getParent());
+            Files.write(localPath, pdfBytes);
+            report.setPdfPath(objectName);
+            reportRepository.save(report);
+            log.info("PDF stored locally: {}", localPath);
+        } catch (Exception e) {
+            log.error("Failed to store PDF locally: {}", e.getMessage());
+        }
+    }
+
+    private byte[] buildPdfInMemory(Report report) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 40, 40, 50, 40);
             PdfWriter.getInstance(document, baos);
@@ -407,18 +538,7 @@ public class ReportService {
             }
 
             document.close();
-
-            byte[] pdfBytes = baos.toByteArray();
-
-            // Store PDF in MinIO
-            String objectName = "reports/rapport-" + reportId + ".pdf";
-            minioStorageService.uploadFile(objectName, pdfBytes, "application/pdf");
-
-            // Save the MinIO path in the report entity
-            report.setPdfPath(objectName);
-            reportRepository.save(report);
-
-            return pdfBytes;
+            return baos.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate PDF", e);
         }
