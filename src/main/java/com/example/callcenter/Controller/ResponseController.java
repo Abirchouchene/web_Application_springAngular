@@ -3,11 +3,13 @@ package com.example.callcenter.Controller;
 import com.example.callcenter.DTO.ResponseDTO;
 import com.example.callcenter.Entity.Question;
 import com.example.callcenter.Service.ResponseService;
+import com.example.callcenter.Service.ConsistencyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/response")
@@ -15,6 +17,7 @@ import java.util.List;
 //@CrossOrigin("http://localhost:4200")
 public class ResponseController {
     private final ResponseService responseService;
+    private final ConsistencyService consistencyService;
 
     @PostMapping("/request/{requestId}/question/{questionId}/contact/{contactId}")
     public ResponseEntity<?> addResponsesToQuestion(
@@ -43,5 +46,11 @@ public class ResponseController {
     ) {
         List<ResponseDTO> responses = responseService.getResponsesByContactAndRequest(contactId, requestId);
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/consistency/{requestId}")
+    public ResponseEntity<Map<String, Object>> checkConsistency(@PathVariable Long requestId) {
+        Map<String, Object> analysis = consistencyService.analyzeRequest(requestId);
+        return ResponseEntity.ok(analysis);
     }
 }

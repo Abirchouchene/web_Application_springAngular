@@ -108,16 +108,18 @@ public class ReportController {
     @GetMapping("/{reportId}/download-url")
     public ResponseEntity<Map<String, String>> getReportDownloadUrl(@PathVariable Long reportId) {
         Report report = reportService.getReportById(reportId);
-        if (report.getPdfPath() == null) {
-            // Generate the PDF first (will store in MinIO or locally)
-            reportService.generatePdf(reportId);
-            report = reportService.getReportById(reportId);
-        }
+
+        // Always generate/upload PDF (handles caching internally — uploads to MinIO if missing)
+        reportService.generatePdf(reportId);
+        report = reportService.getReportById(reportId);
+
         // Try MinIO presigned URL first
         if (report.getPdfPath() != null && minioStorageService.isAvailable()) {
             try {
-                String url = minioStorageService.getPresignedUrl(report.getPdfPath());
-                return ResponseEntity.ok(Map.of("url", url, "stored", "minio"));
+                if (minioStorageService.fileExists(report.getPdfPath())) {
+                    String url = minioStorageService.getPresignedUrl(report.getPdfPath());
+                    return ResponseEntity.ok(Map.of("url", url, "stored", "minio"));
+                }
             } catch (Exception e) {
                 // Fall through to local
             }

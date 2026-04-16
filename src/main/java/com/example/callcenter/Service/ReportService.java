@@ -406,13 +406,21 @@ public class ReportService {
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new RuntimeException("Report not found"));
 
-        String objectName = "reports/rapport-" + reportId + ".pdf";
+        // Build stable descriptive filename (no timestamp for consistent caching)
+        String safeTitle = report.getRequestTitle() != null
+                ? report.getRequestTitle().trim().replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9_]", "")
+                : "Rapport";
+
+        String objectName = String.format("reports/Rapport_%s_%s.pdf", reportId, safeTitle);
+
+        // If report already has a pdfPath stored, use it for cache lookups
+        String cachedPath = report.getPdfPath();
 
         // 1) Try MinIO cache first
-        if (report.getPdfPath() != null && minioStorageService.isAvailable()) {
+        if (cachedPath != null && minioStorageService.isAvailable()) {
             try {
-                if (minioStorageService.fileExists(report.getPdfPath())) {
-                    try (var is = minioStorageService.downloadFile(report.getPdfPath())) {
+                if (minioStorageService.fileExists(cachedPath)) {
+                    try (var is = minioStorageService.downloadFile(cachedPath)) {
                         return is.readAllBytes();
                     }
                 }
@@ -421,25 +429,28 @@ public class ReportService {
             }
         }
 
-        // 2) Try local file cache
-        if (report.getPdfPath() != null) {
-            Path localPath = Paths.get(uploadDir, objectName);
+        // 2) Try local file cache (check both old and new paths)
+        for (String pathToCheck : new String[]{cachedPath, objectName}) {
+            if (pathToCheck == null) continue;
+            Path localPath = Paths.get(uploadDir, pathToCheck);
             if (Files.exists(localPath)) {
                 try {
                     log.info("Serving PDF from local cache: {}", localPath);
                     byte[] localBytes = Files.readAllBytes(localPath);
-                    // Sync to MinIO if available but not yet uploaded
+                    // Sync to MinIO
                     if (minioStorageService.isAvailable()) {
                         try {
-                            minioStorageService.uploadFile(objectName, localBytes, "application/pdf");
-                            log.info("Synced local PDF to MinIO: {}", objectName);
+                            String fileUrl = minioStorageService.uploadFile(objectName, localBytes, "application/pdf");
+                            report.setPdfPath(objectName);
+                            reportRepository.save(report);
+                            log.info("✅ Synced local PDF to MinIO : {}", fileUrl);
                         } catch (Exception ex) {
                             log.warn("Failed to sync local PDF to MinIO: {}", ex.getMessage());
                         }
                     }
                     return localBytes;
                 } catch (Exception e) {
-                    log.warn("Could not read local cached PDF, regenerating: {}", e.getMessage());
+                    log.warn("Could not read local cached PDF: {}", e.getMessage());
                 }
             }
         }
@@ -450,10 +461,11 @@ public class ReportService {
         // 4) Store: try MinIO first, fallback to local file system
         if (minioStorageService.isAvailable()) {
             try {
-                minioStorageService.uploadFile(objectName, pdfBytes, "application/pdf");
+                // === UPLOAD VERS MINIO ===
+                String fileUrl = minioStorageService.uploadFile(objectName, pdfBytes, "application/pdf");
                 report.setPdfPath(objectName);
                 reportRepository.save(report);
-                log.info("PDF stored in MinIO: {}", objectName);
+                log.info("✅ Rapport généré et enregistré dans MinIO : {}", fileUrl);
             } catch (Exception e) {
                 log.error("Failed to upload PDF to MinIO, falling back to local storage: {}", e.getMessage());
                 storeLocally(objectName, pdfBytes, report);
