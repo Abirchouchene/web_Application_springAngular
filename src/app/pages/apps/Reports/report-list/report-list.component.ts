@@ -91,16 +91,30 @@ export class ReportListComponent implements OnInit {
     this.reportService.getDownloadUrl(report.id).subscribe({
       next: (result) => {
         if (result.stored === 'minio' && result.url) {
-          window.open(result.url, '_blank');
+          // Force download instead of opening in browser
+          this.downloadFromUrl(result.url, `rapport-${report.id}.pdf`);
           this.showMessage('PDF téléchargé depuis MinIO');
         } else {
-          // For local storage or no storage, download via backend (handles auth + local cache)
-          this.downloadPdfViaBackend(report);
+          // For local storage or no storage, download via backend
           this.downloadPdfViaBackend(report);
         }
       },
       error: () => this.downloadPdfViaBackend(report)
     });
+  }
+
+  private downloadFromUrl(url: string, filename: string): void {
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        link.click();
+        window.URL.revokeObjectURL(blobUrl);
+      })
+      .catch(() => this.showMessage('Erreur lors du téléchargement'));
   }
 
   private downloadPdfViaBackend(report: Report): void {

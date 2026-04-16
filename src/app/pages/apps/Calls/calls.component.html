@@ -3,20 +3,32 @@
   <!-- Summary Cards -->
   <div class="summary-row">
     <div class="summary-card total">
+      <div class="summary-icon-wrap total-icon">
+        <i-tabler name="phone" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ assignedRequests.length }}</span>
       <span class="summary-label">Total des Appels</span>
     </div>
     <div class="summary-card en-cours">
+      <div class="summary-icon-wrap progress-icon">
+        <i-tabler name="loader" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ countByStatus('IN_PROGRESS') }}</span>
       <span class="summary-label">En Cours</span>
     </div>
     <div class="summary-card ouvert">
+      <div class="summary-icon-wrap open-icon">
+        <i-tabler name="folder-open" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ countByStatus('ASSIGNED') }}</span>
       <span class="summary-label">Ouvert</span>
     </div>
     <div class="summary-card ferme">
+      <div class="summary-icon-wrap closed-icon">
+        <i-tabler name="circle-check" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ countByStatus('RESOLVED') }}</span>
-      <span class="summary-label">Fermé</span>
+      <span class="summary-label">Terminé</span>
     </div>
   </div>
 
@@ -110,54 +122,96 @@
 
   <!-- Header -->
   <div class="detail-header">
-    <h3 class="detail-title">Demande #{{ selectedRequest.idR }}</h3>
-    <button mat-stroked-button class="back-btn" (click)="closeDetailView()">Retour aux Tickets</button>
+    <div class="d-flex align-items-center gap-16">
+      <button mat-icon-button class="back-icon-btn" (click)="closeDetailView()">
+        <i-tabler name="arrow-left" class="icon-20"></i-tabler>
+      </button>
+      <div>
+        <h3 class="detail-title">Demande #{{ selectedRequest.idR }}</h3>
+        <span class="detail-subtitle">{{ selectedRequest.title || selectedRequest.description }}</span>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-12">
+      <button mat-flat-button class="ai-check-btn" (click)="checkConsistency()" [disabled]="isCheckingConsistency">
+        <i-tabler name="brain" class="icon-18 m-r-4"></i-tabler>
+        {{ isCheckingConsistency ? 'Analyse...' : 'Assistant IA' }}
+      </button>
+      <span class="status-badge-lg" [class]="'status-' + selectedRequest.status">
+        {{ getRequestStatusLabel(selectedRequest.status) }}
+      </span>
+    </div>
   </div>
 
-  <!-- ===== SECTION 1: Détails de la Demande ===== -->
-  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
-    <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Détails de la Demande</mat-panel-title>
-    </mat-expansion-panel-header>
-    <div class="detail-grid">
-      <div class="detail-field">
-        <span class="detail-label">Statut:</span>
-        <span class="detail-value">{{ getRequestStatusLabel(selectedRequest.status) }}</span>
+  <!-- ===== AI CONSISTENCY ASSISTANT BANNER ===== -->
+  <div class="ai-assistant-banner" *ngIf="consistencyReport && !isCheckingConsistency" 
+       [class.ai-success]="consistencyReport.summary.canClose"
+       [class.ai-warning]="!consistencyReport.summary.canClose">
+    <div class="ai-banner-left">
+      <div class="ai-avatar">
+        <i-tabler name="brain" class="icon-24"></i-tabler>
       </div>
-      <div class="detail-field text-right">
-        <span class="detail-label">Date Limite:</span>
-        <span class="detail-value">{{ selectedRequest.deadline ? formatDateFull(selectedRequest.deadline) : 'N/A' }}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-label">Demandeur:</span>
-        <span class="detail-value">{{ selectedRequest.user.fullName || selectedRequest.user.username || 'Inconnu' }}</span>
-      </div>
-      <div class="detail-field text-right">
-        <span class="detail-label">Type:</span>
-        <span class="detail-value">{{ selectedRequest.requestType === 'STATISTICS' ? 'Statistique' : 'Information' }}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-label">Priorité:</span>
-        <span class="detail-value" [class]="'priority-text-' + selectedRequest.priority">{{ selectedRequest.priority }}</span>
-      </div>
-      <div class="detail-field text-right">
-        <span class="detail-label">Catégorie:</span>
-        <span class="detail-value">{{ getCategoryLabel(selectedRequest.categoryRequest).toUpperCase() }}</span>
+      <div class="ai-banner-content">
+        <span class="ai-banner-title">Assistant de Cohérence IA</span>
+        <span class="ai-banner-message">{{ consistencyReport.recommendation }}</span>
       </div>
     </div>
-    <div class="m-t-16" *ngIf="selectedRequest.description">
-      <span class="detail-label">Description:</span>
-      <p class="detail-value m-t-4">{{ selectedRequest.description }}</p>
+    <div class="ai-banner-stats">
+      <div class="ai-stat">
+        <span class="ai-stat-value">{{ consistencyReport.summary.overallCompletionRate }}%</span>
+        <span class="ai-stat-label">Complétion</span>
+      </div>
+      <div class="ai-stat">
+        <span class="ai-stat-value">{{ consistencyReport.summary.completeContacts }}/{{ consistencyReport.summary.totalContacts }}</span>
+        <span class="ai-stat-label">Contacts OK</span>
+      </div>
+      <div class="ai-stat">
+        <span class="ai-stat-value" [class.issues-count]="consistencyReport.summary.totalIssues > 0">{{ consistencyReport.summary.totalIssues }}</span>
+        <span class="ai-stat-label">Problèmes</span>
+      </div>
     </div>
-  </mat-expansion-panel>
+  </div>
 
-  <!-- ===== SECTION 2: Contacts / Appels ===== -->
+  <!-- Loading AI check -->
+  <div class="ai-loading-banner" *ngIf="isCheckingConsistency">
+    <mat-spinner diameter="24"></mat-spinner>
+    <span>Analyse de cohérence en cours...</span>
+  </div>
+
+  <!-- Quick Info Bar -->
+  <div class="quick-info-bar m-b-20">
+    <div class="quick-info-item">
+      <i-tabler name="user" class="icon-16"></i-tabler>
+      <span>{{ selectedRequest.user?.fullName || 'Inconnu' }}</span>
+    </div>
+    <div class="quick-info-item">
+      <i-tabler name="calendar" class="icon-16"></i-tabler>
+      <span>Limite: {{ selectedRequest.deadline ? formatDateFull(selectedRequest.deadline) : 'N/A' }}</span>
+    </div>
+    <div class="quick-info-item">
+      <i-tabler name="tag" class="icon-16"></i-tabler>
+      <span>{{ selectedRequest.requestType === 'STATISTICS' ? 'Statistique' : 'Information' }}</span>
+    </div>
+    <div class="quick-info-item">
+      <span class="priority-chip" [class]="'priority-' + selectedRequest.priority">{{ getPriorityLabel(selectedRequest.priority) }}</span>
+    </div>
+    <div class="quick-info-item">
+      <span>{{ getCategoryLabel(selectedRequest.categoryRequest) }}</span>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: Contacts / Appels ===== -->
   <div class="contacts-section m-b-24">
     <div class="contacts-header">
-      <h4 class="f-w-600">Workflow Agent – Appels et Réponses</h4>
+      <h4 class="section-title">
+        <i-tabler name="phone" class="icon-20 m-r-8"></i-tabler>
+        Workflow Agent – Appels et Réponses
+      </h4>
       <div class="contacts-stats">
-        <span>{{ treatedContacts }}/{{ totalContacts }} contacts traités</span>
-        <span class="text-muted m-l-16">{{ remainingContacts }} restants</span>
+        <div class="progress-info">
+          <span class="progress-text">{{ treatedContacts }}/{{ totalContacts }} contacts traités</span>
+          <mat-progress-bar mode="determinate" [value]="totalContacts > 0 ? (treatedContacts / totalContacts) * 100 : 0" class="progress-bar-custom"></mat-progress-bar>
+        </div>
+        <span class="remaining-badge">{{ remainingContacts }} restants</span>
       </div>
     </div>
 
@@ -206,7 +260,33 @@
           <ng-container matColumnDef="contactStatus">
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let entry">
-              <span class="contact-status">{{ getStatusLabel(entry.contactStatus) }}</span>
+              <div class="d-flex align-items-center gap-8">
+                <i-tabler [name]="getStatusIcon(entry.contactStatus)" class="icon-16" [style.color]="getStatusIconColor(entry.contactStatus)"></i-tabler>
+                <span class="contact-status-text" [style.color]="getStatusIconColor(entry.contactStatus)">{{ getStatusLabel(entry.contactStatus) }}</span>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="completion">
+            <th mat-header-cell *matHeaderCellDef>Complétion</th>
+            <td mat-cell *matCellDef="let entry">
+              <div class="completion-cell" *ngIf="getContactCompletion(entry.contact.idC) >= 0; else noCheck">
+                <div class="completion-mini-bar">
+                  <div class="completion-fill" 
+                       [style.width.%]="getContactCompletion(entry.contact.idC)"
+                       [class.complete]="getContactCompletion(entry.contact.idC) === 100"
+                       [class.partial]="getContactCompletion(entry.contact.idC) > 0 && getContactCompletion(entry.contact.idC) < 100"
+                       [class.empty]="getContactCompletion(entry.contact.idC) === 0">
+                  </div>
+                </div>
+                <span class="completion-text">{{ getContactCompletion(entry.contact.idC) }}%</span>
+                <i-tabler name="circle-check" class="icon-16 text-success" *ngIf="isContactComplete(entry.contact.idC)"
+                          matTooltip="Toutes les réponses sont complètes"></i-tabler>
+                <i-tabler name="alert-triangle" class="icon-16 text-warning" *ngIf="!isContactComplete(entry.contact.idC) && getContactMissingCount(entry.contact.idC) > 0"
+                          [matTooltip]="getContactMissingCount(entry.contact.idC) + ' question(s) manquante(s)'"></i-tabler>
+              </div>
+              <ng-template #noCheck>
+                <span class="text-muted f-s-12">—</span>
+              </ng-template>
             </td>
           </ng-container>
           <ng-container matColumnDef="contactActions">
@@ -235,8 +315,33 @@
   <!-- ===== SECTION 3: Mettre à jour le Statut ===== -->
   <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
     <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Mettre à jour le Statut</mat-panel-title>
+      <mat-panel-title class="f-w-600">
+        <i-tabler name="settings" class="icon-18 m-r-8"></i-tabler>
+        Mettre à jour le Statut
+      </mat-panel-title>
     </mat-expansion-panel-header>
+
+    <!-- AI Warning before closure -->
+    <div class="ai-closure-warning m-b-16" 
+         *ngIf="consistencyReport && !consistencyReport.summary.canClose && (newRequestStatus === 'RESOLVED' || newRequestStatus === 'CLOSED')">
+      <div class="d-flex align-items-center gap-8">
+        <i-tabler name="alert-triangle" class="icon-20"></i-tabler>
+        <strong>Attention !</strong>
+      </div>
+      <p class="m-t-4 m-b-0">L'assistant IA a détecté {{ consistencyReport.summary.totalIssues }} problème(s). 
+        {{ consistencyReport.summary.incompleteContacts }} contact(s) ont des réponses incomplètes. 
+        Veuillez vérifier avant de clôturer.</p>
+      <div class="ai-issues-preview m-t-8" *ngIf="consistencyReport.issues.length > 0">
+        <div *ngFor="let issue of consistencyReport.issues.slice(0, 5)" class="ai-issue-item">
+          <i-tabler [name]="issue.type === 'MISSING' ? 'circle-minus' : 'alert-circle'" class="icon-14"></i-tabler>
+          <span>{{ issue.message }}</span>
+        </div>
+        <span class="text-muted f-s-12" *ngIf="consistencyReport.issues.length > 5">
+          ...et {{ consistencyReport.issues.length - 5 }} autre(s)
+        </span>
+      </div>
+    </div>
+
     <div class="status-update-section">
       <div class="d-flex align-items-center gap-12 m-b-16">
         <span class="f-w-500">Statut actuel:</span>
@@ -263,7 +368,10 @@
   <!-- ===== SECTION 4: Gestion des Rapports ===== -->
   <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
     <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Gestion des Rapports</mat-panel-title>
+      <mat-panel-title class="f-w-600">
+        <i-tabler name="file-report" class="icon-18 m-r-8"></i-tabler>
+        Gestion des Rapports
+      </mat-panel-title>
     </mat-expansion-panel-header>
     <div>
       <button mat-stroked-button (click)="generateReport()" class="m-b-12">
@@ -279,9 +387,12 @@
   </mat-expansion-panel>
 
   <!-- ===== SECTION 5: Historique des Appels et Activités ===== -->
-  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
+  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="false">
     <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Historique des Appels et Activités</mat-panel-title>
+      <mat-panel-title class="f-w-600">
+        <i-tabler name="history" class="icon-18 m-r-8"></i-tabler>
+        Historique des Appels et Activités
+      </mat-panel-title>
     </mat-expansion-panel-header>
     <div *ngIf="logsLoading" class="text-center p-24">
       <mat-spinner diameter="32" class="mx-auto"></mat-spinner>

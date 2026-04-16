@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { ContactService } from 'src/app/services/apps/contact/contact.service';
 import { CallbackService } from 'src/app/services/apps/callback.service';
-import { ResponseService } from 'src/app/services/apps/response.service';
+import { ResponseService, ConsistencyReport, ContactAnalysis, ConsistencyIssue } from 'src/app/services/apps/response.service';
 import { RoleService } from 'src/app/services/role.service';
 import { LogsService, LogEntry } from 'src/app/services/apps/logs.service';
 import { Request } from 'src/app/models/Request';
@@ -27,6 +27,9 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatSortModule } from '@angular/material/sort';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface CallEntry {
   request: Request;
@@ -39,7 +42,8 @@ interface CallEntry {
   standalone: true,
   imports: [
     CommonModule, MaterialModule, TablerIconsModule, FormsModule,
-    ReactiveFormsModule, MatPaginatorModule, MatDatepickerModule, MatNativeDateModule, MatSortModule, MatExpansionModule
+    ReactiveFormsModule, MatPaginatorModule, MatDatepickerModule, MatNativeDateModule, MatSortModule, MatExpansionModule,
+    MatProgressBarModule, MatBadgeModule, MatTooltipModule
   ],
   templateUrl: './calls.component.html',
   styleUrls: ['./calls.component.scss'],
@@ -64,7 +68,7 @@ export class CallsComponent implements OnInit, OnDestroy {
   // Detail view state
   showDetail = false;
   contactDataSource = new MatTableDataSource<CallEntry>([]);
-  contactColumns: string[] = ['name', 'phone', 'contactStatus', 'contactActions'];
+  contactColumns: string[] = ['name', 'phone', 'contactStatus', 'completion', 'contactActions'];
   contactSearch = '';
   contactStatusFilter = 'ALL';
   newRequestStatus = '';
@@ -96,6 +100,12 @@ export class CallsComponent implements OnInit, OnDestroy {
   callbackForm: FormGroup;
 
   private agentId: number | null = null;
+
+  // AI Consistency Assistant
+  consistencyReport: ConsistencyReport | null = null;
+  isCheckingConsistency = false;
+  showConsistencyPanel = false;
+  consistencyContactMap = new Map<number, ContactAnalysis>();
 
   callStatuses = [
     { value: ContactStatus.CONTACTED_AVAILABLE, label: 'Contacté avec succès' },
@@ -311,11 +321,15 @@ export class CallsComponent implements OnInit, OnDestroy {
     this.requestFilter = req.idR;
     this.newRequestStatus = req.status as string;
     this.showDetail = true;
+    this.consistencyReport = null;
+    this.showConsistencyPanel = false;
     this.loadContactDetails(req);
     this.buildCallEntries();
     this.applyContactFilter();
     this.loadReportStatus();
     this.loadLogs();
+    // Auto-check consistency when opening detail view
+    this.checkConsistency();
     setTimeout(() => {
       if (this.contactPaginator) {
         this.contactDataSource.paginator = this.contactPaginator;
@@ -479,6 +493,8 @@ export class CallsComponent implements OnInit, OnDestroy {
             this.isSavingResponses = false;
             this.snackBar.open('Réponses enregistrées avec succès', 'OK', { duration: 2000 });
             this.dialog.closeAll();
+            // Re-check consistency after saving
+            this.checkConsistency();
           }
         },
         error: (err) => {
@@ -595,5 +611,51 @@ export class CallsComponent implements OnInit, OnDestroy {
 
   navigateToCallbacks(): void {
     this.router.navigate(['/apps/callbacks']);
+  }
+
+  // ==== AI Consistency Assistant ====
+  checkConsistency(): void {
+    if (!this.selectedRequest) return;
+    this.isCheckingConsistency = true;
+    this.showConsistencyPanel = true;
+    this.responseService.checkConsistency(this.selectedRequest.idR).subscribe({
+      next: (report) => {
+        this.consistencyReport = report;
+        this.consistencyContactMap.clear();
+        for (const c of report.contacts) {
+          this.consistencyContactMap.set(c.contactId, c);
+        }
+        this.isCheckingConsistency = false;
+      },
+      error: () => {
+        this.isCheckingConsistency = false;
+        this.snackBar.open('Erreur lors de l\'analyse de cohérence', 'Fermer', { duration: 3000 });
+      }
+    });
+  }
+
+  getContactCompletion(contactId: number): number {
+    const ca = this.consistencyContactMap.get(contactId);
+    return ca ? ca.completionRate : -1;
+  }
+
+  getContactMissingCount(contactId: number): number {
+    const ca = this.consistencyContactMap.get(contactId);
+    return ca ? ca.missingQuestions.length : 0;
+  }
+
+  isContactComplete(contactId: number): boolean {
+    const ca = this.consistencyContactMap.get(contactId);
+    return ca ? ca.isComplete : false;
+  }
+
+  getIssuesByContact(contactId: number): ConsistencyIssue[] {
+    if (!this.consistencyReport) return [];
+    return this.consistencyReport.issues.filter(i => i.contactId === contactId);
+  }
+
+  autoDetectAndWarn(): void {
+    if (!this.selectedRequest) return;
+    this.checkConsistency();
   }
 }

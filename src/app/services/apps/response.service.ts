@@ -25,4 +25,46 @@ export class ResponseService {
   deleteResponse(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
+
+  checkConsistency(requestId: number): Observable<ConsistencyReport> {
+    return this.http.get<ConsistencyReport>(`${this.apiUrl}/consistency/${requestId}`);
+  }
+}
+
+export interface ConsistencyIssue {
+  type: 'MISSING' | 'INCONSISTENT';
+  severity: 'WARNING' | 'ERROR';
+  contactId: number;
+  contactName: string;
+  questionId: number;
+  message: string;
+}
+
+export interface ContactAnalysis {
+  contactId: number;
+  contactName: string;
+  answeredCount: number;
+  totalQuestions: number;
+  completionRate: number;
+  missingQuestions: { questionId: number; questionText: string; questionType: string }[];
+  inconsistencies: { questionId: number; questionText: string; issue: string }[];
+  isComplete: boolean;
+}
+
+export interface ConsistencySummary {
+  requestId: number;
+  totalContacts: number;
+  totalQuestions: number;
+  overallCompletionRate: number;
+  completeContacts: number;
+  incompleteContacts: number;
+  totalIssues: number;
+  canClose: boolean;
+}
+
+export interface ConsistencyReport {
+  summary: ConsistencySummary;
+  contacts: ContactAnalysis[];
+  issues: ConsistencyIssue[];
+  recommendation: string;
 }
