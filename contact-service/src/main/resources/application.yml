@@ -20,7 +20,7 @@ spring:
   # Spring Security OAuth2 configuration
 #  security:
 #    oauth2:
-#      client:
+# 
 #        registration:
 #          keycloak:
 #            client-id: callcenter-backend

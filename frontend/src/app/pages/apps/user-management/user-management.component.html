@@ -1,40 +1,50 @@
+<!-- Page Header -->
+<div class="page-header">
+  <h2>Liste des utilisateurs</h2>
+  <div class="breadcrumb">
+    <a routerLink="/dashboards/dashboard1">Dashboard</a>
+    <span class="dot"></span>
+    <span>Utilisateurs</span>
+  </div>
+</div>
+
 <mat-card class="cardWithShadow">
-  <mat-card-header>
-    <mat-card-title class="m-b-0">Gestion des Utilisateurs</mat-card-title>
-  </mat-card-header>
   <mat-card-content class="p-24">
-    <!-- Toolbar: search + add button -->
-    <div class="d-flex align-items-center justify-content-between m-b-16">
-      <mat-form-field appearance="outline" class="w-50">
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <mat-form-field appearance="outline" class="search-field">
         <mat-label>Rechercher un utilisateur</mat-label>
         <input matInput (keyup)="onSearch($event)" placeholder="Nom, email..." />
         <mat-icon matSuffix>search</mat-icon>
       </mat-form-field>
 
-      <button mat-flat-button color="primary" (click)="openAddUserDialog()">
-        <mat-icon>person_add</mat-icon>
-        Ajouter un utilisateur
-      </button>
-
-      <button mat-stroked-button color="accent" (click)="syncFromKeycloak()" class="m-l-8">
-        <mat-icon>sync</mat-icon>
-        Sync Keycloak
-      </button>
+      <div class="d-flex gap-2">
+        <button mat-stroked-button color="accent" (click)="syncFromKeycloak()">
+          <mat-icon>sync</mat-icon>
+          Sync Keycloak
+        </button>
+        <button mat-flat-button color="primary" class="add-btn" (click)="openAddUserDialog()">
+          <mat-icon>person_add</mat-icon>
+          Ajouter
+        </button>
+      </div>
     </div>
 
-    <!-- Loading spinner -->
+    <!-- Loading -->
     <div *ngIf="loading" class="d-flex justify-content-center p-24">
       <mat-spinner diameter="40"></mat-spinner>
     </div>
 
     <!-- Table -->
     <div class="table-responsive" *ngIf="!loading">
-      <table mat-table [dataSource]="dataSource" matSort class="w-100">
+      <table mat-table [dataSource]="dataSource" matSort class="user-table">
 
         <!-- Username -->
         <ng-container matColumnDef="username">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Nom d'utilisateur</th>
-          <td mat-cell *matCellDef="let user">{{ user.username }}</td>
+          <td mat-cell *matCellDef="let user">
+            <span class="f-w-600">{{ user.username }}</span>
+          </td>
         </ng-container>
 
         <!-- Email -->
@@ -43,24 +53,35 @@
           <td mat-cell *matCellDef="let user">{{ user.email }}</td>
         </ng-container>
 
-        <!-- Full Name -->
-        <ng-container matColumnDef="fullName">
-          <th mat-header-cell *matHeaderCellDef mat-sort-header>Nom complet</th>
-          <td mat-cell *matCellDef="let user">{{ user.fullName }}</td>
+        <!-- First Name -->
+        <ng-container matColumnDef="firstName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Prénom</th>
+          <td mat-cell *matCellDef="let user">{{ user.firstName || '—' }}</td>
+        </ng-container>
+
+        <!-- Last Name -->
+        <ng-container matColumnDef="lastName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Nom</th>
+          <td mat-cell *matCellDef="let user">{{ user.lastName || '—' }}</td>
         </ng-container>
 
         <!-- Role -->
         <ng-container matColumnDef="role">
           <th mat-header-cell *matHeaderCellDef mat-sort-header>Rôle</th>
-          <td mat-cell *matCellDef="let user">{{ user.role }}</td>
+          <td mat-cell *matCellDef="let user">
+            <span class="role-chip" [ngClass]="getRoleClass(user.role)">
+              {{ getRoleLabel(user.role) }}
+            </span>
+          </td>
         </ng-container>
 
         <!-- Enabled -->
         <ng-container matColumnDef="enabled">
-          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <th mat-header-cell *matHeaderCellDef>Actif</th>
           <td mat-cell *matCellDef="let user">
-            <span class="bg-light-{{ user.enabled ? 'success' : 'error' }} text-{{ user.enabled ? 'success' : 'error' }} rounded f-w-600 p-6 p-y-4 f-s-12">
-              {{ user.enabled ? 'Actif' : 'Désactivé' }}
+            <span class="status-chip" [ngClass]="user.enabled ? 'active' : 'disabled'">
+              <span class="status-dot"></span>
+              {{ user.enabled ? 'Actif' : 'Inactif' }}
             </span>
           </td>
         </ng-container>
@@ -69,38 +90,49 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef>Actions</th>
           <td mat-cell *matCellDef="let user">
-            <button mat-icon-button [matMenuTriggerFor]="menu" matTooltip="Actions">
-              <mat-icon>more_vert</mat-icon>
-            </button>
-            <mat-menu #menu="matMenu">
-              <button mat-menu-item (click)="toggleUserEnabled(user)">
-                <mat-icon>{{ user.enabled ? 'block' : 'check_circle' }}</mat-icon>
-                <span>{{ user.enabled ? 'Désactiver' : 'Activer' }}</span>
+            <div class="action-buttons">
+              <button mat-icon-button class="action-btn edit-btn"
+                      matTooltip="Modifier" (click)="openEditUserDialog(user)">
+                <mat-icon>edit</mat-icon>
               </button>
-              <button mat-menu-item (click)="sendResetEmail(user)">
-                <mat-icon>email</mat-icon>
-                <span>Envoyer email reset mdp</span>
+              <button mat-icon-button class="action-btn delete-btn"
+                      matTooltip="Supprimer" (click)="deleteUser(user)">
+                <mat-icon>delete</mat-icon>
               </button>
-              <button mat-menu-item (click)="deleteUser(user)" class="text-error">
-                <mat-icon color="warn">delete</mat-icon>
-                <span>Supprimer</span>
+              <button mat-icon-button class="action-btn view-btn"
+                      matTooltip="Voir détails" (click)="viewUser(user)">
+                <mat-icon>visibility</mat-icon>
               </button>
-            </mat-menu>
+              <button mat-icon-button class="action-btn role-btn"
+                      matTooltip="Assigner rôle" (click)="openRoleDialog(user)">
+                <mat-icon>admin_panel_settings</mat-icon>
+              </button>
+              <button mat-icon-button class="action-btn sync-btn"
+                      matTooltip="{{ user.enabled ? 'Désactiver' : 'Activer' }}"
+                      (click)="toggleUserEnabled(user)">
+                <mat-icon>{{ user.enabled ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+              </button>
+            </div>
           </td>
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
-        <!-- No data -->
         <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell text-center p-24" [attr.colspan]="displayedColumns.length">
-            Aucun utilisateur trouvé
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="empty-state">
+              <mat-icon>people_outline</mat-icon>
+              <p>Aucun utilisateur trouvé</p>
+            </div>
           </td>
         </tr>
       </table>
 
-      <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
+      <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]"
+                     showFirstLastButtons></mat-paginator>
     </div>
   </mat-card-content>
 </mat-card>
+
+

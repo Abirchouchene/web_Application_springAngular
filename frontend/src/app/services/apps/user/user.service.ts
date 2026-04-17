@@ -109,4 +109,9 @@ export class UserService {
   syncKeycloakUsers(): Observable<KeycloakUser[]> {
     return this.http.post<KeycloakUser[]>(`${this.adminUrl}/users/sync`, {});
   }
+
+  /** PUT /api/admin/users/{id}/role — change user role */
+  changeUserRole(userId: number, role: string): Observable<any> {
+    return this.http.put<any>(`${this.adminUrl}/users/${userId}/role`, { role });
+  }
 }

@@ -43,12 +43,13 @@ public class MinioStorageService {
     }
 
     /**
-     * Upload a file (byte[]) to MinIO.
+     * Upload a file (byte[]) to MinIO and return the presigned download URL.
      * @param objectName the key/path in the bucket (e.g. "reports/rapport-42.pdf")
      * @param data the file bytes
      * @param contentType MIME type (e.g. "application/pdf")
+     * @return presigned download URL for the uploaded file
      */
-    public void uploadFile(String objectName, byte[] data, String contentType) {
+    public String uploadFile(String objectName, byte[] data, String contentType) {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(data)) {
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -58,6 +59,7 @@ public class MinioStorageService {
                             .contentType(contentType)
                             .build());
             log.info("Uploaded '{}' to MinIO bucket '{}'", objectName, bucket);
+            return getPresignedUrl(objectName);
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload to MinIO: " + e.getMessage(), e);
         }

@@ -83,6 +83,13 @@ public class DataAnonymizationService {
     }
 
     /**
+     * Public method to anonymize arbitrary text — removes PII patterns.
+     */
+    public String anonymizeText(String text) {
+        return scrubPii(text);
+    }
+
+    /**
      * Scrubs PII patterns from a free-text string.
      */
     private String scrubPii(String text) {

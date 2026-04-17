@@ -53,6 +53,7 @@ public class ContactService {
         return contactRepository.findAll();
     }
 
+    @Transactional
     public Contact createContact(ContactDTO dto) {
         Contact contact = new Contact();
         contact.setName(dto.getName());
@@ -60,34 +61,38 @@ public class ContactService {
         contact.setCallStatus(ContactStatus.NOT_CONTACTED);
         contact.setLastCallAttempt(null);
 
+        contact = contactRepository.save(contact);
+
         if (dto.getTagIds() != null && !dto.getTagIds().isEmpty()) {
             Set<Tag> tags = dto.getTagIds().stream()
                     .map(tagId -> tagRepository.findById(tagId)
                             .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId)))
                     .collect(Collectors.toSet());
             contact.setTags(tags);
+            contact = contactRepository.save(contact);
+        }
+
+        return contact;
+    }
+
+    @Transactional
+    public Contact updateContact(Long id, ContactDTO dto) {
+        Contact contact = contactRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Contact not found"));
+
+        contact.setName(dto.getName());
+        contact.setPhoneNumber(dto.getPhoneNumber());
+
+        if (dto.getTagIds() != null) {
+            Set<Tag> tags = dto.getTagIds().stream()
+                    .map(tagId -> tagRepository.findById(tagId)
+                            .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId)))
+                    .collect(Collectors.toSet());
+            contact.getTags().clear();
+            contact.getTags().addAll(tags);
         }
 
         return contactRepository.save(contact);
-    }
-
-    public Contact updateContact(Long id, ContactDTO dto) {
-        return contactRepository.findById(id)
-                .map(contact -> {
-                    contact.setName(dto.getName());
-                    contact.setPhoneNumber(dto.getPhoneNumber());
-
-                    if (dto.getTagIds() != null) {
-                        Set<Tag> tags = dto.getTagIds().stream()
-                                .map(tagId -> tagRepository.findById(tagId)
-                                        .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId)))
-                                .collect(Collectors.toSet());
-                        contact.setTags(tags);
-                    }
-
-                    return contactRepository.save(contact);
-                })
-                .orElseThrow(() -> new RuntimeException("Contact not found"));
     }
 
     @Transactional

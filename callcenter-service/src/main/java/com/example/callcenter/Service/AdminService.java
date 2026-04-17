@@ -4,7 +4,10 @@ import com.example.callcenter.DTO.CreateUserDTO;
 import com.example.callcenter.Entity.PasswordResetToken;
 import com.example.callcenter.Entity.Role;
 import com.example.callcenter.Entity.User;
+import com.example.callcenter.Repository.NotificationRepository;
 import com.example.callcenter.Repository.PasswordResetTokenRepository;
+import com.example.callcenter.Repository.ReportRepository;
+import com.example.callcenter.Repository.RequestRepository;
 import com.example.callcenter.Repository.UserRepository;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,9 @@ public class AdminService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailService emailService;
+    private final RequestRepository requestRepository;
+    private final NotificationRepository notificationRepository;
+    private final ReportRepository reportRepository;
 
     @Value("${keycloak.realm}")
     private String realm;
@@ -254,7 +260,52 @@ public class AdminService {
 
     @Transactional
     public void deleteUser(Long userId) {
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+
+        // 1. Nullify agent reference on assigned requests (FK constraint)
+        List<com.example.callcenter.Entity.Request> assignedRequests = requestRepository.findByAgent_IdUser(userId);
+        for (com.example.callcenter.Entity.Request r : assignedRequests) {
+            r.setAgent(null);
+        }
+        requestRepository.saveAll(assignedRequests);
+
+        // 2. Delete notifications referencing this user
+        notificationRepository.deleteByAgent_IdUser(userId);
+
+        // 3. For each owned request: clear questions + delete report
+        List<com.example.callcenter.Entity.Request> ownedRequests = user.getRequests();
+        for (com.example.callcenter.Entity.Request r : ownedRequests) {
+            // Clear ManyToMany join table (request_questions)
+            r.getQuestions().clear();
+            // Handle bidirectional Report <-> Request
+            if (r.getReport() != null) {
+                com.example.callcenter.Entity.Report report = r.getReport();
+                report.setRequest(null);
+                reportRepository.save(report);
+                r.setReport(null);
+                requestRepository.save(r);
+                reportRepository.delete(report);
+            }
+        }
+        requestRepository.saveAll(ownedRequests);
+        requestRepository.flush();
+
+        // 4. Delete from Keycloak
+        try {
+            UsersResource usersResource = getRealmResource().users();
+            List<UserRepresentation> kcUsers = usersResource.searchByUsername(user.getUsername(), true);
+            if (!kcUsers.isEmpty()) {
+                usersResource.delete(kcUsers.get(0).getId());
+                log.info("Deleted Keycloak user: {}", user.getUsername());
+            }
+        } catch (Exception e) {
+            log.warn("Could not delete Keycloak user {}: {}", user.getUsername(), e.getMessage());
+        }
+
+        // 5. Delete local DB user (cascade handles owned requests, leaves, logs, submissions)
+        userRepository.delete(user);
+        log.info("Deleted user {} (id={})", user.getUsername(), userId);
     }
 
     @Transactional

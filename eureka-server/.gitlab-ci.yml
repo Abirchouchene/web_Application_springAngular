@@ -1,0 +1,21 @@
+include:
+  - project: "the-portal/ci-templates"
+    ref: main
+    file: "/.gitlab-ci-template.yml"
+trigger_deployment:
+  stage: containerization
+  trigger:
+    project: the-portal/manifests
+    branch: $CI_COMMIT_REF_NAME
+    strategy: depend
+    forward:
+      pipeline_variables: true
+  variables:
+    SERVICE_NAME: gateaway-service
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main" || $CI_COMMIT_REF_NAME == "staging" || $CI_COMMIT_REF_NAME == "development"'
+      when: always
+  needs:
+    - job: docker_build_push
+
+

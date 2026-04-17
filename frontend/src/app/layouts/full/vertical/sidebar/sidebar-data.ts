@@ -9,8 +9,15 @@ export const navItems: NavItem[] = [
     displayName: 'Tableau de bord',
     iconName: 'layout-dashboard',
     bgcolor: 'primary',
+    route: '/dashboards/admin',
+    roles: ['ADMIN'],
+  },
+  {
+    displayName: 'Tableau de bord',
+    iconName: 'layout-dashboard',
+    bgcolor: 'primary',
     route: '/dashboards/dashboard1',
-    roles: ['ADMIN', 'MANAGER', 'AGENT', 'SURVEY_REQUESTER'],
+    roles: ['MANAGER', 'AGENT', 'SURVEY_REQUESTER'],
   },
 
   // ===================== AGENT =====================
@@ -102,13 +109,6 @@ export const navItems: NavItem[] = [
     roles: ['MANAGER'],
   },
   {
-    displayName: 'Dashboard 1',
-    iconName: 'layout-dashboard',
-    bgcolor: 'primary',
-    route: '/dashboards/dashboard1',
-    roles: ['MANAGER'],
-  },
-  {
     displayName: 'Rapports',
     iconName: 'file-report',
     bgcolor: 'info',
@@ -146,22 +146,8 @@ export const navItems: NavItem[] = [
     displayName: 'Demandes',
     iconName: 'file-invoice',
     bgcolor: 'primary',
-    route: '',
+    route: '/apps/invoice',
     roles: ['ADMIN'],
-    children: [
-      {
-        displayName: 'Toutes les Demandes',
-        iconName: 'point',
-        bgcolor: 'tranparent',
-        route: '/apps/invoice',
-      },
-      {
-        displayName: 'Créer une Demande',
-        iconName: 'point',
-        bgcolor: 'tranparent',
-        route: '/apps/addInvoice',
-      },
-    ],
   },
   {
     displayName: 'Gestion des Demandes',
@@ -189,13 +175,6 @@ export const navItems: NavItem[] = [
     iconName: 'phone-calling',
     bgcolor: 'secondary',
     route: 'apps/callbacks',
-    roles: ['ADMIN'],
-  },
-  {
-    displayName: 'Gestion des Appels',
-    iconName: 'headset',
-    bgcolor: 'accent',
-    route: 'apps/calls',
     roles: ['ADMIN'],
   },
   {

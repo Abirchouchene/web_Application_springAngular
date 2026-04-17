@@ -20,7 +20,7 @@ public class Report implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "report")
     private Request request;
 
     private String requestTitle;

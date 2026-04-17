@@ -3,20 +3,32 @@
   <!-- Summary Cards -->
   <div class="summary-row">
     <div class="summary-card total">
+      <div class="summary-icon-wrap total-icon">
+        <i-tabler name="phone" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ assignedRequests.length }}</span>
       <span class="summary-label">Total des Appels</span>
     </div>
     <div class="summary-card en-cours">
+      <div class="summary-icon-wrap progress-icon">
+        <i-tabler name="loader" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ countByStatus('IN_PROGRESS') }}</span>
       <span class="summary-label">En Cours</span>
     </div>
     <div class="summary-card ouvert">
+      <div class="summary-icon-wrap open-icon">
+        <i-tabler name="folder-open" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ countByStatus('ASSIGNED') }}</span>
       <span class="summary-label">Ouvert</span>
     </div>
     <div class="summary-card ferme">
+      <div class="summary-icon-wrap closed-icon">
+        <i-tabler name="circle-check" class="icon-24"></i-tabler>
+      </div>
       <span class="summary-count">{{ countByStatus('RESOLVED') }}</span>
-      <span class="summary-label">Fermé</span>
+      <span class="summary-label">Terminé</span>
     </div>
   </div>
 
@@ -110,54 +122,96 @@
 
   <!-- Header -->
   <div class="detail-header">
-    <h3 class="detail-title">Demande #{{ selectedRequest.idR }}</h3>
-    <button mat-stroked-button class="back-btn" (click)="closeDetailView()">Retour aux Tickets</button>
+    <div class="d-flex align-items-center gap-16">
+      <button mat-icon-button class="back-icon-btn" (click)="closeDetailView()">
+        <i-tabler name="arrow-left" class="icon-20"></i-tabler>
+      </button>
+      <div>
+        <h3 class="detail-title">Demande #{{ selectedRequest.idR }}</h3>
+        <span class="detail-subtitle">{{ selectedRequest.title || selectedRequest.description }}</span>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-12">
+      <button mat-flat-button class="ai-check-btn" (click)="checkConsistency()" [disabled]="isCheckingConsistency">
+        <i-tabler name="brain" class="icon-18 m-r-4"></i-tabler>
+        {{ isCheckingConsistency ? 'Analyse...' : 'Assistant IA' }}
+      </button>
+      <span class="status-badge-lg" [class]="'status-' + selectedRequest.status">
+        {{ getRequestStatusLabel(selectedRequest.status) }}
+      </span>
+    </div>
   </div>
 
-  <!-- ===== SECTION 1: Détails de la Demande ===== -->
-  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
-    <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Détails de la Demande</mat-panel-title>
-    </mat-expansion-panel-header>
-    <div class="detail-grid">
-      <div class="detail-field">
-        <span class="detail-label">Statut:</span>
-        <span class="detail-value">{{ getRequestStatusLabel(selectedRequest.status) }}</span>
+  <!-- ===== AI CONSISTENCY ASSISTANT BANNER ===== -->
+  <div class="ai-assistant-banner" *ngIf="consistencyReport && !isCheckingConsistency" 
+       [class.ai-success]="consistencyReport.summary.canClose"
+       [class.ai-warning]="!consistencyReport.summary.canClose">
+    <div class="ai-banner-left">
+      <div class="ai-avatar">
+        <i-tabler name="brain" class="icon-24"></i-tabler>
       </div>
-      <div class="detail-field text-right">
-        <span class="detail-label">Date Limite:</span>
-        <span class="detail-value">{{ selectedRequest.deadline ? formatDateFull(selectedRequest.deadline) : 'N/A' }}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-label">Demandeur:</span>
-        <span class="detail-value">{{ selectedRequest.user.fullName || selectedRequest.user.username || 'Inconnu' }}</span>
-      </div>
-      <div class="detail-field text-right">
-        <span class="detail-label">Type:</span>
-        <span class="detail-value">{{ selectedRequest.requestType === 'STATISTICS' ? 'Statistique' : 'Information' }}</span>
-      </div>
-      <div class="detail-field">
-        <span class="detail-label">Priorité:</span>
-        <span class="detail-value" [class]="'priority-text-' + selectedRequest.priority">{{ selectedRequest.priority }}</span>
-      </div>
-      <div class="detail-field text-right">
-        <span class="detail-label">Catégorie:</span>
-        <span class="detail-value">{{ getCategoryLabel(selectedRequest.categoryRequest).toUpperCase() }}</span>
+      <div class="ai-banner-content">
+        <span class="ai-banner-title">Assistant de Cohérence IA</span>
+        <span class="ai-banner-message">{{ consistencyReport.recommendation }}</span>
       </div>
     </div>
-    <div class="m-t-16" *ngIf="selectedRequest.description">
-      <span class="detail-label">Description:</span>
-      <p class="detail-value m-t-4">{{ selectedRequest.description }}</p>
+    <div class="ai-banner-stats">
+      <div class="ai-stat">
+        <span class="ai-stat-value">{{ consistencyReport.summary.overallCompletionRate }}%</span>
+        <span class="ai-stat-label">Complétion</span>
+      </div>
+      <div class="ai-stat">
+        <span class="ai-stat-value">{{ consistencyReport.summary.completeContacts }}/{{ consistencyReport.summary.totalContacts }}</span>
+        <span class="ai-stat-label">Contacts OK</span>
+      </div>
+      <div class="ai-stat">
+        <span class="ai-stat-value" [class.issues-count]="consistencyReport.summary.totalIssues > 0">{{ consistencyReport.summary.totalIssues }}</span>
+        <span class="ai-stat-label">Problèmes</span>
+      </div>
     </div>
-  </mat-expansion-panel>
+  </div>
 
-  <!-- ===== SECTION 2: Contacts / Appels ===== -->
+  <!-- Loading AI check -->
+  <div class="ai-loading-banner" *ngIf="isCheckingConsistency">
+    <mat-spinner diameter="24"></mat-spinner>
+    <span>Analyse de cohérence en cours...</span>
+  </div>
+
+  <!-- Quick Info Bar -->
+  <div class="quick-info-bar m-b-20">
+    <div class="quick-info-item">
+      <i-tabler name="user" class="icon-16"></i-tabler>
+      <span>{{ selectedRequest.user?.fullName || 'Inconnu' }}</span>
+    </div>
+    <div class="quick-info-item">
+      <i-tabler name="calendar" class="icon-16"></i-tabler>
+      <span>Limite: {{ selectedRequest.deadline ? formatDateFull(selectedRequest.deadline) : 'N/A' }}</span>
+    </div>
+    <div class="quick-info-item">
+      <i-tabler name="tag" class="icon-16"></i-tabler>
+      <span>{{ selectedRequest.requestType === 'STATISTICS' ? 'Statistique' : 'Information' }}</span>
+    </div>
+    <div class="quick-info-item">
+      <span class="priority-chip" [class]="'priority-' + selectedRequest.priority">{{ getPriorityLabel(selectedRequest.priority) }}</span>
+    </div>
+    <div class="quick-info-item">
+      <span>{{ getCategoryLabel(selectedRequest.categoryRequest) }}</span>
+    </div>
+  </div>
+
+  <!-- ===== SECTION: Contacts / Appels ===== -->
   <div class="contacts-section m-b-24">
     <div class="contacts-header">
-      <h4 class="f-w-600">Workflow Agent – Appels et Réponses</h4>
+      <h4 class="section-title">
+        <i-tabler name="phone" class="icon-20 m-r-8"></i-tabler>
+        Workflow Agent – Appels et Réponses
+      </h4>
       <div class="contacts-stats">
-        <span>{{ treatedContacts }}/{{ totalContacts }} contacts traités</span>
-        <span class="text-muted m-l-16">{{ remainingContacts }} restants</span>
+        <div class="progress-info">
+          <span class="progress-text">{{ treatedContacts }}/{{ totalContacts }} contacts traités</span>
+          <mat-progress-bar mode="determinate" [value]="totalContacts > 0 ? (treatedContacts / totalContacts) * 100 : 0" class="progress-bar-custom"></mat-progress-bar>
+        </div>
+        <span class="remaining-badge">{{ remainingContacts }} restants</span>
       </div>
     </div>
 
@@ -206,7 +260,33 @@
           <ng-container matColumnDef="contactStatus">
             <th mat-header-cell *matHeaderCellDef>Statut</th>
             <td mat-cell *matCellDef="let entry">
-              <span class="contact-status">{{ getStatusLabel(entry.contactStatus) }}</span>
+              <div class="d-flex align-items-center gap-8">
+                <i-tabler [name]="getStatusIcon(entry.contactStatus)" class="icon-16" [style.color]="getStatusIconColor(entry.contactStatus)"></i-tabler>
+                <span class="contact-status-text" [style.color]="getStatusIconColor(entry.contactStatus)">{{ getStatusLabel(entry.contactStatus) }}</span>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="completion">
+            <th mat-header-cell *matHeaderCellDef>Complétion</th>
+            <td mat-cell *matCellDef="let entry">
+              <div class="completion-cell" *ngIf="getContactCompletion(entry.contact.idC) >= 0; else noCheck">
+                <div class="completion-mini-bar">
+                  <div class="completion-fill" 
+                       [style.width.%]="getContactCompletion(entry.contact.idC)"
+                       [class.complete]="getContactCompletion(entry.contact.idC) === 100"
+                       [class.partial]="getContactCompletion(entry.contact.idC) > 0 && getContactCompletion(entry.contact.idC) < 100"
+                       [class.empty]="getContactCompletion(entry.contact.idC) === 0">
+                  </div>
+                </div>
+                <span class="completion-text">{{ getContactCompletion(entry.contact.idC) }}%</span>
+                <i-tabler name="circle-check" class="icon-16 text-success" *ngIf="isContactComplete(entry.contact.idC)"
+                          matTooltip="Toutes les réponses sont complètes"></i-tabler>
+                <i-tabler name="alert-triangle" class="icon-16 text-warning" *ngIf="!isContactComplete(entry.contact.idC) && getContactMissingCount(entry.contact.idC) > 0"
+                          [matTooltip]="getContactMissingCount(entry.contact.idC) + ' question(s) manquante(s)'"></i-tabler>
+              </div>
+              <ng-template #noCheck>
+                <span class="text-muted f-s-12">—</span>
+              </ng-template>
             </td>
           </ng-container>
           <ng-container matColumnDef="contactActions">
@@ -235,8 +315,33 @@
   <!-- ===== SECTION 3: Mettre à jour le Statut ===== -->
   <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
     <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Mettre à jour le Statut</mat-panel-title>
+      <mat-panel-title class="f-w-600">
+        <i-tabler name="settings" class="icon-18 m-r-8"></i-tabler>
+        Mettre à jour le Statut
+      </mat-panel-title>
     </mat-expansion-panel-header>
+
+    <!-- AI Warning before closure -->
+    <div class="ai-closure-warning m-b-16" 
+         *ngIf="consistencyReport && !consistencyReport.summary.canClose && (newRequestStatus === 'RESOLVED' || newRequestStatus === 'CLOSED')">
+      <div class="d-flex align-items-center gap-8">
+        <i-tabler name="alert-triangle" class="icon-20"></i-tabler>
+        <strong>Attention !</strong>
+      </div>
+      <p class="m-t-4 m-b-0">L'assistant IA a détecté {{ consistencyReport.summary.totalIssues }} problème(s). 
+        {{ consistencyReport.summary.incompleteContacts }} contact(s) ont des réponses incomplètes. 
+        Veuillez vérifier avant de clôturer.</p>
+      <div class="ai-issues-preview m-t-8" *ngIf="consistencyReport.issues.length > 0">
+        <div *ngFor="let issue of consistencyReport.issues.slice(0, 5)" class="ai-issue-item">
+          <i-tabler [name]="issue.type === 'MISSING' ? 'circle-minus' : 'alert-circle'" class="icon-14"></i-tabler>
+          <span>{{ issue.message }}</span>
+        </div>
+        <span class="text-muted f-s-12" *ngIf="consistencyReport.issues.length > 5">
+          ...et {{ consistencyReport.issues.length - 5 }} autre(s)
+        </span>
+      </div>
+    </div>
+
     <div class="status-update-section">
       <div class="d-flex align-items-center gap-12 m-b-16">
         <span class="f-w-500">Statut actuel:</span>
@@ -263,7 +368,10 @@
   <!-- ===== SECTION 4: Gestion des Rapports ===== -->
   <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
     <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Gestion des Rapports</mat-panel-title>
+      <mat-panel-title class="f-w-600">
+        <i-tabler name="file-report" class="icon-18 m-r-8"></i-tabler>
+        Gestion des Rapports
+      </mat-panel-title>
     </mat-expansion-panel-header>
     <div>
       <button mat-stroked-button (click)="generateReport()" class="m-b-12">
@@ -279,9 +387,12 @@
   </mat-expansion-panel>
 
   <!-- ===== SECTION 5: Historique des Appels et Activités ===== -->
-  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="true">
+  <mat-expansion-panel class="detail-panel m-b-24" [expanded]="false">
     <mat-expansion-panel-header>
-      <mat-panel-title class="f-w-600">Historique des Appels et Activités</mat-panel-title>
+      <mat-panel-title class="f-w-600">
+        <i-tabler name="history" class="icon-18 m-r-8"></i-tabler>
+        Historique des Appels et Activités
+      </mat-panel-title>
     </mat-expansion-panel-header>
     <div *ngIf="logsLoading" class="text-center p-24">
       <mat-spinner diameter="32" class="mx-auto"></mat-spinner>
@@ -337,61 +448,218 @@
 
 <!-- ===== RESPONSE COLLECTION DIALOG ===== -->
 <ng-template #responseDialog>
-  <h2 mat-dialog-title>Collecte des Réponses – {{ responseContact?.name }}</h2>
+  <h2 mat-dialog-title class="copilot-dialog-title">
+    <div class="d-flex align-items-center gap-8">
+      <i-tabler name="phone" class="icon-20"></i-tabler>
+      Collecte des Réponses – {{ responseContact?.name }}
+    </div>
+    <div class="copilot-title-actions">
+      <button class="copilot-toggle-btn" (click)="showCopilotPanel = !showCopilotPanel"
+              [class.active]="showCopilotPanel" matTooltip="Call Copilot IA">
+        <i-tabler name="sparkles" class="icon-16"></i-tabler>
+        <span>Copilot</span>
+      </button>
+    </div>
+  </h2>
   <mat-dialog-content>
-    <div class="m-b-16">
-      <div class="d-flex align-items-center gap-8 m-b-8">
-        <span class="response-info-dot"></span>
-        <span>Vous êtes sur le point de collecter les réponses pour <strong>{{ responseContact?.name }}</strong>.</span>
-      </div>
-      <div class="response-status-badge" *ngIf="responseContactStatus">
-        Statut: {{ getStatusLabel(responseContactStatus) }}
-      </div>
-    </div>
-    <h6 class="f-w-600 m-b-16">Questions à poser</h6>
-    <div *ngFor="let q of responseQuestions; let i = index" class="question-card m-b-16">
-      <div class="d-flex align-items-center justify-content-between m-b-8">
-        <div class="d-flex align-items-center gap-8">
-          <span class="question-number">{{ i + 1 }}</span>
-          <span class="f-w-500">{{ q.text }}</span>
+    <div class="copilot-layout" [class.copilot-expanded]="showCopilotPanel">
+      <!-- LEFT: Questions -->
+      <div class="copilot-questions">
+        <div class="m-b-16">
+          <div class="d-flex align-items-center gap-8 m-b-8">
+            <span class="response-info-dot"></span>
+            <span>Vous êtes sur le point de collecter les réponses pour <strong>{{ responseContact?.name }}</strong>.</span>
+          </div>
+          <div class="response-status-badge" *ngIf="responseContactStatus">
+            Statut: {{ getStatusLabel(responseContactStatus) }}
+          </div>
         </div>
-        <span class="question-type-badge">Type: {{ getQuestionTypeLabel(q.questionType || q.type!) }}</span>
+        <h6 class="f-w-600 m-b-16">Questions à poser</h6>
+        <div *ngFor="let q of responseQuestions; let i = index" class="question-card m-b-16">
+          <div class="d-flex align-items-center justify-content-between m-b-8">
+            <div class="d-flex align-items-center gap-8">
+              <span class="question-number">{{ i + 1 }}</span>
+              <span class="f-w-500">{{ q.text }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-8">
+              <span class="question-type-badge">Type: {{ getQuestionTypeLabel(q.questionType || q.type!) }}</span>
+              <button class="copilot-analyze-btn" *ngIf="q.response && showCopilotPanel"
+                      (click)="analyzeLiveResponse(q)" [disabled]="isAnalyzing"
+                      matTooltip="Analyser cette réponse">
+                <i-tabler name="sparkles" class="icon-14"></i-tabler>
+              </button>
+            </div>
+          </div>
+          <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.YES_OR_NO" class="d-flex gap-16"
+                           (ngModelChange)="showCopilotPanel && analyzeLiveResponse(q)">
+            <mat-radio-button value="true">Oui</mat-radio-button>
+            <mat-radio-button value="false">Non</mat-radio-button>
+          </mat-radio-group>
+          <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.MULTIPLE_CHOICE" class="d-flex flex-column gap-8"
+                           (ngModelChange)="showCopilotPanel && analyzeLiveResponse(q)">
+            <mat-radio-button *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-radio-button>
+          </mat-radio-group>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DROPDOWN">
+            <mat-label>Sélectionner</mat-label>
+            <mat-select [(ngModel)]="q.response" (ngModelChange)="showCopilotPanel && analyzeLiveResponse(q)">
+              <mat-option *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.SHORT_ANSWER">
+            <mat-label>Réponse</mat-label>
+            <input matInput [(ngModel)]="q.response" (blur)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.PARAGRAPH">
+            <mat-label>Réponse</mat-label>
+            <textarea matInput [(ngModel)]="q.response" rows="3" (blur)="showCopilotPanel && q.response && analyzeLiveResponse(q)"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.NUMBER">
+            <mat-label>Nombre</mat-label>
+            <input matInput type="number" [(ngModel)]="q.response" (blur)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DATE">
+            <mat-label>Date</mat-label>
+            <input matInput [(ngModel)]="q.response" type="date" (change)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.TIME">
+            <mat-label>Heure</mat-label>
+            <input matInput [(ngModel)]="q.response" type="time" (change)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+        </div>
+        <div *ngIf="responseQuestions.length === 0" class="text-center p-24 text-muted">Aucune question définie.</div>
       </div>
-      <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.YES_OR_NO" class="d-flex gap-16">
-        <mat-radio-button value="true">Oui</mat-radio-button>
-        <mat-radio-button value="false">Non</mat-radio-button>
-      </mat-radio-group>
-      <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.MULTIPLE_CHOICE" class="d-flex flex-column gap-8">
-        <mat-radio-button *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-radio-button>
-      </mat-radio-group>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DROPDOWN">
-        <mat-label>Sélectionner</mat-label>
-        <mat-select [(ngModel)]="q.response">
-          <mat-option *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.SHORT_ANSWER">
-        <mat-label>Réponse</mat-label>
-        <input matInput [(ngModel)]="q.response" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.PARAGRAPH">
-        <mat-label>Réponse</mat-label>
-        <textarea matInput [(ngModel)]="q.response" rows="3"></textarea>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.NUMBER">
-        <mat-label>Nombre</mat-label>
-        <input matInput type="number" [(ngModel)]="q.response" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DATE">
-        <mat-label>Date</mat-label>
-        <input matInput [(ngModel)]="q.response" type="date" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.TIME">
-        <mat-label>Heure</mat-label>
-        <input matInput [(ngModel)]="q.response" type="time" />
-      </mat-form-field>
+
+      <!-- RIGHT: Copilot Sidebar -->
+      <div class="copilot-sidebar" *ngIf="showCopilotPanel">
+        <div class="copilot-sidebar-header">
+          <div class="copilot-avatar-sm">
+            <i-tabler name="sparkles" class="icon-18"></i-tabler>
+          </div>
+          <span class="copilot-sidebar-title">Call Copilot</span>
+        </div>
+
+        <!-- Loading -->
+        <div class="copilot-loading" *ngIf="isAnalyzing">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Analyse en cours...</span>
+        </div>
+
+        <!-- No analysis yet -->
+        <div class="copilot-empty" *ngIf="!copilotAnalysis && !isAnalyzing && !showSummaryPanel">
+          <i-tabler name="message-chatbot" class="icon-32 text-muted"></i-tabler>
+          <span>Répondez à une question pour activer l'assistant IA</span>
+        </div>
+
+        <!-- Analysis Results -->
+        <div class="copilot-results" *ngIf="copilotAnalysis && !isAnalyzing">
+          <!-- Sentiment Badge -->
+          <div class="copilot-sentiment" [style.border-color]="getSentimentColor(copilotAnalysis.sentiment)">
+            <i-tabler [name]="getSentimentIcon(copilotAnalysis.sentiment)" class="icon-18"
+                       [style.color]="getSentimentColor(copilotAnalysis.sentiment)"></i-tabler>
+            <span [style.color]="getSentimentColor(copilotAnalysis.sentiment)">{{ getSentimentLabel(copilotAnalysis.sentiment) }}</span>
+            <span class="copilot-confidence">{{ (copilotAnalysis.confidence * 100) | number:'1.0-0' }}%</span>
+          </div>
+
+          <!-- Suggestion -->
+          <div class="copilot-card suggestion-card" *ngIf="copilotAnalysis.suggestion">
+            <div class="copilot-card-header">
+              <i-tabler name="bulb" class="icon-16"></i-tabler>
+              <span>Suggestion</span>
+            </div>
+            <p class="copilot-card-text">{{ copilotAnalysis.suggestion }}</p>
+          </div>
+
+          <!-- Reformulation -->
+          <div class="copilot-card reformulation-card" *ngIf="copilotAnalysis.reformulation">
+            <div class="copilot-card-header">
+              <i-tabler name="refresh" class="icon-16"></i-tabler>
+              <span>Reformulation proposée</span>
+            </div>
+            <p class="copilot-card-text">{{ copilotAnalysis.reformulation }}</p>
+          </div>
+
+          <!-- Detected Points -->
+          <div class="copilot-card points-card" *ngIf="copilotAnalysis.detectedPoints && copilotAnalysis.detectedPoints.length > 0">
+            <div class="copilot-card-header">
+              <i-tabler name="alert-circle" class="icon-16"></i-tabler>
+              <span>Points détectés</span>
+            </div>
+            <div class="copilot-points-list">
+              <div *ngFor="let point of copilotAnalysis.detectedPoints" class="copilot-point"
+                   [style.border-left-color]="getPointColor(point.type)">
+                <div class="d-flex align-items-center gap-6">
+                  <i-tabler [name]="getPointIcon(point.type)" class="icon-14" [style.color]="getPointColor(point.type)"></i-tabler>
+                  <strong class="f-s-12">{{ point.label }}</strong>
+                </div>
+                <span class="f-s-11 text-muted">{{ point.detail }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next Question Hint -->
+          <div class="copilot-card hint-card" *ngIf="copilotAnalysis.nextQuestionHint">
+            <div class="copilot-card-header">
+              <i-tabler name="arrow-right" class="icon-16"></i-tabler>
+              <span>Conseil</span>
+            </div>
+            <p class="copilot-card-text f-s-12">{{ copilotAnalysis.nextQuestionHint }}</p>
+          </div>
+        </div>
+
+        <!-- Auto-Summary Section -->
+        <div class="copilot-summary-section">
+          <button class="copilot-summary-btn" (click)="generateSummary()" [disabled]="isGeneratingSummary">
+            <i-tabler name="file-text" class="icon-16"></i-tabler>
+            {{ isGeneratingSummary ? 'Génération...' : 'Auto-Résumé' }}
+          </button>
+
+          <!-- Summary Loading -->
+          <div class="copilot-loading" *ngIf="isGeneratingSummary">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Génération du résumé...</span>
+          </div>
+
+          <!-- Summary Result -->
+          <div class="copilot-summary-result" *ngIf="callSummary && !isGeneratingSummary">
+            <div class="summary-text-box">
+              <div class="d-flex align-items-center gap-8 m-b-8">
+                <i-tabler name="file-text" class="icon-16" style="color: #667eea;"></i-tabler>
+                <strong class="f-s-13">Résumé de l'appel</strong>
+              </div>
+              <p class="summary-text">{{ callSummary.summary }}</p>
+            </div>
+
+            <!-- Tags -->
+            <div class="summary-tags" *ngIf="callSummary.tags?.length">
+              <div class="d-flex align-items-center gap-6 m-b-6">
+                <i-tabler name="tags" class="icon-14" style="color: #667eea;"></i-tabler>
+                <span class="f-s-12 f-w-600">Tags</span>
+              </div>
+              <div class="tags-list">
+                <span *ngFor="let tag of callSummary.tags" class="summary-tag">{{ tag }}</span>
+              </div>
+            </div>
+
+            <!-- Sentiment -->
+            <div class="summary-sentiment">
+              <i-tabler [name]="getSentimentIcon(callSummary.sentiment)" class="icon-16"
+                         [style.color]="getSentimentColor(callSummary.sentiment)"></i-tabler>
+              <span class="f-s-12">Sentiment : <strong [style.color]="getSentimentColor(callSummary.sentiment)">{{ getSentimentLabel(callSummary.sentiment) }}</strong></span>
+              <span class="summary-completion">{{ callSummary.completionRate }}% complet</span>
+            </div>
+
+            <!-- Key Points -->
+            <div class="summary-keypoints" *ngIf="callSummary.keyPoints?.length">
+              <span class="f-s-12 f-w-600 m-b-6 d-block">Points clés</span>
+              <div *ngFor="let kp of callSummary.keyPoints" class="summary-keypoint">
+                <i-tabler [name]="getKeyPointIcon(kp.type)" class="icon-14" [style.color]="getKeyPointColor(kp.type)"></i-tabler>
+                <span class="f-s-11">{{ kp.text }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div *ngIf="responseQuestions.length === 0" class="text-center p-24 text-muted">Aucune question définie.</div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Annuler</button>

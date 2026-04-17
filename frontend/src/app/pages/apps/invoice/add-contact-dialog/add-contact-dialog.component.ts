@@ -146,11 +146,11 @@ export class AddContactDialogComponent implements OnInit {
       return;
     }
 
-    const payload: Contact = {
-      idC: this.editId ?? 0,
+    const selectedTags: Tag[] = this.contactForm.value.tags || [];
+    const payload: any = {
       name: this.contactForm.value.name,
       phoneNumber: this.contactForm.value.phoneNumber,
-      tags: this.contactForm.value.tags,
+      tagIds: selectedTags.map((t: Tag) => t.id),
     };
 
     const done = (saved: Contact & { idc?: number }) => {

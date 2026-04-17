@@ -22,7 +22,7 @@ public class Tag implements Serializable {
     private Long id;
     private String name;
 
-    @ManyToMany
+    @ManyToMany(mappedBy = "tags")
     @JsonIgnore
     private Set<Contact> contacts = new HashSet<>();
 } 

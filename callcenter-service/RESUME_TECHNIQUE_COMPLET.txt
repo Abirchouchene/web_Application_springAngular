@@ -1,0 +1,563 @@
+================================================================================
+       RÉSUMÉ TECHNIQUE COMPLET — PLATEFORME CALL CENTER
+       Architecture Microservices | Spring Boot + Angular
+       Généré le 17 Avril 2026
+================================================================================
+
+
+================================================================================
+1. VUE D'ENSEMBLE DE L'ARCHITECTURE
+================================================================================
+
+La plateforme est composée de 5 projets :
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │                     FRONTEND Angular 19                      │
+  │                     http://localhost:4200                     │
+  │              Auth: Keycloak (keycloak-angular)                │
+  └─────────────────────────┬────────────────────────────────────┘
+                            │ Bearer JWT
+                            ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │                   API GATEWAY (:9090)                         │
+  │            Spring Cloud Gateway (reactive)                    │
+  │         JWT validation + 18 routes + CORS                     │
+  └─────┬──────────────────────────┬─────────────────────────────┘
+        │ lb://CALLCENTER          │ lb://CONTACT-SERVICE
+        ▼                          ▼
+  ┌──────────────────┐   ┌───────────────────┐
+  │ CALLCENTER :8082 │   │ CONTACT-SVC :8081 │
+  │  MySQL, Keycloak │──▶│  MySQL, pas de    │
+  │  WebSocket, MinIO│   │  sécurité active  │
+  │  RabbitMQ, GPT-4 │   └───────────────────┘
+  └──────────────────┘
+        │ Feign Client (ContactClient)
+        └─────────────────────────────────────▲
+
+  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+  │ EUREKA :8761 │  │ KEYCLOAK     │  │ MySQL :3306  │
+  │ Discovery    │  │ :8080 distant│  │ distant      │
+  └──────────────┘  └──────────────┘  └──────────────┘
+
+
+================================================================================
+2. PORTS ET SERVICES
+================================================================================
+
+  Service                  Port    Hôte                  Protocole
+  ─────────────────────── ──────  ────────────────────── ─────────
+  Frontend (Angular)       4200   localhost              HTTP
+  API Gateway              9090   localhost              HTTP/WS
+  Callcenter Service       8082   localhost              HTTP
+  Contact Service          8081   localhost              HTTP
+  Eureka Server            8761   localhost              HTTP
+  Keycloak                 8080   192.168.10.161         HTTP
+  MySQL                    3306   192.168.10.161         TCP
+  RabbitMQ                 5672   localhost              AMQP
+  MinIO                    9000   192.168.10.161         HTTP
+
+
+================================================================================
+3. CALLCENTER-SERVICE (Backend principal)
+================================================================================
+
+  Technologie       : Spring Boot 3.2.3, Java 17, Spring Cloud 2023.0.0
+  Artifact          : com.example:callcenter
+  Port              : 8082 (context-path: /api)
+  Base de données   : MySQL — jdbc:mysql://192.168.10.161:3306/call-center
+  Nom Eureka        : CALLCENTER
+  Swagger           : http://localhost:8082/api/swagger-ui/index.html
+
+  ── Dépendances principales ──
+  • spring-boot-starter-web, data-jpa, security, websocket, amqp, actuator
+  • spring-boot-starter-oauth2-client + oauth2-resource-server
+  • spring-cloud-starter-netflix-eureka-client + openfeign
+  • keycloak-admin-client 24.0.2
+  • springdoc-openapi 2.3.0
+  • mysql-connector-j, lombok, MinIO client, mailjet-client 5.2.5
+
+  ── Keycloak (SSO) ──
+  Realm             : Portal
+  URL               : http://192.168.10.161:8080
+  Client ID backend : callcenter-backend
+  Client Secret     : lGNpcgyHlDiFcubxhQo9nxeItxkl6Rgr
+  JWK Set URI       : .../realms/Portal/protocol/openid-connect/certs
+
+  ── WebSocket ──
+  Endpoint STOMP    : /ws (SockJS fallback)
+  Broker prefix     : /topic
+  App prefix        : /app
+
+  ── RabbitMQ ──
+  Exchange          : callcenter.events
+  Queues            : callcenter.report.approved, .report.generated, .notification
+
+  ── MinIO (stockage fichiers) ──
+  URL               : http://192.168.10.161:9000
+  Bucket            : call-center
+
+  ── IA ──
+  Modèle            : OpenAI GPT-4 (désactivé par défaut)
+  Endpoints         : /api/ai-chat/**, /api/ai-insights/**
+
+  ── Email ──
+  Provider          : Mailjet
+  Sender            : noreply@callflow.com
+
+
+  ============================================================
+  3.1 ENTITÉS (base de données call-center)
+  ============================================================
+
+  ── Request (table principale) ──
+  PK      : idR (Long, auto)
+  Champs  : title, description, note, attachmentPath, deadline (LocalDate),
+            updatedAt, createdAt
+  Enums   : status (Status), requestType (RequestType),
+            categoryRequest (CategoryRequest), priority (Priority)
+  Relations:
+    • @ManyToOne  → User user (créateur, FK user_id)
+    • @ManyToOne  → User agent (agent assigné, FK agent_id)
+    • @ManyToMany → List<Question> questions (table request_questions)
+    • @OneToOne   → Report report
+    • @OneToMany  → List<Logs> logs (cascade ALL, orphanRemoval)
+    • @OneToMany  → List<Submission> submissionList (cascade ALL, orphanRemoval)
+
+  ── User ──
+  PK      : idUser (Long, auto)
+  Champs  : fullName, email, username, enabled (boolean)
+  Enum    : role (Role)
+  Transient: getFirstName(), getLastName() (split de fullName)
+  Relations:
+    • @OneToMany → List<Request> requests (cascade ALL)
+    • @OneToMany → Set<Request> assignedRequests (pas de cascade)
+    • @OneToMany → Set<AgentLeave> leaves (cascade ALL)
+    • @OneToMany → List<Notification> notifications (pas de cascade)
+
+  ── Report ──
+  PK      : id (Long, auto)
+  Champs  : requestTitle, requestType, generatedDate, status (ReportStatus),
+            approvedDate, sentDate, totalContacts, contactedContacts,
+            contactRate, statisticsData (JSON LONGTEXT), pdfPath,
+            aiInsightsData (JSON LONGTEXT), aiGeneratedDate
+  Relation: @OneToOne(mappedBy="report") → Request
+
+  ── Question ──
+  PK      : id (Long, auto)
+  Champs  : text, questionType (QuestionType), options (List<String>)
+  Relation: @ManyToMany(mappedBy="questions") → Set<Request>
+
+  ── Response ──
+  PK      : id (Long, auto)
+  Champs  : answer, multiAnswer (List<String>), booleanAnswer, numberAnswer,
+            dateAnswer (LocalDate), timeAnswer (LocalTime)
+  Relations:
+    • @ManyToOne → Submission
+    • @ManyToOne → Question
+
+  ── Submission ──
+  PK      : id (Long, auto)
+  Champs  : submissionDate (LocalDate), contactId (Long)
+  Relations:
+    • @ManyToOne → Request
+    • @OneToMany → List<Response> responses
+
+  ── Notification ──
+  PK      : id (Long, auto)
+  Champs  : message, type (NotificationType), timestamp, isRead (boolean)
+  Relation: @ManyToOne → User agent
+
+  ── Logs ──
+  PK      : id (Long, auto)
+  Champs  : logAction (LogAction), actionDescription, details (TEXT),
+            oldStatus/newStatus, oldPriority/newPriority,
+            oldAssignedAgent/newAssignedAgent, timestamp, performedByUserId,
+            performedByUserName, ipAddress, userAgent
+  Relation: @ManyToOne → Request
+
+  ── AgentLeave ──
+  PK      : id (Long, auto)
+  Champs  : startDate, endDate (LocalDate), status (String)
+  Relation: @ManyToOne → User agent
+
+  ── RequestContactStatus ──
+  PK      : id (Long, auto)
+  Champs  : contactId, status (ContactStatus), callNote (TEXT),
+            lastCallAttempt, createdAt, updatedAt
+  Relation: @ManyToOne → Request
+
+  ── PasswordResetToken ──
+  PK      : id (Long, auto)
+  Champs  : token (unique), email, expiryDate, used (boolean)
+
+
+  ============================================================
+  3.2 ENUMS
+  ============================================================
+
+  Status           : PENDING, APPROVED, REJECTED, IN_PROGRESS, ASSIGNED,
+                     RESOLVED, CLOSED, AUTO_GENERATED
+  Role             : SURVEY_REQUESTER, AGENT, MANAGER, ADMIN
+  Priority         : LOW, MEDIUM, HIGH, URGENT, IMMEDIATE
+  RequestType      : STATISTICS, INFORMATION
+  CategoryRequest  : RECLAMATION, PRODUIT, DEVIS, COMMANDE, INTERVENTION
+  QuestionType     : SHORT_ANSWER, PARAGRAPH, MULTIPLE_CHOICE, CHECKBOXES,
+                     DROPDOWN, DATE, TIME, NUMBER, YES_OR_NO
+  ContactStatus    : NOT_CONTACTED, CONTACTED_AVAILABLE, CONTACTED_UNAVAILABLE,
+                     NO_ANSWER, CALL_BACK_LATER, WRONG_NUMBER
+  NotificationType : ASSIGNED, UPDATED, COMPLETED, LEAVE_REQ, LEAVE_APP,
+                     LEAVE_REJ, REMINDER, CALLBACK, CLARIFICATION, DEADLINE
+  ReportStatus     : PENDING_APPROVAL, APPROVED, REJECTED, SENT
+  LogAction        : REQUEST_CREATED, REQUEST_UPDATED, STATUS_CHANGED,
+                     PRIORITY_CHANGED, AGENT_ASSIGNED, AGENT_UNASSIGNED,
+                     REQUEST_DELETED, COMMENT_ADDED, ATTACHMENT_ADDED,
+                     DEADLINE_CHANGED, REQUEST_APPROVED, REQUEST_REJECTED,
+                     REQUEST_REOPENED, REQUEST_CLOSED
+
+
+  ============================================================
+  3.3 CONTROLLERS (13)
+  ============================================================
+
+  AdminController               — Gestion users/admin, forgot/reset password
+  AuthController                — Authentification
+  RequestController             — CRUD demandes, soumission sondages
+  ResponseController            — Gestion réponses sondages
+  QuestionController            — Bibliothèque de questions CRUD
+  ReportController              — Génération rapports, approbation, PDF
+  DashboardController           — Stats/KPIs tableau de bord
+  NotificationController        — CRUD notifications
+  LogsController                — Logs d'activité
+  RequestContactStatusController— Suivi statut appels par contact
+  AiChatController              — Chat IA via OpenAI
+  AiInsightController           — Insights IA pour rapports
+  CallCopilotController         — Assistant IA copilot d'appel
+
+
+  ============================================================
+  3.4 SERVICES (19)
+  ============================================================
+
+  AdminService, RequestService, ResponseService, ReportService,
+  DashboardService, NotificationService, LogsService,
+  RequestContactStatusService, SubmissionService, AiChatService,
+  CallCopilotService, OpenAiService, AutoGenerateSurveyService,
+  AutoRequestService, ConsistencyService, DataAnonymizationService,
+  EmailService, MinioStorageService, ReportSchedulerService
+
+
+  ============================================================
+  3.5 REPOSITORIES (11)
+  ============================================================
+
+  RequestRepository, UserRepository, ResponseRepository,
+  QuestionRepository, ReportRepository, NotificationRepository,
+  LogsRepository, RequestContactStatusRepository, SubmissionRepository,
+  AgentLeaveRepository, PasswordResetTokenRepository
+
+
+  ============================================================
+  3.6 DTOs (18)
+  ============================================================
+
+  AgentAvailabilityDTO, AiChatDTO, AiInsightDTO, ContactDTO,
+  ContactResponse, CreateUserDTO, DashboardDTO, LogDTO,
+  NotificationRequestDTO, QuestionDTO, ReportDTO, RequestContactStatusDTO,
+  RequestDTO, RequestResponseDTO, RequestSummaryDTO, ResponseDTO,
+  UpdateRequestDTO, UserInfoDTO
+
+
+  ============================================================
+  3.7 CONFIGURATIONS (13)
+  ============================================================
+
+  SecurityConfig      — OAuth2 resource server, JWT, profile !dev-local
+  JwtAuthConverter    — Extraction rôles Keycloak → Spring authorities
+  KeyCloakConfig      — Bean admin client (client_credentials)
+  WebSocketConfig     — STOMP/SockJS sur /ws
+  RabbitMQConfig      — Exchange callcenter.events + 3 queues
+  MinioConfig         — Client MinIO avec timeouts
+  OpenAPIConfig       — Swagger avec Bearer JWT
+  CorsConfig          — Origines localhost:4200, localhost:9090
+  ContactClientConfig — Feign interceptor (forward JWT ou client_credentials)
+  FileConfig          — Sert les fichiers uploadés à /files/**
+  WebConfig           — (vide, CORS via gateway)
+  SchedulingConfig    — @EnableScheduling
+  PriorityConverter   — JPA converter pour enum Priority
+
+
+  ============================================================
+  3.8 FEIGN CLIENT (appel inter-services)
+  ============================================================
+
+  ContactClient → contact-service (via Eureka) :
+    GET /api/contacts/{contactId}       → ContactResponse
+    GET /api/contacts                    → List<ContactResponse>
+    GET /api/contacts/tags/searchByTag   → List<ContactResponse>
+    GET /api/callbacks/upcoming          → List<Map<String,Object>>
+
+
+================================================================================
+4. CONTACT-SERVICE
+================================================================================
+
+  Technologie       : Spring Boot 3.2.3, Java 17, Spring Cloud 2023.0.0
+  Artifact          : com.example:contact-service
+  Port              : 8081
+  Base de données   : MySQL — jdbc:mysql://192.168.10.161:3306/contact
+  Nom Eureka        : CONTACT-SERVICE
+  Sécurité          : DÉSACTIVÉE (commentée)
+
+  ── Dépendances ──
+  • spring-boot-starter-data-jpa, web
+  • spring-cloud-starter-netflix-eureka-client, openfeign
+  • mysql-connector-j, lombok
+  • springdoc-openapi 2.2.0
+
+  ── Entités ──
+
+  Contact
+    PK      : idC (Long)
+    Champs  : name, phoneNumber, callStatus, callNote, lastCallAttempt
+    Relations:
+      • @ManyToMany(EAGER) → Set<Tag> tags (table tag_contacts)
+      • @OneToMany → List<Callback> callbacks
+
+  Tag
+    PK      : id (Long)
+    Champs  : name
+    Relation: @ManyToMany(mappedBy="tags") → Set<Contact>
+
+  Callback
+    PK      : id (Long)
+    Champs  : requestId, agentId, scheduledDate, notes,
+              status (CallbackStatus), notificationSent
+    Relation: @ManyToOne → Contact
+
+  CallbackStatus : SCHEDULED, COMPLETED, CANCELLED, FAILED
+
+  ── Controllers ──
+  ContactController  — CRUD contacts, recherche par tag
+  CallbackController — Planification/gestion des rappels
+
+  ── Services ──
+  ContactService, CallbackService
+
+  ── Repositories ──
+  ContactRepository, CallbackRepository, TagRepository
+
+
+================================================================================
+5. API GATEWAY
+================================================================================
+
+  Technologie       : Spring Boot 3.3.3, Java 17, Spring Cloud 2023.0.3
+  Artifact          : tn.uptech:gateway
+  Port              : 9090
+  Type              : Spring Cloud Gateway (réactive, WebFlux)
+  Sécurité          : JWT Keycloak (issuer + JWK Set URI)
+
+  ── 18 Routes Gateway ──
+
+  Route ID                  Path                     Cible
+  ────────────────────────  ───────────────────────  ─────────────────────────
+  auth-service              /api/auth/**             Keycloak 192.168.10.161
+  callcenter-requests       /api/requests/**         lb://CALLCENTER
+  callcenter-responses      /api/response/**         lb://CALLCENTER
+  callcenter-reports        /api/reports/**          lb://CALLCENTER
+  callcenter-notifications  /api/notifications/**    lb://CALLCENTER
+  callcenter-logs           /api/logs/**             lb://CALLCENTER
+  callcenter-contact-status /api/request-contact-s.. lb://CALLCENTER
+  callcenter-files          /api/files/**            lb://CALLCENTER
+  callcenter-questions      /api/questions/**        lb://CALLCENTER
+  contact-service           /api/contacts/**         lb://CONTACT-SERVICE
+  callback-service          /api/callbacks/**        lb://CONTACT-SERVICE
+  admin-users               /api/admin/**            lb://CALLCENTER
+  callcenter-dashboard      /api/dashboard/**        lb://CALLCENTER
+  user-profile              /api/users/profile       Keycloak userinfo
+  callcenter-ws-http        /ws/info/**              lb://CALLCENTER (SockJS)
+  callcenter-ws             /ws/**                   lb:ws://CALLCENTER (WS)
+  callcenter-user           /api/user/**             lb://CALLCENTER
+  callcenter-ai-chat        /api/ai-chat/**          lb://CALLCENTER
+
+  ── CORS ──
+  Origine autorisée : http://localhost:4200
+  Méthodes          : GET, POST, PUT, DELETE, PATCH, OPTIONS
+  Credentials       : true
+  Max age           : 3600s
+  Headers exposés   : Authorization
+
+
+================================================================================
+6. EUREKA SERVER (Discovery)
+================================================================================
+
+  Technologie       : Spring Boot 3.2.3, Java 17
+  Artifact          : com.example:eureka-server
+  Main class        : tn.uptech.discovery.DiscoveryApplication
+  Port              : 8761
+  Register self     : false
+  Fetch registry    : false
+
+
+================================================================================
+7. FRONTEND (Angular)
+================================================================================
+
+  Framework         : Angular 19.0.4 (CLI 19.0.5)
+  Nom du projet     : Spike
+  Langage           : TypeScript 5.6.3
+  Style             : SCSS
+  UI Library        : Angular Material 19.0.3
+
+  ── Dépendances clés ──
+  keycloak-angular 19.0.2    — Intégration Keycloak
+  keycloak-js 26.1.5         — Adaptateur JS Keycloak
+  @stomp/rx-stomp 2.3.0      — WebSocket STOMP
+  sockjs-client 1.6.1        — Fallback SockJS
+  ng-apexcharts 1.11.0       — Graphiques
+  @amcharts/amcharts5 5.10.10— Graphiques avancés
+  ngx-toastr 19.0.0          — Notifications toast
+  ngx-pagination 6.0.1       — Pagination
+  ngx-permissions 13.0.1     — Gestion des permissions
+  @ngx-translate/core 14.0.0 — Internationalisation
+  moment 2.30.1              — Dates
+  angular-calendar 0.29.0    — Widget calendrier
+
+  ── URLs d'environnement (dev) ──
+  Gateway URL       : http://localhost:9090
+  API URL           : http://localhost:9090/api
+  Contact API URL   : http://localhost:9090/api/contacts
+  Auth URL          : http://localhost:9090/api/auth
+  Admin URL         : http://localhost:9090/api/admin
+  User URL          : http://localhost:9090/api/users
+  WebSocket URL     : ws://localhost:9090/ws
+
+  ── Keycloak (frontend) ──
+  URL               : http://192.168.10.161:8080/
+  Realm             : Portal
+  Client ID         : uptech-rest-api  (⚠ différent du backend!)
+
+  ── Authentification ──
+  • KeycloakInitService : init avec onLoad: 'login-required'
+  • AuthInterceptor     : ajoute Bearer JWT sur chaque requête API
+  • AuthGuard           : vérifie isLoggedIn() + rôle via RoleService
+  • RoleService         : GET /api/user/me → cache user info (id, role, etc.)
+
+  ── Rôles ──
+  ADMIN, MANAGER, AGENT, SURVEY_REQUESTER
+
+  ── Pages principales ──
+  /apps/tickets              — Liste des demandes (AGENT, MANAGER, ADMIN)
+  /apps/ticket/:id           — Détails demande
+  /apps/request-manager      — Liste manager (MANAGER, ADMIN)
+  /apps/addInvoice           — Créer demande (SURVEY_REQUESTER, MANAGER, ADMIN)
+  /apps/contacts             — Gestion contacts
+  /apps/callbacks            — Rappels planifiés (AGENT, MANAGER, ADMIN)
+  /apps/notifications        — Notifications (tous rôles)
+  /apps/reports/list         — Liste rapports
+  /apps/reports/details/:id  — Détails rapport
+  /apps/logs                 — Logs d'activité (AGENT, MANAGER, ADMIN)
+  /apps/calls                — Gestion des appels (AGENT, MANAGER, ADMIN)
+  /apps/user-management      — Gestion utilisateurs (ADMIN uniquement)
+  /apps/chat                 — Chat IA
+  /dashboards/dashboard1     — Dashboard principal
+  /dashboards/admin          — Dashboard admin (avec IA)
+
+  ── Services frontend (principaux) ──
+  keycloak.service.ts        — Initialisation, logout, token
+  role.service.ts            — Récupère /api/user/me, cache user info
+  websocket.service.ts       — STOMP/SockJS /topic/notifications/{userId}
+  notification.service.ts    — CRUD notifications HTTP
+  dashboard.service.ts       — Appels API dashboard
+  report.service.ts          — Appels API rapports
+  ai-chat.service.ts         — Appels API chat IA
+  callback.service.ts        — Gestion des rappels
+  call-copilot.service.ts    — Assistant IA copilot d'appel
+
+
+================================================================================
+8. BASES DE DONNÉES
+================================================================================
+
+  ── Base : call-center (callcenter-service) ──
+  Tables : request, user, response, question, submission, report,
+           notification, logs, agent_leave, request_contact_status,
+           password_reset_token, request_questions (jointure ManyToMany)
+
+  ── Base : contact (contact-service) ──
+  Tables : contact, tag, callback, tag_contacts (jointure ManyToMany)
+
+
+================================================================================
+9. SÉCURITÉ
+================================================================================
+
+  • SSO via Keycloak (OAuth2 / OpenID Connect)
+  • JWT Bearer Token sur toutes les requêtes API
+  • Validation JWT au niveau du Gateway ET du callcenter-service
+  • 4 rôles : ADMIN, MANAGER, AGENT, SURVEY_REQUESTER
+  • CORS configuré au Gateway (origine localhost:4200)
+  • Contact-service : sécurité désactivée (protégé par le gateway)
+  • WebSocket : endpoint /ws/** est public (auth via topic)
+  • Endpoints publics : forgot-password, reset-password, swagger
+
+
+================================================================================
+10. COMMUNICATION INTER-SERVICES
+================================================================================
+
+  Frontend ──HTTP/JWT──▶ API Gateway ──Load Balance──▶ Services
+
+  Callcenter ──Feign──▶ Contact-Service
+    • getContactById, getAllContacts, searchByTag, getUpcomingCallbacks
+
+  Callcenter ──RabbitMQ──▶ Events (reports, notifications)
+
+  Callcenter ──WebSocket (STOMP)──▶ Frontend (notifications temps réel)
+
+  Callcenter ──OpenAI API──▶ GPT-4 (chat IA, insights, copilot)
+
+  Callcenter ──Mailjet──▶ Emails (reset password)
+
+  Callcenter ──MinIO──▶ Stockage fichiers (pièces jointes, PDFs)
+
+
+================================================================================
+11. COMMANDES DE LANCEMENT
+================================================================================
+
+  # 1. Eureka Server
+  cd eureka-server && mvnw spring-boot:run -Dmaven.test.skip=true
+
+  # 2. API Gateway
+  cd api-gateway && mvnw spring-boot:run -Dmaven.test.skip=true
+
+  # 3. Contact Service
+  cd contact-service && mvnw spring-boot:run -Dmaven.test.skip=true
+
+  # 4. Callcenter Service
+  cd callcenter-service && mvnw spring-boot:run -Dmaven.test.skip=true
+
+  # 5. Frontend Angular
+  cd frontend && npm start   (ou: npx ng serve --port 4200)
+
+
+================================================================================
+12. PRÉREQUIS
+================================================================================
+
+  • Java 17 (JDK)
+  • Node.js 18+ / npm
+  • Angular CLI 19
+  • MySQL 8 sur 192.168.10.161:3306
+  • Keycloak sur 192.168.10.161:8080 (realm Portal)
+  • MinIO sur 192.168.10.161:9000
+  • RabbitMQ sur localhost:5672 (optionnel)
+  • Clé API OpenAI (optionnel, pour fonctions IA)
+  • Compte Mailjet (optionnel, pour emails)
+
+
+================================================================================
+                          FIN DU RÉSUMÉ TECHNIQUE
+================================================================================

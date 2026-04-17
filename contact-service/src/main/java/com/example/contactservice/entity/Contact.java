@@ -24,6 +24,7 @@ import java.util.Set;
 public class Contact implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_c")
     private Long idC;
     private String name;
     private String phoneNumber;
@@ -34,7 +35,12 @@ public class Contact implements Serializable {
     private String callNote;
     private LocalDateTime lastCallAttempt;
 
-    @ManyToMany(mappedBy = "contacts")
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "tag_contacts",
+            joinColumns = @JoinColumn(name = "contacts_id_c"),
+            inverseJoinColumns = @JoinColumn(name = "tags_id")
+    )
     private Set<Tag> tags = new HashSet<>();
     
     @OneToMany(mappedBy = "contact", cascade = CascadeType.ALL, orphanRemoval = true)

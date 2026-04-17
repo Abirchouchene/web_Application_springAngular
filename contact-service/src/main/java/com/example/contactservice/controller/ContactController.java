@@ -6,17 +6,22 @@ import com.example.contactservice.entity.ContactStatus;
 import com.example.contactservice.entity.Tag;
 import com.example.contactservice.service.ContactService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/contacts")
 @RequiredArgsConstructor
 public class ContactController {
     private final ContactService contactService;
+    private final JdbcTemplate jdbc;
 
     @GetMapping
     public List<Contact> getAllContacts() {
@@ -54,8 +59,13 @@ public class ContactController {
         return contactService.createContact(dto);
     }
     @PutMapping("/{id}")
-    public Contact updateContact(@PathVariable Long id, @RequestBody ContactDTO dto) {
-        return contactService.updateContact(id, dto);
+    public ResponseEntity<?> updateContact(@PathVariable Long id, @RequestBody ContactDTO dto) {
+        try {
+            return ResponseEntity.ok(contactService.updateContact(id, dto));
+        } catch (Exception e) {
+            log.error("updateContact failed for id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage(), "cause", e.getCause() != null ? e.getCause().getMessage() : "none"));
+        }
     }
     @DeleteMapping("/{id}")
     public void deleteContact(@PathVariable Long id) {
@@ -89,5 +99,23 @@ public class ContactController {
         return contactService.getContactsByTag(tag);
     }
 
+    @GetMapping("/debug/tag-contacts")
+    public Map<String, Object> debugTagContacts() {
+        List<Map<String, Object>> cols = jdbc.queryForList(
+                "SELECT column_name, column_type, column_key FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tag_contacts'");
+        List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM tag_contacts");
+        List<Map<String, Object>> indexes = jdbc.queryForList("SHOW INDEX FROM tag_contacts");
+        return Map.of("columns", cols, "data", rows, "indexes", indexes);
+    }
+
+    @PostMapping("/debug/fix-pk")
+    public Map<String, String> fixPk() {
+        try {
+            jdbc.execute("ALTER TABLE tag_contacts DROP PRIMARY KEY, ADD PRIMARY KEY (contacts_id_c, tags_id)");
+            return Map.of("status", "PK fixed to composite (contacts_id_c, tags_id)");
+        } catch (Exception e) {
+            return Map.of("status", "error", "message", e.getMessage());
+        }
+    }
 }
 

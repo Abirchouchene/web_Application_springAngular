@@ -7,7 +7,8 @@ import { Router } from '@angular/router';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { ContactService } from 'src/app/services/apps/contact/contact.service';
 import { CallbackService } from 'src/app/services/apps/callback.service';
-import { ResponseService } from 'src/app/services/apps/response.service';
+import { ResponseService, ConsistencyReport, ContactAnalysis, ConsistencyIssue } from 'src/app/services/apps/response.service';
+import { CallCopilotService, CopilotAnalysis, DetectedPoint, CallSummary, KeyPoint } from 'src/app/services/apps/call-copilot.service';
 import { RoleService } from 'src/app/services/role.service';
 import { LogsService, LogEntry } from 'src/app/services/apps/logs.service';
 import { Request } from 'src/app/models/Request';
@@ -27,6 +28,9 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatSortModule } from '@angular/material/sort';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 interface CallEntry {
   request: Request;
@@ -39,7 +43,8 @@ interface CallEntry {
   standalone: true,
   imports: [
     CommonModule, MaterialModule, TablerIconsModule, FormsModule,
-    ReactiveFormsModule, MatPaginatorModule, MatDatepickerModule, MatNativeDateModule, MatSortModule, MatExpansionModule
+    ReactiveFormsModule, MatPaginatorModule, MatDatepickerModule, MatNativeDateModule, MatSortModule, MatExpansionModule,
+    MatProgressBarModule, MatBadgeModule, MatTooltipModule
   ],
   templateUrl: './calls.component.html',
   styleUrls: ['./calls.component.scss'],
@@ -64,7 +69,7 @@ export class CallsComponent implements OnInit, OnDestroy {
   // Detail view state
   showDetail = false;
   contactDataSource = new MatTableDataSource<CallEntry>([]);
-  contactColumns: string[] = ['name', 'phone', 'contactStatus', 'contactActions'];
+  contactColumns: string[] = ['name', 'phone', 'contactStatus', 'completion', 'contactActions'];
   contactSearch = '';
   contactStatusFilter = 'ALL';
   newRequestStatus = '';
@@ -97,6 +102,21 @@ export class CallsComponent implements OnInit, OnDestroy {
 
   private agentId: number | null = null;
 
+  // AI Consistency Assistant
+  consistencyReport: ConsistencyReport | null = null;
+  isCheckingConsistency = false;
+  showConsistencyPanel = false;
+  consistencyContactMap = new Map<number, ContactAnalysis>();
+
+  // Call Copilot
+  copilotAnalysis: CopilotAnalysis | null = null;
+  isAnalyzing = false;
+  showCopilotPanel = false;
+  // Auto-Summary
+  callSummary: CallSummary | null = null;
+  isGeneratingSummary = false;
+  showSummaryPanel = false;
+
   callStatuses = [
     { value: ContactStatus.CONTACTED_AVAILABLE, label: 'Contacté avec succès' },
     { value: ContactStatus.CONTACTED_UNAVAILABLE, label: 'Contacté - Indisponible' },
@@ -110,6 +130,7 @@ export class CallsComponent implements OnInit, OnDestroy {
     private contactService: ContactService,
     private callbackService: CallbackService,
     private responseService: ResponseService,
+    private copilotService: CallCopilotService,
     private roleService: RoleService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
@@ -311,11 +332,15 @@ export class CallsComponent implements OnInit, OnDestroy {
     this.requestFilter = req.idR;
     this.newRequestStatus = req.status as string;
     this.showDetail = true;
+    this.consistencyReport = null;
+    this.showConsistencyPanel = false;
     this.loadContactDetails(req);
     this.buildCallEntries();
     this.applyContactFilter();
     this.loadReportStatus();
     this.loadLogs();
+    // Auto-check consistency when opening detail view
+    this.checkConsistency();
     setTimeout(() => {
       if (this.contactPaginator) {
         this.contactDataSource.paginator = this.contactPaginator;
@@ -444,6 +469,7 @@ export class CallsComponent implements OnInit, OnDestroy {
     this.responseRequest = entry.request;
     this.responseContactStatus = entry.contactStatus;
     this.responseQuestions = (entry.request.questions || []).map(q => ({ ...q, response: '' }));
+    this.resetCopilot();
     if (entry.contact.idC && entry.request.idR) {
       this.responseService.getResponsesByContactAndRequest(entry.contact.idC, entry.request.idR).subscribe({
         next: (responses: any[]) => {
@@ -455,7 +481,7 @@ export class CallsComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }
-    this.dialog.open(this.responseDialog, { width: '650px', maxHeight: '85vh' });
+    this.dialog.open(this.responseDialog, { width: '950px', maxHeight: '90vh', panelClass: 'copilot-dialog-panel' });
   }
 
   saveResponses(): void {
@@ -479,6 +505,8 @@ export class CallsComponent implements OnInit, OnDestroy {
             this.isSavingResponses = false;
             this.snackBar.open('Réponses enregistrées avec succès', 'OK', { duration: 2000 });
             this.dialog.closeAll();
+            // Re-check consistency after saving
+            this.checkConsistency();
           }
         },
         error: (err) => {
@@ -595,5 +623,166 @@ export class CallsComponent implements OnInit, OnDestroy {
 
   navigateToCallbacks(): void {
     this.router.navigate(['/apps/callbacks']);
+  }
+
+  // ==== AI Consistency Assistant ====
+  checkConsistency(): void {
+    if (!this.selectedRequest) return;
+    this.isCheckingConsistency = true;
+    this.showConsistencyPanel = true;
+    this.responseService.checkConsistency(this.selectedRequest.idR).subscribe({
+      next: (report) => {
+        this.consistencyReport = report;
+        this.consistencyContactMap.clear();
+        for (const c of report.contacts) {
+          this.consistencyContactMap.set(c.contactId, c);
+        }
+        this.isCheckingConsistency = false;
+      },
+      error: () => {
+        this.isCheckingConsistency = false;
+        this.snackBar.open('Erreur lors de l\'analyse de cohérence', 'Fermer', { duration: 3000 });
+      }
+    });
+  }
+
+  getContactCompletion(contactId: number): number {
+    const ca = this.consistencyContactMap.get(contactId);
+    return ca ? ca.completionRate : -1;
+  }
+
+  getContactMissingCount(contactId: number): number {
+    const ca = this.consistencyContactMap.get(contactId);
+    return ca ? ca.missingQuestions.length : 0;
+  }
+
+  isContactComplete(contactId: number): boolean {
+    const ca = this.consistencyContactMap.get(contactId);
+    return ca ? ca.isComplete : false;
+  }
+
+  getIssuesByContact(contactId: number): ConsistencyIssue[] {
+    if (!this.consistencyReport) return [];
+    return this.consistencyReport.issues.filter(i => i.contactId === contactId);
+  }
+
+  autoDetectAndWarn(): void {
+    if (!this.selectedRequest) return;
+    this.checkConsistency();
+  }
+
+  // ==== Call Copilot ====
+  analyzeLiveResponse(question: any): void {
+    if (!this.responseRequest || !this.responseContact || !question.response) return;
+    this.isAnalyzing = true;
+    this.showCopilotPanel = true;
+    this.copilotService.analyzeLiveResponse(
+      this.responseRequest.idR,
+      this.responseContact.idC,
+      question.id,
+      String(question.response)
+    ).subscribe({
+      next: (analysis) => {
+        this.copilotAnalysis = analysis;
+        this.isAnalyzing = false;
+      },
+      error: () => {
+        this.isAnalyzing = false;
+      }
+    });
+  }
+
+  getSentimentIcon(sentiment: string): string {
+    switch (sentiment) {
+      case 'POSITIVE': return 'mood-happy';
+      case 'NEGATIVE': return 'mood-sad';
+      case 'MIXED': return 'mood-puzzled';
+      default: return 'mood-neutral';
+    }
+  }
+
+  getSentimentColor(sentiment: string): string {
+    switch (sentiment) {
+      case 'POSITIVE': return '#4caf50';
+      case 'NEGATIVE': return '#f44336';
+      case 'MIXED': return '#ff9800';
+      default: return '#9e9e9e';
+    }
+  }
+
+  getSentimentLabel(sentiment: string): string {
+    switch (sentiment) {
+      case 'POSITIVE': return 'Positif';
+      case 'NEGATIVE': return 'Négatif';
+      case 'MIXED': return 'Mixte';
+      default: return 'Neutre';
+    }
+  }
+
+  getPointIcon(type: string): string {
+    switch (type) {
+      case 'URGENCY': return 'urgent';
+      case 'PROBLEM': return 'alert-triangle';
+      case 'DISSATISFACTION': return 'mood-sad';
+      case 'POSITIVE': return 'thumb-up';
+      case 'INFO': return 'info-circle';
+      default: return 'point';
+    }
+  }
+
+  getPointColor(type: string): string {
+    switch (type) {
+      case 'URGENCY': return '#f44336';
+      case 'PROBLEM': return '#ff9800';
+      case 'DISSATISFACTION': return '#e91e63';
+      case 'POSITIVE': return '#4caf50';
+      case 'INFO': return '#2196f3';
+      default: return '#757575';
+    }
+  }
+
+  // ==== Auto-Summary ====
+  generateSummary(): void {
+    if (!this.responseRequest || !this.responseContact) return;
+    this.isGeneratingSummary = true;
+    this.showSummaryPanel = true;
+    this.copilotService.generateCallSummary(
+      this.responseRequest.idR,
+      this.responseContact.idC
+    ).subscribe({
+      next: (summary) => {
+        this.callSummary = summary;
+        this.isGeneratingSummary = false;
+      },
+      error: () => {
+        this.isGeneratingSummary = false;
+        this.snackBar.open('Erreur lors de la génération du résumé', 'Fermer', { duration: 3000 });
+      }
+    });
+  }
+
+  getKeyPointIcon(type: string): string {
+    switch (type) {
+      case 'IMPORTANT': return 'star';
+      case 'WARNING': return 'alert-triangle';
+      case 'POSITIVE': return 'thumb-up';
+      default: return 'info-circle';
+    }
+  }
+
+  getKeyPointColor(type: string): string {
+    switch (type) {
+      case 'IMPORTANT': return '#ff9800';
+      case 'WARNING': return '#f44336';
+      case 'POSITIVE': return '#4caf50';
+      default: return '#2196f3';
+    }
+  }
+
+  resetCopilot(): void {
+    this.copilotAnalysis = null;
+    this.callSummary = null;
+    this.showCopilotPanel = false;
+    this.showSummaryPanel = false;
   }
 }
