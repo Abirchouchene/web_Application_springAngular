@@ -448,61 +448,218 @@
 
 <!-- ===== RESPONSE COLLECTION DIALOG ===== -->
 <ng-template #responseDialog>
-  <h2 mat-dialog-title>Collecte des Réponses – {{ responseContact?.name }}</h2>
+  <h2 mat-dialog-title class="copilot-dialog-title">
+    <div class="d-flex align-items-center gap-8">
+      <i-tabler name="phone" class="icon-20"></i-tabler>
+      Collecte des Réponses – {{ responseContact?.name }}
+    </div>
+    <div class="copilot-title-actions">
+      <button class="copilot-toggle-btn" (click)="showCopilotPanel = !showCopilotPanel"
+              [class.active]="showCopilotPanel" matTooltip="Call Copilot IA">
+        <i-tabler name="sparkles" class="icon-16"></i-tabler>
+        <span>Copilot</span>
+      </button>
+    </div>
+  </h2>
   <mat-dialog-content>
-    <div class="m-b-16">
-      <div class="d-flex align-items-center gap-8 m-b-8">
-        <span class="response-info-dot"></span>
-        <span>Vous êtes sur le point de collecter les réponses pour <strong>{{ responseContact?.name }}</strong>.</span>
-      </div>
-      <div class="response-status-badge" *ngIf="responseContactStatus">
-        Statut: {{ getStatusLabel(responseContactStatus) }}
-      </div>
-    </div>
-    <h6 class="f-w-600 m-b-16">Questions à poser</h6>
-    <div *ngFor="let q of responseQuestions; let i = index" class="question-card m-b-16">
-      <div class="d-flex align-items-center justify-content-between m-b-8">
-        <div class="d-flex align-items-center gap-8">
-          <span class="question-number">{{ i + 1 }}</span>
-          <span class="f-w-500">{{ q.text }}</span>
+    <div class="copilot-layout" [class.copilot-expanded]="showCopilotPanel">
+      <!-- LEFT: Questions -->
+      <div class="copilot-questions">
+        <div class="m-b-16">
+          <div class="d-flex align-items-center gap-8 m-b-8">
+            <span class="response-info-dot"></span>
+            <span>Vous êtes sur le point de collecter les réponses pour <strong>{{ responseContact?.name }}</strong>.</span>
+          </div>
+          <div class="response-status-badge" *ngIf="responseContactStatus">
+            Statut: {{ getStatusLabel(responseContactStatus) }}
+          </div>
         </div>
-        <span class="question-type-badge">Type: {{ getQuestionTypeLabel(q.questionType || q.type!) }}</span>
+        <h6 class="f-w-600 m-b-16">Questions à poser</h6>
+        <div *ngFor="let q of responseQuestions; let i = index" class="question-card m-b-16">
+          <div class="d-flex align-items-center justify-content-between m-b-8">
+            <div class="d-flex align-items-center gap-8">
+              <span class="question-number">{{ i + 1 }}</span>
+              <span class="f-w-500">{{ q.text }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-8">
+              <span class="question-type-badge">Type: {{ getQuestionTypeLabel(q.questionType || q.type!) }}</span>
+              <button class="copilot-analyze-btn" *ngIf="q.response && showCopilotPanel"
+                      (click)="analyzeLiveResponse(q)" [disabled]="isAnalyzing"
+                      matTooltip="Analyser cette réponse">
+                <i-tabler name="sparkles" class="icon-14"></i-tabler>
+              </button>
+            </div>
+          </div>
+          <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.YES_OR_NO" class="d-flex gap-16"
+                           (ngModelChange)="showCopilotPanel && analyzeLiveResponse(q)">
+            <mat-radio-button value="true">Oui</mat-radio-button>
+            <mat-radio-button value="false">Non</mat-radio-button>
+          </mat-radio-group>
+          <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.MULTIPLE_CHOICE" class="d-flex flex-column gap-8"
+                           (ngModelChange)="showCopilotPanel && analyzeLiveResponse(q)">
+            <mat-radio-button *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-radio-button>
+          </mat-radio-group>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DROPDOWN">
+            <mat-label>Sélectionner</mat-label>
+            <mat-select [(ngModel)]="q.response" (ngModelChange)="showCopilotPanel && analyzeLiveResponse(q)">
+              <mat-option *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.SHORT_ANSWER">
+            <mat-label>Réponse</mat-label>
+            <input matInput [(ngModel)]="q.response" (blur)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.PARAGRAPH">
+            <mat-label>Réponse</mat-label>
+            <textarea matInput [(ngModel)]="q.response" rows="3" (blur)="showCopilotPanel && q.response && analyzeLiveResponse(q)"></textarea>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.NUMBER">
+            <mat-label>Nombre</mat-label>
+            <input matInput type="number" [(ngModel)]="q.response" (blur)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DATE">
+            <mat-label>Date</mat-label>
+            <input matInput [(ngModel)]="q.response" type="date" (change)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.TIME">
+            <mat-label>Heure</mat-label>
+            <input matInput [(ngModel)]="q.response" type="time" (change)="showCopilotPanel && q.response && analyzeLiveResponse(q)" />
+          </mat-form-field>
+        </div>
+        <div *ngIf="responseQuestions.length === 0" class="text-center p-24 text-muted">Aucune question définie.</div>
       </div>
-      <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.YES_OR_NO" class="d-flex gap-16">
-        <mat-radio-button value="true">Oui</mat-radio-button>
-        <mat-radio-button value="false">Non</mat-radio-button>
-      </mat-radio-group>
-      <mat-radio-group [(ngModel)]="q.response" *ngIf="(q.questionType || q.type) === QuestionType.MULTIPLE_CHOICE" class="d-flex flex-column gap-8">
-        <mat-radio-button *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-radio-button>
-      </mat-radio-group>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DROPDOWN">
-        <mat-label>Sélectionner</mat-label>
-        <mat-select [(ngModel)]="q.response">
-          <mat-option *ngFor="let opt of (q.options || [])" [value]="opt">{{ opt }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.SHORT_ANSWER">
-        <mat-label>Réponse</mat-label>
-        <input matInput [(ngModel)]="q.response" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.PARAGRAPH">
-        <mat-label>Réponse</mat-label>
-        <textarea matInput [(ngModel)]="q.response" rows="3"></textarea>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.NUMBER">
-        <mat-label>Nombre</mat-label>
-        <input matInput type="number" [(ngModel)]="q.response" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.DATE">
-        <mat-label>Date</mat-label>
-        <input matInput [(ngModel)]="q.response" type="date" />
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="w-100" *ngIf="(q.questionType || q.type) === QuestionType.TIME">
-        <mat-label>Heure</mat-label>
-        <input matInput [(ngModel)]="q.response" type="time" />
-      </mat-form-field>
+
+      <!-- RIGHT: Copilot Sidebar -->
+      <div class="copilot-sidebar" *ngIf="showCopilotPanel">
+        <div class="copilot-sidebar-header">
+          <div class="copilot-avatar-sm">
+            <i-tabler name="sparkles" class="icon-18"></i-tabler>
+          </div>
+          <span class="copilot-sidebar-title">Call Copilot</span>
+        </div>
+
+        <!-- Loading -->
+        <div class="copilot-loading" *ngIf="isAnalyzing">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Analyse en cours...</span>
+        </div>
+
+        <!-- No analysis yet -->
+        <div class="copilot-empty" *ngIf="!copilotAnalysis && !isAnalyzing && !showSummaryPanel">
+          <i-tabler name="message-chatbot" class="icon-32 text-muted"></i-tabler>
+          <span>Répondez à une question pour activer l'assistant IA</span>
+        </div>
+
+        <!-- Analysis Results -->
+        <div class="copilot-results" *ngIf="copilotAnalysis && !isAnalyzing">
+          <!-- Sentiment Badge -->
+          <div class="copilot-sentiment" [style.border-color]="getSentimentColor(copilotAnalysis.sentiment)">
+            <i-tabler [name]="getSentimentIcon(copilotAnalysis.sentiment)" class="icon-18"
+                       [style.color]="getSentimentColor(copilotAnalysis.sentiment)"></i-tabler>
+            <span [style.color]="getSentimentColor(copilotAnalysis.sentiment)">{{ getSentimentLabel(copilotAnalysis.sentiment) }}</span>
+            <span class="copilot-confidence">{{ (copilotAnalysis.confidence * 100) | number:'1.0-0' }}%</span>
+          </div>
+
+          <!-- Suggestion -->
+          <div class="copilot-card suggestion-card" *ngIf="copilotAnalysis.suggestion">
+            <div class="copilot-card-header">
+              <i-tabler name="bulb" class="icon-16"></i-tabler>
+              <span>Suggestion</span>
+            </div>
+            <p class="copilot-card-text">{{ copilotAnalysis.suggestion }}</p>
+          </div>
+
+          <!-- Reformulation -->
+          <div class="copilot-card reformulation-card" *ngIf="copilotAnalysis.reformulation">
+            <div class="copilot-card-header">
+              <i-tabler name="refresh" class="icon-16"></i-tabler>
+              <span>Reformulation proposée</span>
+            </div>
+            <p class="copilot-card-text">{{ copilotAnalysis.reformulation }}</p>
+          </div>
+
+          <!-- Detected Points -->
+          <div class="copilot-card points-card" *ngIf="copilotAnalysis.detectedPoints && copilotAnalysis.detectedPoints.length > 0">
+            <div class="copilot-card-header">
+              <i-tabler name="alert-circle" class="icon-16"></i-tabler>
+              <span>Points détectés</span>
+            </div>
+            <div class="copilot-points-list">
+              <div *ngFor="let point of copilotAnalysis.detectedPoints" class="copilot-point"
+                   [style.border-left-color]="getPointColor(point.type)">
+                <div class="d-flex align-items-center gap-6">
+                  <i-tabler [name]="getPointIcon(point.type)" class="icon-14" [style.color]="getPointColor(point.type)"></i-tabler>
+                  <strong class="f-s-12">{{ point.label }}</strong>
+                </div>
+                <span class="f-s-11 text-muted">{{ point.detail }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Next Question Hint -->
+          <div class="copilot-card hint-card" *ngIf="copilotAnalysis.nextQuestionHint">
+            <div class="copilot-card-header">
+              <i-tabler name="arrow-right" class="icon-16"></i-tabler>
+              <span>Conseil</span>
+            </div>
+            <p class="copilot-card-text f-s-12">{{ copilotAnalysis.nextQuestionHint }}</p>
+          </div>
+        </div>
+
+        <!-- Auto-Summary Section -->
+        <div class="copilot-summary-section">
+          <button class="copilot-summary-btn" (click)="generateSummary()" [disabled]="isGeneratingSummary">
+            <i-tabler name="file-text" class="icon-16"></i-tabler>
+            {{ isGeneratingSummary ? 'Génération...' : 'Auto-Résumé' }}
+          </button>
+
+          <!-- Summary Loading -->
+          <div class="copilot-loading" *ngIf="isGeneratingSummary">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>Génération du résumé...</span>
+          </div>
+
+          <!-- Summary Result -->
+          <div class="copilot-summary-result" *ngIf="callSummary && !isGeneratingSummary">
+            <div class="summary-text-box">
+              <div class="d-flex align-items-center gap-8 m-b-8">
+                <i-tabler name="file-text" class="icon-16" style="color: #667eea;"></i-tabler>
+                <strong class="f-s-13">Résumé de l'appel</strong>
+              </div>
+              <p class="summary-text">{{ callSummary.summary }}</p>
+            </div>
+
+            <!-- Tags -->
+            <div class="summary-tags" *ngIf="callSummary.tags?.length">
+              <div class="d-flex align-items-center gap-6 m-b-6">
+                <i-tabler name="tags" class="icon-14" style="color: #667eea;"></i-tabler>
+                <span class="f-s-12 f-w-600">Tags</span>
+              </div>
+              <div class="tags-list">
+                <span *ngFor="let tag of callSummary.tags" class="summary-tag">{{ tag }}</span>
+              </div>
+            </div>
+
+            <!-- Sentiment -->
+            <div class="summary-sentiment">
+              <i-tabler [name]="getSentimentIcon(callSummary.sentiment)" class="icon-16"
+                         [style.color]="getSentimentColor(callSummary.sentiment)"></i-tabler>
+              <span class="f-s-12">Sentiment : <strong [style.color]="getSentimentColor(callSummary.sentiment)">{{ getSentimentLabel(callSummary.sentiment) }}</strong></span>
+              <span class="summary-completion">{{ callSummary.completionRate }}% complet</span>
+            </div>
+
+            <!-- Key Points -->
+            <div class="summary-keypoints" *ngIf="callSummary.keyPoints?.length">
+              <span class="f-s-12 f-w-600 m-b-6 d-block">Points clés</span>
+              <div *ngFor="let kp of callSummary.keyPoints" class="summary-keypoint">
+                <i-tabler [name]="getKeyPointIcon(kp.type)" class="icon-14" [style.color]="getKeyPointColor(kp.type)"></i-tabler>
+                <span class="f-s-11">{{ kp.text }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div *ngIf="responseQuestions.length === 0" class="text-center p-24 text-muted">Aucune question définie.</div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Annuler</button>

@@ -8,6 +8,7 @@ import { RequestService } from 'src/app/services/apps/ticket/request.service';
 import { ContactService } from 'src/app/services/apps/contact/contact.service';
 import { CallbackService } from 'src/app/services/apps/callback.service';
 import { ResponseService, ConsistencyReport, ContactAnalysis, ConsistencyIssue } from 'src/app/services/apps/response.service';
+import { CallCopilotService, CopilotAnalysis, DetectedPoint, CallSummary, KeyPoint } from 'src/app/services/apps/call-copilot.service';
 import { RoleService } from 'src/app/services/role.service';
 import { LogsService, LogEntry } from 'src/app/services/apps/logs.service';
 import { Request } from 'src/app/models/Request';
@@ -107,6 +108,15 @@ export class CallsComponent implements OnInit, OnDestroy {
   showConsistencyPanel = false;
   consistencyContactMap = new Map<number, ContactAnalysis>();
 
+  // Call Copilot
+  copilotAnalysis: CopilotAnalysis | null = null;
+  isAnalyzing = false;
+  showCopilotPanel = false;
+  // Auto-Summary
+  callSummary: CallSummary | null = null;
+  isGeneratingSummary = false;
+  showSummaryPanel = false;
+
   callStatuses = [
     { value: ContactStatus.CONTACTED_AVAILABLE, label: 'Contacté avec succès' },
     { value: ContactStatus.CONTACTED_UNAVAILABLE, label: 'Contacté - Indisponible' },
@@ -120,6 +130,7 @@ export class CallsComponent implements OnInit, OnDestroy {
     private contactService: ContactService,
     private callbackService: CallbackService,
     private responseService: ResponseService,
+    private copilotService: CallCopilotService,
     private roleService: RoleService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
@@ -458,6 +469,7 @@ export class CallsComponent implements OnInit, OnDestroy {
     this.responseRequest = entry.request;
     this.responseContactStatus = entry.contactStatus;
     this.responseQuestions = (entry.request.questions || []).map(q => ({ ...q, response: '' }));
+    this.resetCopilot();
     if (entry.contact.idC && entry.request.idR) {
       this.responseService.getResponsesByContactAndRequest(entry.contact.idC, entry.request.idR).subscribe({
         next: (responses: any[]) => {
@@ -469,7 +481,7 @@ export class CallsComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }
-    this.dialog.open(this.responseDialog, { width: '650px', maxHeight: '85vh' });
+    this.dialog.open(this.responseDialog, { width: '950px', maxHeight: '90vh', panelClass: 'copilot-dialog-panel' });
   }
 
   saveResponses(): void {
@@ -657,5 +669,120 @@ export class CallsComponent implements OnInit, OnDestroy {
   autoDetectAndWarn(): void {
     if (!this.selectedRequest) return;
     this.checkConsistency();
+  }
+
+  // ==== Call Copilot ====
+  analyzeLiveResponse(question: any): void {
+    if (!this.responseRequest || !this.responseContact || !question.response) return;
+    this.isAnalyzing = true;
+    this.showCopilotPanel = true;
+    this.copilotService.analyzeLiveResponse(
+      this.responseRequest.idR,
+      this.responseContact.idC,
+      question.id,
+      String(question.response)
+    ).subscribe({
+      next: (analysis) => {
+        this.copilotAnalysis = analysis;
+        this.isAnalyzing = false;
+      },
+      error: () => {
+        this.isAnalyzing = false;
+      }
+    });
+  }
+
+  getSentimentIcon(sentiment: string): string {
+    switch (sentiment) {
+      case 'POSITIVE': return 'mood-happy';
+      case 'NEGATIVE': return 'mood-sad';
+      case 'MIXED': return 'mood-puzzled';
+      default: return 'mood-neutral';
+    }
+  }
+
+  getSentimentColor(sentiment: string): string {
+    switch (sentiment) {
+      case 'POSITIVE': return '#4caf50';
+      case 'NEGATIVE': return '#f44336';
+      case 'MIXED': return '#ff9800';
+      default: return '#9e9e9e';
+    }
+  }
+
+  getSentimentLabel(sentiment: string): string {
+    switch (sentiment) {
+      case 'POSITIVE': return 'Positif';
+      case 'NEGATIVE': return 'Négatif';
+      case 'MIXED': return 'Mixte';
+      default: return 'Neutre';
+    }
+  }
+
+  getPointIcon(type: string): string {
+    switch (type) {
+      case 'URGENCY': return 'urgent';
+      case 'PROBLEM': return 'alert-triangle';
+      case 'DISSATISFACTION': return 'mood-sad';
+      case 'POSITIVE': return 'thumb-up';
+      case 'INFO': return 'info-circle';
+      default: return 'point';
+    }
+  }
+
+  getPointColor(type: string): string {
+    switch (type) {
+      case 'URGENCY': return '#f44336';
+      case 'PROBLEM': return '#ff9800';
+      case 'DISSATISFACTION': return '#e91e63';
+      case 'POSITIVE': return '#4caf50';
+      case 'INFO': return '#2196f3';
+      default: return '#757575';
+    }
+  }
+
+  // ==== Auto-Summary ====
+  generateSummary(): void {
+    if (!this.responseRequest || !this.responseContact) return;
+    this.isGeneratingSummary = true;
+    this.showSummaryPanel = true;
+    this.copilotService.generateCallSummary(
+      this.responseRequest.idR,
+      this.responseContact.idC
+    ).subscribe({
+      next: (summary) => {
+        this.callSummary = summary;
+        this.isGeneratingSummary = false;
+      },
+      error: () => {
+        this.isGeneratingSummary = false;
+        this.snackBar.open('Erreur lors de la génération du résumé', 'Fermer', { duration: 3000 });
+      }
+    });
+  }
+
+  getKeyPointIcon(type: string): string {
+    switch (type) {
+      case 'IMPORTANT': return 'star';
+      case 'WARNING': return 'alert-triangle';
+      case 'POSITIVE': return 'thumb-up';
+      default: return 'info-circle';
+    }
+  }
+
+  getKeyPointColor(type: string): string {
+    switch (type) {
+      case 'IMPORTANT': return '#ff9800';
+      case 'WARNING': return '#f44336';
+      case 'POSITIVE': return '#4caf50';
+      default: return '#2196f3';
+    }
+  }
+
+  resetCopilot(): void {
+    this.copilotAnalysis = null;
+    this.callSummary = null;
+    this.showCopilotPanel = false;
+    this.showSummaryPanel = false;
   }
 }
