@@ -31,6 +31,23 @@ public class User implements Serializable {
     private boolean enabled = true;
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    /** Computed firstName from fullName (for JSON serialization) */
+    @Transient
+    public String getFirstName() {
+        if (fullName == null || fullName.isBlank()) return null;
+        String[] parts = fullName.trim().split("\\s+", 2);
+        return parts[0];
+    }
+
+    /** Computed lastName from fullName (for JSON serialization) */
+    @Transient
+    public String getLastName() {
+        if (fullName == null || fullName.isBlank()) return null;
+        String[] parts = fullName.trim().split("\\s+", 2);
+        return parts.length > 1 ? parts[1] : null;
+    }
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
     private List<Request> requests = new ArrayList<>();
