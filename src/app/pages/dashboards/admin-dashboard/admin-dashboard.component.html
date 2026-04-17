@@ -1,0 +1,158 @@
+<!-- Loading -->
+<div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px">
+  <mat-spinner diameter="48"></mat-spinner>
+</div>
+
+<div *ngIf="!isLoading" class="admin-dash">
+
+  <!-- ===== HEADER ===== -->
+  <div class="dash-header">
+    <div>
+      <h2 class="dash-title">Tableau de bord</h2>
+      <p class="dash-subtitle">Vue d'ensemble du système</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="loadAll()" class="refresh-btn">
+      <i-tabler name="refresh" class="icon-18 m-r-4"></i-tabler> Actualiser
+    </button>
+  </div>
+
+  <!-- ===== 5 KPI CARDS ===== -->
+  <div class="kpi-row">
+
+    <!-- KPI 1: Total Users -->
+    <div class="kpi-card">
+      <div class="kpi-icon bg-blue">
+        <i-tabler name="users" class="icon-22"></i-tabler>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-number">{{ totalUsers }}</span>
+        <span class="kpi-label">Utilisateurs</span>
+      </div>
+    </div>
+
+    <!-- KPI 2: Active Users -->
+    <div class="kpi-card">
+      <div class="kpi-icon bg-green">
+        <i-tabler name="user-check" class="icon-22"></i-tabler>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-number">{{ activeUsers }}</span>
+        <span class="kpi-label">Actifs</span>
+      </div>
+    </div>
+
+    <!-- KPI 3: AI - Summary (ai-powered) -->
+    <div class="kpi-card kpi-ai-card wide-card">
+      <div class="kpi-icon bg-ai">
+        <i-tabler name="brain" class="icon-22"></i-tabler>
+      </div>
+      <div class="kpi-body">
+        <div class="ai-tag">IA</div>
+        <span class="kpi-label">Résumé intelligent</span>
+        <p class="ai-text" *ngIf="aiSummary && !aiLoading">{{ aiSummary }}</p>
+        <mat-spinner *ngIf="aiLoading" diameter="18" class="m-t-4"></mat-spinner>
+        <span class="ai-text text-muted" *ngIf="!aiSummary && !aiLoading">Analyse en cours…</span>
+      </div>
+    </div>
+
+    <!-- KPI 4: AI - Security (ai-powered) -->
+    <div class="kpi-card kpi-ai-card">
+      <div class="kpi-icon bg-warn">
+        <i-tabler name="shield-exclamation" class="icon-22"></i-tabler>
+      </div>
+      <div class="kpi-body">
+        <div class="ai-tag">IA</div>
+        <span class="kpi-label">Alerte sécurité</span>
+        <p class="ai-text" *ngIf="aiSecurityAlert">{{ aiSecurityAlert }}</p>
+        <mat-spinner *ngIf="aiLoading && !aiSecurityAlert" diameter="18" class="m-t-4"></mat-spinner>
+      </div>
+    </div>
+
+    <!-- KPI 5: AI - Workforce (ai-powered) -->
+    <div class="kpi-card kpi-ai-card">
+      <div class="kpi-icon bg-purple">
+        <i-tabler name="chart-arrows-vertical" class="icon-22"></i-tabler>
+      </div>
+      <div class="kpi-body">
+        <div class="ai-tag">IA</div>
+        <span class="kpi-label">Performance équipe</span>
+        <p class="ai-text" *ngIf="aiWorkforceInsight">{{ aiWorkforceInsight }}</p>
+        <span class="ai-text text-muted" *ngIf="!aiWorkforceInsight && !aiLoading">Pas de données</span>
+        <mat-spinner *ngIf="aiLoading && !aiWorkforceInsight" diameter="18" class="m-t-4"></mat-spinner>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== CHARTS ROW ===== -->
+  <div class="charts-row">
+    <!-- Role distribution -->
+    <mat-card class="chart-card">
+      <mat-card-content class="p-20">
+        <div class="section-header">
+          <i-tabler name="shield-lock" class="icon-18 text-primary"></i-tabler>
+          <span class="section-title">Répartition des rôles</span>
+        </div>
+        <apx-chart *ngIf="roleChart.series"
+          [series]="roleChart.series"
+          [chart]="roleChart.chart"
+          [labels]="roleChart.labels"
+          [colors]="roleChart.colors"
+          [plotOptions]="roleChart.plotOptions"
+          [legend]="roleChart.legend"
+          [dataLabels]="roleChart.dataLabels"
+          [tooltip]="roleChart.tooltip"
+        ></apx-chart>
+        <div class="role-list m-t-8">
+          <div *ngFor="let entry of roleCounts | keyvalue" class="role-row">
+            <span class="role-dot" [ngClass]="'dot-' + entry.key.toLowerCase()"></span>
+            <span class="role-name">{{ getRoleLabel(entry.key) }}</span>
+            <span class="role-count">{{ entry.value }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Trend chart -->
+    <mat-card class="chart-card chart-wide">
+      <mat-card-content class="p-20">
+        <div class="section-header">
+          <i-tabler name="trending-up" class="icon-18 text-primary"></i-tabler>
+          <span class="section-title">Évolution (30 jours)</span>
+        </div>
+        <apx-chart *ngIf="trendChart.series && stats"
+          [series]="trendChart.series"
+          [chart]="trendChart.chart"
+          [colors]="trendChart.colors"
+          [fill]="trendChart.fill"
+          [stroke]="trendChart.stroke"
+          [xaxis]="trendChart.xaxis"
+          [yaxis]="trendChart.yaxis"
+          [dataLabels]="trendChart.dataLabels"
+          [tooltip]="trendChart.tooltip"
+          [legend]="trendChart.legend"
+          [grid]="trendChart.grid"
+        ></apx-chart>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- ===== AI RECOMMENDATIONS ===== -->
+  <mat-card class="ai-reco-card m-t-20" *ngIf="stats?.aiRecommendations?.length">
+    <mat-card-content class="p-20">
+      <div class="section-header">
+        <div class="ai-badge-reco"><i-tabler name="brain" class="icon-14"></i-tabler> Recommandations IA</div>
+      </div>
+      <div class="reco-grid">
+        <div *ngFor="let rec of stats!.aiRecommendations" class="reco-item" [style.border-left-color]="getSeverityColor(rec.severity)">
+          <i-tabler [name]="rec.icon || getSeverityIcon(rec.severity)" class="icon-20" [style.color]="getSeverityColor(rec.severity)"></i-tabler>
+          <div>
+            <p class="reco-title">{{ rec.title }}</p>
+            <p class="reco-msg">{{ rec.message }}</p>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+</div>

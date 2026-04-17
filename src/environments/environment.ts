@@ -1,18 +1,18 @@
 export const environment = {
   production: false,
 
-  /** ===== POINT D'ENTREE UNIQUE : API Gateway ===== */
-  gatewayUrl: 'http://localhost:9090',
+  /** ===== ACCES DIRECT AUX SERVICES (sans Gateway) ===== */
+  gatewayUrl: 'http://localhost:8082/api',
 
-  /** Toutes les URLs passent par le Gateway */
-  apiUrl: 'http://localhost:9090/api',
-  contactApiUrl: 'http://localhost:9090/api/contacts',
-  authUrl: 'http://localhost:9090/api/auth',
-  adminUrl: 'http://localhost:9090/api/admin',
-  userUrl: 'http://localhost:9090/api/users',
+  /** Callcenter-service direct (port 8082, context-path=/api) */
+  apiUrl: 'http://localhost:8082/api',
+  contactApiUrl: 'http://localhost:8081/api/contacts',
+  authUrl: 'http://192.168.10.161:8080/realms/Portal/protocol/openid-connect',
+  adminUrl: 'http://localhost:8082/api/admin',
+  userUrl: 'http://localhost:8082/api/users',
 
-  /** WebSocket via Gateway */
-  wsUrl: 'ws://localhost:9090/ws',
+  /** WebSocket direct vers callcenter-service */
+  wsUrl: 'ws://localhost:8082/api/ws',
 
   /** Keycloak (pour keycloak-angular init seulement) */
   keycloak: {
