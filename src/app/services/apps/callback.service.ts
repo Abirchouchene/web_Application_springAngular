@@ -8,7 +8,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class CallbackService {
-  private apiUrl = `${environment.apiUrl}/callbacks`;
+  private apiUrl = environment.callbackApiUrl;
 
   constructor(private http: HttpClient) { }
 

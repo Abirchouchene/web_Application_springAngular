@@ -334,9 +334,27 @@ export class CallsComponent implements OnInit, OnDestroy {
     this.showDetail = true;
     this.consistencyReport = null;
     this.showConsistencyPanel = false;
-    this.loadContactDetails(req);
-    this.buildCallEntries();
-    this.applyContactFilter();
+
+    // The list endpoint returns requests without contacts (for speed).
+    // Fetch the full request by ID to get the contacts array.
+    this.requestService.getRequestById(req.idR).subscribe({
+      next: (full) => {
+        req.contacts = full.contacts || [];
+        // Replace the stale row in assignedRequests so buildCallEntries picks up contacts
+        const idx = this.assignedRequests.findIndex(r => r.idR === req.idR);
+        if (idx >= 0) this.assignedRequests[idx].contacts = req.contacts;
+        this.selectedRequest = this.assignedRequests[idx] || req;
+        this.loadContactDetails(this.selectedRequest);
+        this.buildCallEntries();
+        this.applyContactFilter();
+      },
+      error: () => {
+        this.loadContactDetails(req);
+        this.buildCallEntries();
+        this.applyContactFilter();
+      }
+    });
+
     this.loadReportStatus();
     this.loadLogs();
     // Auto-check consistency when opening detail view
@@ -448,14 +466,21 @@ export class CallsComponent implements OnInit, OnDestroy {
     const newStatus = this.callStatusForm.get('status')!.value as ContactStatus;
     const note = this.callStatusForm.get('note')!.value || '';
     const currentEntry = this.selectedEntry;
-    this.contactService.updateContactStatus(currentEntry.contact.idC, newStatus, note).subscribe({
+
+    forkJoin({
+      perRequest: this.requestService.updateRequestContactStatus(
+        currentEntry.request.idR, currentEntry.contact.idC, newStatus, note
+      ),
+      global: this.contactService.updateContactStatus(
+        currentEntry.contact.idC, newStatus, note
+      ).pipe(catchError(() => of(null)))
+    }).subscribe({
       next: () => {
         currentEntry.contact.callStatus = newStatus;
         currentEntry.contact.callNote = note;
         currentEntry.contactStatus = newStatus;
         this.applyContactFilter();
         this.snackBar.open('Statut enregistré', 'OK', { duration: 1500 });
-        // Close call status dialog and open response collection dialog
         this.dialog.closeAll();
         setTimeout(() => this.openResponseDialog(currentEntry), 300);
       },

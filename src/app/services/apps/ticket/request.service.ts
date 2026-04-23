@@ -117,6 +117,17 @@ updateNote(requestId: number, note: string): Observable<Request> {
   return this.http.put<Request>(`${this.apiUrl}/${requestId}/update-note`, { note });
 }
 
+updateRequestContactStatus(requestId: number, contactId: number, status: string, callNote: string): Observable<any> {
+  const params = new HttpParams()
+    .set('status', status)
+    .set('callNote', callNote || '');
+  return this.http.put<any>(
+    `${environment.apiUrl}/request-contact-status/${requestId}/${contactId}`,
+    null,
+    { params }
+  );
+}
+
   // request.service.ts
   getAvailableAgents(date?: string): Observable<AgentAvailabilityDTO[]> {
     let url = `${this.apiUrl}/agent/availability`;
@@ -150,7 +161,7 @@ updateNote(requestId: number, note: string): Observable<Request> {
     );
   }
 
-  approveReport(requestId: number): Observable<void> {
+  approveReport(requestId: number) {
     return this.reportService.approveReport(requestId);
   }
 

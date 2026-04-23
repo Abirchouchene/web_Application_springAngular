@@ -90,6 +90,7 @@ export class ReportDetailsComponent implements OnInit {
 
   // AI insights
   aiInsights: any = null;
+  isGeneratingAi = false;
 
   questionTypes = ['MULTIPLE_CHOICE', 'DROPDOWN', 'CHECKBOXES', 'YES_OR_NO', 'NUMBER', 'SHORT_ANSWER', 'PARAGRAPH', 'DATE', 'TIME'];
 
@@ -141,10 +142,45 @@ export class ReportDetailsComponent implements OnInit {
     if (this.report?.aiInsightsData) {
       try {
         this.aiInsights = JSON.parse(this.report.aiInsightsData);
+        return;
       } catch (e) {
         console.error('Error parsing AI insights:', e);
       }
     }
+    // No cached insights — ask the backend (it will generate, or return rule-based fallback)
+    this.loadAiInsights();
+  }
+
+  loadAiInsights(): void {
+    if (!this.report) return;
+    this.isGeneratingAi = true;
+    this.reportService.getAiInsights(this.report.id).subscribe({
+      next: (insights) => {
+        this.aiInsights = insights;
+        this.isGeneratingAi = false;
+      },
+      error: (err) => {
+        console.error('Error loading AI insights:', err);
+        this.isGeneratingAi = false;
+      }
+    });
+  }
+
+  regenerateAiInsights(): void {
+    if (!this.report) return;
+    this.isGeneratingAi = true;
+    this.reportService.generateAiInsights(this.report.id).subscribe({
+      next: (insights) => {
+        this.aiInsights = insights;
+        this.isGeneratingAi = false;
+        this.snackBar.open('Analyse IA régénérée', 'Fermer', { duration: 3000 });
+      },
+      error: (err) => {
+        console.error('Error regenerating AI insights:', err);
+        this.isGeneratingAi = false;
+        this.snackBar.open('Échec de la régénération IA', 'Fermer', { duration: 3000 });
+      }
+    });
   }
 
   filterQuestions(): void {

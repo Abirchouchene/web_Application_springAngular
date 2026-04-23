@@ -5,6 +5,7 @@ export const environment = {
 
   apiUrl: 'https://your-domain.com/api',
   contactApiUrl: 'https://your-domain.com/api/contacts',
+  callbackApiUrl: 'https://your-domain.com/api/callbacks',
   authUrl: 'https://your-domain.com/api/auth',
   adminUrl: 'https://your-domain.com/api/admin',
   userUrl: 'https://your-domain.com/api/users',

@@ -100,4 +100,10 @@ public class ContactController {
     public Contact removeTag(@PathVariable Long contactId, @PathVariable Long tagId) {
         return contactService.removeTagFromContact(contactId, tagId);
     }
+
+    @DeleteMapping("/tags/{tagId}")
+    public ResponseEntity<Void> deleteTag(@PathVariable Long tagId) {
+        contactService.deleteTag(tagId);
+        return ResponseEntity.noContent().build();
+    }
 } 

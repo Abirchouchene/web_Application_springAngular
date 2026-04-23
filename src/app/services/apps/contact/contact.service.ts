@@ -78,6 +78,10 @@ export class ContactService {
     return this.http.get<Tag[]>(`${this.baseUrl}/tags/All`, this.httpOptions);
   }
 
+  deleteTag(tagId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/tags/${tagId}`, this.httpOptions);
+  }
+
   assignTag(contactId: number, tagId: number): Observable<Contact> {
     return this.http.put<Contact>(`${this.baseUrl}/${contactId}/tags/${tagId}`, {}, this.httpOptions);
   }

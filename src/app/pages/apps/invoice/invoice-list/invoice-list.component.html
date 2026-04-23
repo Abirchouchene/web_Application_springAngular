@@ -106,9 +106,9 @@
               <mat-icon>visibility</mat-icon>
             </a>
             @if (element.status === 'PENDING' && !isAgent) {
-              <a mat-icon-button [routerLink]="['/apps/editinvoice', element.idR]" matTooltip="Modifier">
+              <button mat-icon-button (click)="openEditDialog(element)" matTooltip="Modifier">
                 <mat-icon>edit</mat-icon>
-              </a>
+              </button>
               <button mat-icon-button (click)="deleteRequest(element.idR)" matTooltip="Supprimer" color="warn">
                 <mat-icon>delete</mat-icon>
               </button>

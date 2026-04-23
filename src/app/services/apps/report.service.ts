@@ -25,6 +25,16 @@ export interface Report {
   pdfPath?: string;
 }
 
+export interface ApprovalResult {
+  reportId: number;
+  status: 'APPROVED' | 'SENT';
+  emailSent: boolean;
+  recipientEmail?: string;
+  recipientName?: string;
+  sentAt?: string;
+  warning?: string;
+}
+
 export interface ReportDetails {
   request: Request;
   statistics?: {
@@ -57,8 +67,8 @@ export class ReportService {
     return this.http.get<ReportDetails>(`${this.apiUrl}/${requestId}`);
   }
 
-  approveReport(requestId: number): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${requestId}/approve`, {});
+  approveReport(requestId: number): Observable<ApprovalResult> {
+    return this.http.post<ApprovalResult>(`${this.apiUrl}/${requestId}/approve`, {});
   }
 
   rejectReport(requestId: number): Observable<void> {
@@ -85,6 +95,16 @@ export class ReportService {
 
   getDownloadUrl(reportId: number): Observable<{ url: string; stored: string }> {
     return this.http.get<{ url: string; stored: string }>(`${this.apiUrl}/${reportId}/download-url`);
+  }
+
+  /** GET cached AI insights, generating on the backend if missing (or rule-based fallback). */
+  getAiInsights(reportId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${reportId}/ai-insights`);
+  }
+
+  /** Force regenerate AI insights (overwrites any existing cached data). */
+  generateAiInsights(reportId: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${reportId}/ai-insights/generate`, {});
   }
 
   // Helper method to calculate statistics for a request

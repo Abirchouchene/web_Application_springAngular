@@ -2,9 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MaterialModule } from 'src/app/material.module';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
-import { ReportService } from 'src/app/services/apps/report.service';
+import { ReportService, ApprovalResult } from 'src/app/services/apps/report.service';
+import { ReportApprovalResultDialogComponent } from '../report-approval-result-dialog/report-approval-result-dialog.component';
 
 interface Report {
   id: number;
@@ -42,7 +44,8 @@ export class ReportListComponent implements OnInit {
     private requestService: RequestService,
     private reportService: ReportService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -135,8 +138,12 @@ export class ReportListComponent implements OnInit {
 
   approveReport(report: Report): void {
     this.requestService.approveReport(report.id).subscribe({
-      next: () => {
-        this.showMessage('Rapport approuvé avec succès');
+      next: (result: ApprovalResult) => {
+        this.dialog.open(ReportApprovalResultDialogComponent, {
+          width: '500px',
+          data: result,
+          disableClose: false,
+        });
         this.loadReports();
       },
       error: () => this.showMessage('Échec de l\'approbation du rapport')
