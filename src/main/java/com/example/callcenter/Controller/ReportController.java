@@ -75,9 +75,8 @@ public class ReportController {
     }
 
     @PostMapping("/{reportId}/approve")
-    public ResponseEntity<Void> approveReport(@PathVariable Long reportId) {
-        reportService.approveReport(reportId);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, Object>> approveReport(@PathVariable Long reportId) {
+        return ResponseEntity.ok(reportService.approveReport(reportId));
     }
 
     @PostMapping("/{reportId}/reject")
