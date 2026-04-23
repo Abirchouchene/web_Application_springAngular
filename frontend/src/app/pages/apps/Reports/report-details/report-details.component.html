@@ -184,6 +184,18 @@
       <!-- ===== TAB ANALYSE IA ===== -->
       <mat-tab label="Analyse IA">
         <div class="tab-content">
+          <div class="d-flex justify-content-end m-b-16" *ngIf="aiInsights || isGeneratingAi">
+            <button mat-stroked-button color="primary" [disabled]="isGeneratingAi" (click)="regenerateAiInsights()">
+              <mat-icon>refresh</mat-icon>
+              {{ isGeneratingAi ? 'Génération en cours...' : 'Régénérer l\'analyse' }}
+            </button>
+          </div>
+
+          <div *ngIf="isGeneratingAi && !aiInsights" class="text-center p-5">
+            <mat-spinner diameter="48" class="m-auto"></mat-spinner>
+            <p class="text-muted mt-3">Génération de l'analyse IA en cours...</p>
+          </div>
+
           <div *ngIf="aiInsights">
             <!-- Summary -->
             <mat-card class="ai-card" *ngIf="aiInsights.summary">
@@ -244,9 +256,13 @@
             </mat-card>
           </div>
 
-          <div *ngIf="!aiInsights" class="text-center p-5">
+          <div *ngIf="!aiInsights && !isGeneratingAi" class="text-center p-5">
             <mat-icon class="text-muted" style="font-size: 48px; width: 48px; height: 48px;">psychology</mat-icon>
             <p class="text-muted mt-2">Aucune analyse IA disponible pour ce rapport</p>
+            <button mat-flat-button color="primary" class="m-t-16" (click)="loadAiInsights()">
+              <mat-icon>auto_awesome</mat-icon>
+              Générer l'analyse IA
+            </button>
           </div>
         </div>
       </mat-tab>

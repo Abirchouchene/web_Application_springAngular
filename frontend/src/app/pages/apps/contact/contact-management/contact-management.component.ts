@@ -82,6 +82,9 @@ export class ContactManagementComponent implements OnInit, AfterViewInit {
   selectedTagIds: number[] = [];
   allTags: Tag[] = [];
 
+  newTagName = '';
+  isCreatingTag = false;
+
   constructor(
     private contactService: ContactService,
     private dialog: MatDialog,
@@ -191,6 +194,42 @@ export class ContactManagementComponent implements OnInit, AfterViewInit {
     const d = new Date(value);
     if (isNaN(d.getTime())) return String(value);
     return d.toLocaleString('fr-FR');
+  }
+
+  createTag(): void {
+    const name = this.newTagName.trim();
+    if (!name) return;
+    this.isCreatingTag = true;
+    this.contactService.createTag({ name }).subscribe({
+      next: (tag) => {
+        if (!this.allTags.find((t) => t.id === tag.id)) {
+          this.allTags = [...this.allTags, tag].sort((a, b) =>
+            String(a.name).localeCompare(String(b.name))
+          );
+        }
+        this.newTagName = '';
+        this.isCreatingTag = false;
+        this.snackBar.open(`Étiquette « ${tag.name} » créée`, 'OK', { duration: 2500 });
+      },
+      error: () => {
+        this.isCreatingTag = false;
+        this.snackBar.open('Impossible de créer l\'étiquette', 'Fermer', { duration: 3000 });
+      },
+    });
+  }
+
+  deleteTag(tag: Tag): void {
+    if (!confirm(`Supprimer l'étiquette « ${tag.name} » ? Elle sera retirée de tous les contacts.`)) return;
+    this.contactService.deleteTag(tag.id).subscribe({
+      next: () => {
+        this.allTags = this.allTags.filter((t) => t.id !== tag.id);
+        this.selectedTagIds = this.selectedTagIds.filter((id) => id !== tag.id);
+        this.loadContacts();
+        this.snackBar.open(`Étiquette « ${tag.name} » supprimée`, 'OK', { duration: 2500 });
+      },
+      error: () =>
+        this.snackBar.open('Suppression impossible', 'Fermer', { duration: 3000 }),
+    });
   }
 
   statusDisplay(contact: Contact): string {

@@ -1,0 +1,188 @@
+<h2 mat-dialog-title class="dialog-title">Modifier la demande</h2>
+
+<mat-dialog-content class="dialog-content">
+  <form [formGroup]="editForm">
+
+    <!-- Section: Informations de la Demande -->
+    <div class="section-header">
+      <i-tabler name="file-description" class="icon-20 section-icon"></i-tabler>
+      <span class="section-title">Informations de la Demande</span>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-6">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Type de Demande*</mat-label>
+          <mat-select formControlName="requestType">
+            <mat-option *ngFor="let t of requestTypes" [value]="t">{{ t }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="col-6">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Catégorie*</mat-label>
+          <mat-select formControlName="categoryRequest">
+            <mat-option *ngFor="let c of categoryRequests" [value]="c">{{ c }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="col-6">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Niveau de Priorité*</mat-label>
+          <mat-select formControlName="priority">
+            <mat-option *ngFor="let p of priorityLevels" [value]="p">{{ p }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="col-6">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Date limite</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="deadline" placeholder="jj/mm/aaaa" />
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div class="col-12">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Description*</mat-label>
+          <textarea matInput formControlName="description" rows="3" placeholder="Description de la demande"></textarea>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <!-- Section: Contacts -->
+    <div class="section-header mt-2">
+      <i-tabler name="users" class="icon-20 section-icon"></i-tabler>
+      <span class="section-title">Contacts</span>
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-7">
+        <mat-form-field appearance="outline" class="w-100">
+          <input matInput [(ngModel)]="contactSearch" [ngModelOptions]="{standalone:true}" placeholder="Rechercher des contacts" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+      </div>
+      <div class="col-5">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Filtrer</mat-label>
+          <mat-select [(ngModel)]="contactFilter" [ngModelOptions]="{standalone:true}">
+            <mat-option value="ALL">Tous les contacts</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <!-- Available contacts -->
+      <div class="col-6">
+        <div class="transfer-panel">
+          <div class="transfer-panel-title">Contacts Disponibles</div>
+          <div class="transfer-scroll">
+            <div
+              *ngFor="let c of filteredAvailableContacts"
+              class="transfer-row"
+              (click)="addContact(c)"
+              matTooltip="Ajouter"
+            >
+              <i-tabler name="user" class="icon-16 text-primary flex-shrink-0"></i-tabler>
+              <div class="transfer-info">
+                <div class="fw-medium">{{ c.name }}</div>
+                <small class="text-muted">{{ c.phoneNumber }}</small>
+              </div>
+              <mat-icon class="add-icon">add_circle_outline</mat-icon>
+            </div>
+            <div *ngIf="filteredAvailableContacts.length === 0" class="text-muted small p-2">Aucun contact disponible.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected contacts -->
+      <div class="col-6">
+        <div class="transfer-panel transfer-panel--selected">
+          <div class="transfer-panel-title">Contacts Sélectionnés</div>
+          <div class="transfer-scroll">
+            <div *ngFor="let c of selectedContacts" class="transfer-row">
+              <i-tabler name="user" class="icon-16 text-primary flex-shrink-0"></i-tabler>
+              <div class="transfer-info">
+                <div class="fw-medium">{{ c.name }}</div>
+                <small class="text-muted">{{ c.phoneNumber }}</small>
+              </div>
+              <button mat-icon-button type="button" (click)="removeContact(c)" matTooltip="Retirer" class="remove-btn">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div *ngIf="selectedContacts.length === 0" class="text-muted small p-2">Aucun contact sélectionné.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-button mat-dialog-close>Annuler</button>
+  <button mat-flat-button color="primary" (click)="onSave()" [disabled]="saving">
+    <mat-spinner *ngIf="saving" diameter="18" class="me-2"></mat-spinner>
+    Enregistrer
+  </button>
+</mat-dialog-actions>
+
+<style>
+  .dialog-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 12px;
+    margin-bottom: 0;
+  }
+  .dialog-content {
+    min-width: 560px;
+    max-width: 700px;
+    padding-top: 16px !important;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: #3f51b5;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .section-icon { color: #3f51b5; }
+  .transfer-panel {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fafafa;
+  }
+  .transfer-panel--selected { background: #f8f9ff; border-color: #c5cae9; }
+  .transfer-panel-title {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #e0e0e0;
+    color: #444;
+  }
+  .transfer-panel--selected .transfer-panel-title { background: #ede7f6; }
+  .transfer-scroll { max-height: 160px; overflow-y: auto; }
+  .transfer-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .transfer-row:hover { background: #f1f3f5; }
+  .transfer-info { flex: 1; min-width: 0; }
+  .transfer-info div, .transfer-info small { text-overflow: ellipsis; overflow: hidden; white-space: nowrap; display: block; }
+  .add-icon { font-size: 18px; color: #9e9e9e; opacity: 0.6; }
+  .remove-btn { width: 28px; height: 28px; line-height: 28px; }
+  .remove-btn mat-icon { font-size: 16px; }
+  .dialog-actions { padding: 12px 24px; border-top: 1px solid #eee; gap: 8px; }
+</style>

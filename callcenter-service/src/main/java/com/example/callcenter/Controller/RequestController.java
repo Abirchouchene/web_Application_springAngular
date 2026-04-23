@@ -5,6 +5,7 @@ import com.example.callcenter.DTO.RequestDTO;
 import com.example.callcenter.DTO.RequestResponseDTO;
 import com.example.callcenter.DTO.UpdateRequestDTO;
 import com.example.callcenter.Entity.*;
+import com.example.callcenter.Repository.UserRepository;
 import com.example.callcenter.Service.RequestService;
 import com.example.callcenter.Service.AutoGenerateSurveyService;
 import com.example.callcenter.client.ContactClient;
@@ -16,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -32,9 +35,16 @@ public class RequestController {
     private final ContactClient contactClient;
     private final AutoGenerateSurveyService autoGenerateSurveyService;
     private final RequestContactStatusRepository requestContactStatusRepository;
+    private final UserRepository userRepository;
 
-    // Convert entity to DTO
+    // Convert entity to DTO (single-item endpoints — loads full contact details).
     private RequestResponseDTO convertToResponseDTO(Request request) {
+        return convertToResponseDTO(request, true);
+    }
+
+    // Full converter: when loadContacts=false, we skip the per-contact Feign call
+    // (dramatically speeds up list endpoints that don't need contact names/phones).
+    private RequestResponseDTO convertToResponseDTO(Request request, boolean loadContacts) {
         RequestResponseDTO dto = new RequestResponseDTO();
         dto.setIdR(request.getIdR());
         dto.setTitle(request.getTitle());
@@ -79,51 +89,64 @@ public class RequestController {
         }
 
         // Load contacts via RequestContactStatus (reliable) + Feign for full details
-        try {
-            List<RequestContactStatus> statuses = requestContactStatusRepository.findByRequestIdR(request.getIdR());
-            if (statuses != null && !statuses.isEmpty()) {
-                List<ContactResponse> contacts = statuses.stream()
-                        .map(rcs -> {
-                            ContactResponse cr;
-                            try {
-                                cr = contactClient.getContactById(rcs.getContactId());
-                            } catch (Exception ex) {
-                                cr = new ContactResponse();
-                                cr.setIdC(rcs.getContactId());
-                            }
-                            // Override with per-request call status from RequestContactStatus
-                            if (rcs.getStatus() != null) {
-                                cr.setCallStatus(rcs.getStatus().name());
-                            }
-                            if (rcs.getCallNote() != null) {
-                                cr.setCallNote(rcs.getCallNote());
-                            }
-                            return cr;
-                        })
-                        .collect(Collectors.toList());
-                dto.setContacts(contacts);
-            } else {
+        if (loadContacts) {
+            try {
+                List<RequestContactStatus> statuses = requestContactStatusRepository.findByRequestIdR(request.getIdR());
+                if (statuses != null && !statuses.isEmpty()) {
+                    List<ContactResponse> contacts = statuses.stream()
+                            .map(rcs -> {
+                                ContactResponse cr;
+                                try {
+                                    cr = contactClient.getContactById(rcs.getContactId());
+                                } catch (Exception ex) {
+                                    cr = new ContactResponse();
+                                    cr.setIdC(rcs.getContactId());
+                                }
+                                // Override with per-request call status from RequestContactStatus
+                                if (rcs.getStatus() != null) {
+                                    cr.setCallStatus(rcs.getStatus().name());
+                                }
+                                if (rcs.getCallNote() != null) {
+                                    cr.setCallNote(rcs.getCallNote());
+                                }
+                                return cr;
+                            })
+                            .collect(Collectors.toList());
+                    dto.setContacts(contacts);
+                } else {
+                    dto.setContacts(new java.util.ArrayList<>());
+                }
+            } catch (Exception e) {
                 dto.setContacts(new java.util.ArrayList<>());
             }
-        } catch (Exception e) {
+        } else {
             dto.setContacts(new java.util.ArrayList<>());
         }
         return dto;
     }
 
-    // CREATE REQUEST
+    // CREATE REQUEST — always derive requester from JWT, ignore userId in body
     @PostMapping("/submit")
-    public ResponseEntity<RequestResponseDTO> submitRequest(@RequestBody RequestDTO requestDTO) {
+    public ResponseEntity<RequestResponseDTO> submitRequest(
+            @RequestBody RequestDTO requestDTO,
+            @AuthenticationPrincipal Jwt jwt) {
+        if (jwt != null) {
+            String username = jwt.getClaim("preferred_username");
+            if (username != null) {
+                userRepository.findByUsername(username)
+                        .ifPresent(u -> requestDTO.setUserId(u.getIdUser()));
+            }
+        }
         Request createdRequest = requestService.submitRequest(requestDTO);
         return ResponseEntity.ok(convertToResponseDTO(createdRequest));
     }
 
-    // GET ALL REQUESTS
+    // GET ALL REQUESTS (list view — skips per-contact Feign calls)
     @GetMapping("/All")
     public List<RequestResponseDTO> getAllRequests() {
         return requestService.getAllRequests()
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(r -> convertToResponseDTO(r, false))
                 .collect(Collectors.toList());
     }
 
@@ -133,21 +156,21 @@ public class RequestController {
         return convertToResponseDTO(requestService.getRequestById(id));
     }
 
-    // GET REQUESTS BY USER
+    // GET REQUESTS BY USER (list view)
     @GetMapping("/user/{userId}")
     public List<RequestResponseDTO> getRequestsByUserId(@PathVariable Long userId) {
         return requestService.getRequestsByUserId(userId)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(r -> convertToResponseDTO(r, false))
                 .collect(Collectors.toList());
     }
 
-    // GET REQUESTS BY TYPE
+    // GET REQUESTS BY TYPE (list view)
     @GetMapping("/type/{type}")
     public List<RequestResponseDTO> getRequestsByType(@PathVariable RequestType type) {
         return requestService.getRequestsByType(type)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(r -> convertToResponseDTO(r, false))
                 .collect(Collectors.toList());
     }
 
@@ -217,7 +240,7 @@ public class RequestController {
     public List<RequestResponseDTO> getAssignedRequests(@PathVariable Long agentId) {
         return requestService.getRequestsAssignedToAgent(agentId)
                 .stream()
-                .map(this::convertToResponseDTO)
+                .map(r -> convertToResponseDTO(r, false))
                 .collect(Collectors.toList());
     }
 

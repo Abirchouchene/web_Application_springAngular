@@ -42,3 +42,51 @@
   white-space: nowrap;
   line-height: 1.4;
 }
+
+/* ===== Gestion des étiquettes ===== */
+.tag-manage-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tag-manage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 20px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  color: #1565c0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #bbdefb;
+  }
+}
+
+.tag-manage-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-delete-btn {
+  width: 22px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+  min-width: 22px !important;
+  padding: 0 !important;
+  color: #1565c0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+
+  &:hover {
+    opacity: 1;
+    color: #c62828;
+  }
+}

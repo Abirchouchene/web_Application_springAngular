@@ -28,6 +28,7 @@ import { CommonModule } from '@angular/common';
 import { MaterialModule } from 'src/app/material.module';
 import { environment } from 'src/environments/environment';
 import { ContactService } from 'src/app/services/apps/contact/contact.service';
+import { RoleService } from 'src/app/services/role.service';
 import { questionTypeLabel } from 'src/app/utils/question-type-labels';
 import { toBackendQuestionType } from 'src/app/utils/question-type-backend';
 
@@ -76,10 +77,12 @@ export class AppAddRequestComponent implements OnInit {
     private contactService: ContactService,
     private router: Router,
     public dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private roleService: RoleService
   ) {
+    const currentUserId = this.roleService.getUserInfoSnapshot()?.id ?? environment.callCenterSubmitUserId;
     this.requestForm = this.fb.group({
-      userId: [environment.callCenterSubmitUserId, Validators.required],
+      userId: [currentUserId, Validators.required],
       requestType: [null, Validators.required],
       category: [null, Validators.required],
       priorityLevel: [null, Validators.required],
@@ -91,6 +94,13 @@ export class AppAddRequestComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadAllContacts();
+    // Ensure userId reflects the actually logged-in user (RoleService may not yet be loaded
+    // when the form was built in the constructor).
+    this.roleService.getUserInfo().subscribe((info) => {
+      if (info?.id) {
+        this.requestForm.patchValue({ userId: info.id });
+      }
+    });
   }
 
   loadAllContacts(): void {
@@ -247,6 +257,10 @@ export class AppAddRequestComponent implements OnInit {
     } else {
       this.draftQuestionOptions = [];
     }
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 
   addDraftOptionRow(): void {

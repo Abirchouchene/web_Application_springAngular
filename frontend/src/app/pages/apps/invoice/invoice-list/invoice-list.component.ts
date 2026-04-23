@@ -2,10 +2,8 @@ import {
   Component,
   AfterViewInit,
   ViewChild,
-  Signal,
   signal,
 } from '@angular/core';
-import { InvoiceService } from 'src/app/services/apps/invoice/invoice.service';
 import { InvoiceList } from '../invoice';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
@@ -15,7 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { TablerIconsModule } from 'angular-tabler-icons';
 import { RouterModule } from '@angular/router';
-import { AppConfirmDeleteDialogComponent } from './confirm-delete-dialog.component';
+import { EditRequestDialogComponent } from '../edit-request-dialog/edit-request-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RequestService } from 'src/app/services/apps/ticket/request.service';
@@ -35,6 +33,8 @@ import { RoleService } from 'src/app/services/role.service';
 })
 export class AppInvoiceListComponent implements AfterViewInit {
   isAgent = false;
+  isRequester = false;
+  currentUserId: number | null = null;
   allComplete = signal<boolean>(false);
   invoiceList = new MatTableDataSource<InvoiceList>([]);
   activeTab = signal<string>('ALL');
@@ -68,8 +68,12 @@ export class AppInvoiceListComponent implements AfterViewInit {
   ) {}
 
   ngOnInit() {
-    this.isAgent = this.roleService.getRole() === 'AGENT';
-    this.loadRequests();
+    this.roleService.getUserInfo().subscribe((info) => {
+      this.isAgent = info?.role === 'AGENT';
+      this.isRequester = info?.role === 'SURVEY_REQUESTER';
+      this.currentUserId = info?.id ?? null;
+      this.loadRequests();
+    });
   }
 
   ngAfterViewInit() {
@@ -78,9 +82,14 @@ export class AppInvoiceListComponent implements AfterViewInit {
   }
 
   loadRequests() {
-    const request$ = this.isAgent
-      ? this.requestService.getAssignedRequests(1) // TODO: replace 1 with actual agent ID
-      : this.requestService.getAllRequests();
+    let request$;
+    if (this.isAgent && this.currentUserId) {
+      request$ = this.requestService.getAssignedRequests(this.currentUserId);
+    } else if (this.isRequester && this.currentUserId) {
+      request$ = this.requestService.getRequestsByUserId(this.currentUserId);
+    } else {
+      request$ = this.requestService.getAllRequests();
+    }
 
     request$.subscribe({
       next: (data) => {
@@ -215,6 +224,18 @@ export class AppInvoiceListComponent implements AfterViewInit {
   countInvoicesByStatus(status: string): number {
     return this.allInvoices().filter((invoice) => invoice.status === status)
       .length;
+  }
+
+  openEditDialog(request: any): void {
+    const ref = this.dialog.open(EditRequestDialogComponent, {
+      data: { request },
+      width: '720px',
+      maxHeight: '90vh',
+      autoFocus: false,
+    });
+    ref.afterClosed().subscribe((saved) => {
+      if (saved) this.loadRequests();
+    });
   }
 
   deleteRequest(id: number): void {

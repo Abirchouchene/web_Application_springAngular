@@ -137,3 +137,69 @@
     ></mat-paginator>
   </mat-card-content>
 </mat-card>
+
+<!-- ===== GESTION DES ÉTIQUETTES ===== -->
+<mat-card class="cardWithShadow m-t-24">
+  <mat-card-content>
+    <div class="d-flex align-items-center gap-8 m-b-20">
+      <i-tabler name="tag" class="icon-24 text-primary"></i-tabler>
+      <h3 class="f-w-600 f-s-18 m-0">Gestion des Étiquettes</h3>
+    </div>
+
+    <!-- Créer une étiquette -->
+    <div class="d-flex gap-12 align-items-start m-b-20">
+      <mat-form-field appearance="outline" class="flex-grow-1">
+        <mat-label>Nom de l'étiquette</mat-label>
+        <input
+          matInput
+          [(ngModel)]="newTagName"
+          (keydown.enter)="$event.preventDefault(); createTag()"
+          placeholder="Ex: VIP, Prioritaire, Client…"
+          maxlength="30"
+        />
+        <mat-hint>{{ newTagName.length }}/30 caractères</mat-hint>
+      </mat-form-field>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        (click)="createTag()"
+        [disabled]="!newTagName.trim() || isCreatingTag"
+        class="m-t-4"
+      >
+        <i-tabler name="plus" class="icon-18 m-r-4"></i-tabler>
+        Ajouter
+      </button>
+    </div>
+
+    <!-- Liste des étiquettes -->
+    <div *ngIf="allTags.length > 0; else noTags" class="tag-manage-list">
+      <div class="tag-manage-header m-b-12 text-muted f-s-13">
+        {{ allTags.length }} étiquette(s) disponible(s)
+      </div>
+      <div class="tag-manage-chips">
+        <div *ngFor="let tag of allTags" class="tag-manage-chip">
+          <i-tabler name="tag" class="icon-14 m-r-4"></i-tabler>
+          <span class="tag-manage-name">{{ tag.name }}</span>
+          <button
+            mat-icon-button
+            type="button"
+            class="tag-delete-btn"
+            (click)="deleteTag(tag)"
+            [matTooltip]="'Supprimer « ' + tag.name + ' »'"
+            aria-label="Supprimer l'étiquette"
+          >
+            <i-tabler name="x" class="icon-14"></i-tabler>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noTags>
+      <div class="text-center text-muted p-y-24">
+        <i-tabler name="tags" class="icon-48 m-b-8 d-block m-auto"></i-tabler>
+        <p class="f-s-14 m-0">Aucune étiquette. Créez-en une ci-dessus.</p>
+      </div>
+    </ng-template>
+  </mat-card-content>
+</mat-card>

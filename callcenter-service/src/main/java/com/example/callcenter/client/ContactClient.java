@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "contact-service", configuration = ContactClientConfig.class)
+@FeignClient(name = "contact-service", url = "${contact.service.url:http://localhost:8081}", configuration = ContactClientConfig.class)
 public interface ContactClient {
     @GetMapping("/api/contacts/{contactId}")
     ContactResponse getContactById(@PathVariable("contactId") Long id);

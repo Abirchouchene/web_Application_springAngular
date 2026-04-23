@@ -30,7 +30,9 @@ public class Request implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idR;
     private String title;
+    @Column(columnDefinition = "TEXT")
     private String description;
+    @Column(columnDefinition = "TEXT")
     private String note;
     private String attachmentPath;
     private LocalDate deadline;

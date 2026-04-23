@@ -7,6 +7,7 @@ export const environment = {
   /** Callcenter-service direct (port 8082, context-path=/api) */
   apiUrl: 'http://localhost:8082/api',
   contactApiUrl: 'http://localhost:8081/api/contacts',
+  callbackApiUrl: 'http://localhost:8081/api/callbacks',
   authUrl: 'http://192.168.10.161:8080/realms/Portal/protocol/openid-connect',
   adminUrl: 'http://localhost:8082/api/admin',
   userUrl: 'http://localhost:8082/api/users',

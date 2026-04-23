@@ -60,19 +60,23 @@ public class AdminService {
         localUser = userRepository.save(localUser);
         log.info("Created local user {} (id={})", dto.getUsername(), localUser.getIdUser());
 
-        // 2. Try to create in Keycloak (optional — graceful fallback)
+        // 2. Sync to Keycloak (non-blocking — requires service account with manage-users role)
         try {
             String kcId = createKeycloakUser(dto);
             if (kcId != null) {
                 String roleName = dto.getRole() != null ? dto.getRole().name() : "AGENT";
                 tryAssignRealmRole(kcId, roleName);
                 tryAssignGroup(kcId, roleName);
+                // Send Keycloak verification email — user is forced to verify on first login
+                trySendActionsEmail(kcId, dto.getEmail(), Collections.singletonList("VERIFY_EMAIL"));
+                log.info("User {} synced to Keycloak (kcId={})", dto.getUsername(), kcId);
             }
         } catch (Exception e) {
-            log.warn("Keycloak sync failed for {}: {}", dto.getUsername(), e.getMessage());
+            log.warn("Keycloak sync failed for {} — user created locally but cannot login via SSO. Cause: {}",
+                    dto.getUsername(), e.getMessage());
         }
 
-        // 3. Send activation/welcome email via Mailjet
+        // 3. Send welcome email
         try {
             emailService.sendUserCreatedEmail(
                     dto.getEmail(),
@@ -108,6 +112,7 @@ public class AdminService {
             List<UserRepresentation> kcUsers = getUsersResource().search(user.getEmail(), true);
             if (!kcUsers.isEmpty()) {
                 String kcUserId = kcUsers.get(0).getId();
+                log.info("Syncing role change to Keycloak for user {} (kcId={})", user.getUsername(), kcUserId);
                 // Remove old realm role
                 tryRemoveRealmRole(kcUserId, oldRole.name());
                 // Remove old group
@@ -116,6 +121,15 @@ public class AdminService {
                 tryAssignRealmRole(kcUserId, newRole.name());
                 // Assign new group
                 tryAssignGroup(kcUserId, newRole.name());
+                // Invalidate all active sessions so the user gets a fresh JWT on next login
+                try {
+                    getUsersResource().get(kcUserId).logout();
+                    log.info("Invalidated Keycloak sessions for user {} after role change", user.getUsername());
+                } catch (Exception ex) {
+                    log.warn("Could not invalidate sessions for {}: {}", user.getUsername(), ex.getMessage());
+                }
+            } else {
+                log.warn("Keycloak user not found for email {} — role change NOT synced to Keycloak", user.getEmail());
             }
         } catch (Exception e) {
             log.warn("Could not sync role change to Keycloak for {}: {}", user.getUsername(), e.getMessage());
@@ -407,17 +421,19 @@ public class AdminService {
         kcUser.setLastName(dto.getLastName());
         kcUser.setEnabled(true);
         kcUser.setEmailVerified(false);
+        kcUser.setRequiredActions(Collections.singletonList("VERIFY_EMAIL"));
 
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             CredentialRepresentation cred = new CredentialRepresentation();
-            cred.setTemporary(true);
+            cred.setTemporary(false);
             cred.setType(CredentialRepresentation.PASSWORD);
             cred.setValue(dto.getPassword());
             kcUser.setCredentials(Collections.singletonList(cred));
         }
 
         Response response = getUsersResource().create(kcUser);
-        if (response.getStatus() == 201) {
+        int status = response.getStatus();
+        if (status == 201) {
             String loc = response.getHeaderString("Location");
             String kcId = loc.substring(loc.lastIndexOf("/") + 1);
             response.close();
@@ -425,9 +441,26 @@ public class AdminService {
             return kcId;
         }
         String body = response.readEntity(String.class);
-        log.warn("Keycloak user creation returned {}: {}", response.getStatus(), body);
         response.close();
-        return null;
+        if (status == 409) {
+            // 409 = conflict on username OR email. Only recover if the conflict is on USERNAME
+            // (i.e. a previous KC create succeeded but we lost track). Do NOT touch a KC user
+            // whose email we collided with but whose username is different.
+            log.warn("Keycloak 409 conflict for {} — checking if it's a username or email collision", dto.getUsername());
+            try {
+                List<UserRepresentation> byUsername = getUsersResource().searchByUsername(dto.getUsername(), true);
+                if (!byUsername.isEmpty()) {
+                    String kcId = byUsername.get(0).getId();
+                    log.info("Username match found in KC (kcId={}) — reusing to sync role/group", kcId);
+                    return kcId;
+                }
+            } catch (Exception lookupEx) {
+                log.warn("Could not look up KC user by username: {}", lookupEx.getMessage());
+            }
+            // Email collision with a different KC user — cannot recover safely
+            throw new RuntimeException("L'email est déjà utilisé par un autre utilisateur Keycloak. Choisissez un email différent.");
+        }
+        throw new RuntimeException("Keycloak user creation failed (HTTP " + status + "): " + body);
     }
 
     private void tryAssignRealmRole(String kcUserId, String roleName) {

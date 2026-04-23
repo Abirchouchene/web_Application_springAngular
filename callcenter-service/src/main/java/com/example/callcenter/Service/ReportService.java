@@ -135,12 +135,17 @@ public class ReportService {
         return reportRepository.findAll();
     }
 
-    public void approveReport(Long reportId) {
+    public Map<String, Object> approveReport(Long reportId) {
         Report report = reportRepository.findById(reportId)
             .orElseThrow(() -> new RuntimeException("Report not found"));
         report.setStatus(ReportStatus.APPROVED);
         report.setApprovedDate(LocalDateTime.now());
         reportRepository.save(report);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("reportId", reportId);
+        result.put("status", "APPROVED");
+        result.put("emailSent", false);
 
         // Send approval email to the requester
         try {
@@ -148,20 +153,33 @@ public class ReportService {
             if (request != null && request.getUser() != null) {
                 User requester = request.getUser();
                 String email = requester.getEmail();
+                String recipientName = requester.getFullName();
                 if (email != null && !email.isBlank()) {
                     emailService.sendReportApprovalEmail(
-                        email, requester.getFullName(),
-                        report.getRequestTitle(), report.getId()
+                        email, recipientName,
+                        report.getRequestTitle(), report.getId(),
+                        report.getAiInsightsData()
                     );
                     report.setStatus(ReportStatus.SENT);
                     report.setSentDate(LocalDateTime.now());
                     reportRepository.save(report);
+                    result.put("status", "SENT");
+                    result.put("emailSent", true);
+                    result.put("recipientEmail", email);
+                    result.put("recipientName", recipientName);
+                    result.put("sentAt", report.getSentDate());
                     log.info("Approval email sent to requester {} for report {}", email, reportId);
+                } else {
+                    result.put("warning", "Le demandeur n'a pas d'email enregistré");
                 }
+            } else {
+                result.put("warning", "Aucun demandeur lié à ce rapport");
             }
         } catch (Exception e) {
             log.warn("Failed to send approval email for report {}: {}", reportId, e.getMessage());
+            result.put("warning", "Rapport approuvé mais l'envoi d'email a échoué : " + e.getMessage());
         }
+        return result;
     }
 
     public void rejectReport(Long reportId) {
