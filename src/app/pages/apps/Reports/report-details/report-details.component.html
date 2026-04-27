@@ -211,11 +211,11 @@
                 <div class="ai-meta-row">
                   <span class="ai-meta-item">
                     <i-tabler name="calendar" style="width:14px;height:14px"></i-tabler>
-                    Période : {{ report?.generatedDate | date:'dd/MM/yyyy' }}
+                    Période : {{ report.generatedDate | date:'dd/MM/yyyy' }}
                   </span>
                   <span class="ai-meta-item">
                     <i-tabler name="file-report" style="width:14px;height:14px"></i-tabler>
-                    Rapport ID : #RPT-{{ report?.id }}
+                    Rapport ID : #RPT-{{ report.id }}
                   </span>
                 </div>
               </div>
@@ -225,7 +225,7 @@
                   <div>
                     <div class="ai-badge-title">Analyse générée par IA</div>
                     <div class="ai-badge-sub">Modèle : CallCenterAI v2.4</div>
-                    <div class="ai-badge-sub">Date : {{ report?.aiGeneratedDate ? (report?.aiGeneratedDate | date:'dd/MM/yyyy') : (report?.generatedDate | date:'dd/MM/yyyy') }}</div>
+                    <div class="ai-badge-sub">Date : {{ report.aiGeneratedDate ? (report.aiGeneratedDate | date:'dd/MM/yyyy') : (report.generatedDate | date:'dd/MM/yyyy') }}</div>
                   </div>
                 </div>
                 <button mat-stroked-button class="ai-regen-btn" [disabled]="isGeneratingAi" (click)="regenerateAiInsights()">
