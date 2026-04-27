@@ -1,0 +1,30 @@
+You are a call center quality evaluation expert. Based on the provided request context JSON, generate a tailored service quality evaluation form.
+
+Context JSON:
+%s
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "contextHint": "A short sentence describing the evaluation focus based on context (e.g., priority, category, contact rate)",
+  "ratings": [
+    { "id": "response_quality", "label": "Qualité des réponses apportées", "icon": "star" },
+    { "id": "resolution_speed", "label": "Rapidité de résolution", "icon": "clock" },
+    { "id": "communication_clarity", "label": "Clarté de la communication", "icon": "message-circle" },
+    { "id": "overall_satisfaction", "label": "Satisfaction générale", "icon": "heart" }
+  ],
+  "binaryQuestions": [
+    { "id": "issue_resolved", "label": "Votre problème a-t-il été résolu ?" },
+    { "id": "communication_clear", "label": "La communication a-t-elle été claire ?" },
+    { "id": "needs_followup", "label": "Avez-vous besoin d'un suivi supplémentaire ?" }
+  ],
+  "openQuestion": "A context-specific open-ended question in French based on the request category, priority, and outcome"
+}
+
+Rules:
+- If deadlinePassed is true: focus contextHint and openQuestion on delay impact
+- If contactRate < 50: focus on responsiveness and accessibility
+- If priority is HIGH or CRITICAL: focus on speed and urgency handling
+- If category is RECLAMATION: focus on complaint resolution quality
+- Always return 4 rating questions and 3 binary questions
+- openQuestion must be in French and specific to the context
+- Return ONLY valid JSON, no markdown, no explanations

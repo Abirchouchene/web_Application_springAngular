@@ -255,7 +255,7 @@ public class DashboardService {
 
     private List<RecentActivityDTO> buildRecentActivity() {
         List<Logs> recentLogs = logsRepository.findTopNByOrderByTimestampDesc(10);
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
         return recentLogs.stream()
                 .filter(log -> log.getLogAction() != null && log.getTimestamp() != null)
                 .map(log -> RecentActivityDTO.builder()

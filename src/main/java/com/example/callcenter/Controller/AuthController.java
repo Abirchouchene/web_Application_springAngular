@@ -1,18 +1,16 @@
 package com.example.callcenter.Controller;
 
+import com.example.callcenter.DTO.UpdateProfileDTO;
 import com.example.callcenter.DTO.UserInfoDTO;
 import com.example.callcenter.Entity.Role;
 import com.example.callcenter.Entity.User;
 import com.example.callcenter.Repository.UserRepository;
-import com.example.callcenter.Service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -95,6 +93,59 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(userInfo);
+    }
+
+    @GetMapping("/profile")
+    @Transactional(readOnly = true)
+    public ResponseEntity<UserInfoDTO> getProfile(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null) return ResponseEntity.status(401).build();
+        String username = jwt.getClaim("preferred_username");
+        User dbUser = userRepository.findByUsername(username).orElse(null);
+        if (dbUser == null) return ResponseEntity.notFound().build();
+
+        UserInfoDTO dto = UserInfoDTO.builder()
+                .id(dbUser.getIdUser())
+                .sub(jwt.getSubject())
+                .username(dbUser.getUsername())
+                .email(dbUser.getEmail())
+                .fullName(dbUser.getFullName())
+                .role(dbUser.getRole() != null ? dbUser.getRole().name() : null)
+                .realmRoles(Collections.emptyList())
+                .groups(Collections.emptyList())
+                .build();
+        return ResponseEntity.ok(dto);
+    }
+
+    @PutMapping("/profile")
+    @Transactional
+    public ResponseEntity<UserInfoDTO> updateProfile(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpdateProfileDTO update) {
+        if (jwt == null) return ResponseEntity.status(401).build();
+        String username = jwt.getClaim("preferred_username");
+        User dbUser = userRepository.findByUsername(username).orElse(null);
+        if (dbUser == null) return ResponseEntity.notFound().build();
+
+        if (update.getFullName() != null && !update.getFullName().isBlank()) {
+            dbUser.setFullName(update.getFullName().trim());
+        }
+        if (update.getEmail() != null && !update.getEmail().isBlank()) {
+            dbUser.setEmail(update.getEmail().trim());
+        }
+        dbUser = userRepository.save(dbUser);
+        log.info("Profile updated for user: {}", username);
+
+        UserInfoDTO dto = UserInfoDTO.builder()
+                .id(dbUser.getIdUser())
+                .sub(jwt.getSubject())
+                .username(dbUser.getUsername())
+                .email(dbUser.getEmail())
+                .fullName(dbUser.getFullName())
+                .role(dbUser.getRole() != null ? dbUser.getRole().name() : null)
+                .realmRoles(Collections.emptyList())
+                .groups(Collections.emptyList())
+                .build();
+        return ResponseEntity.ok(dto);
     }
 
     /**

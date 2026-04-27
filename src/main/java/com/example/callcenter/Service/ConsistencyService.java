@@ -165,44 +165,48 @@ public class ConsistencyService {
      */
     private String checkResponseConsistency(Question q, Response r) {
         switch (q.getQuestionType()) {
-            case NUMBER -> {
+            case NUMBER:
                 if (r.getNumberAnswer() == null) {
                     return "Réponse numérique manquante pour \"" + q.getText() + "\"";
                 }
-            }
-            case YES_OR_NO -> {
+                break;
+            case YES_OR_NO:
                 if (r.getBooleanAnswer() == null) {
                     return "Réponse Oui/Non manquante pour \"" + q.getText() + "\"";
                 }
-            }
-            case MULTIPLE_CHOICE, DROPDOWN -> {
+                break;
+            case MULTIPLE_CHOICE:
+            case DROPDOWN:
                 if (r.getAnswer() == null || r.getAnswer().isBlank()) {
                     return "Aucune option sélectionnée pour \"" + q.getText() + "\"";
                 }
                 if (q.getOptions() != null && !q.getOptions().isEmpty() && !q.getOptions().contains(r.getAnswer())) {
                     return "Option invalide \"" + r.getAnswer() + "\" pour \"" + q.getText() + "\"";
                 }
-            }
-            case CHECKBOXES -> {
+                break;
+            case CHECKBOXES:
                 if (r.getMultiAnswer() == null || r.getMultiAnswer().isEmpty()) {
                     return "Aucune case cochée pour \"" + q.getText() + "\"";
                 }
-            }
-            case SHORT_ANSWER, PARAGRAPH -> {
+                break;
+            case SHORT_ANSWER:
+            case PARAGRAPH:
                 if (r.getAnswer() == null || r.getAnswer().isBlank()) {
                     return "Réponse textuelle vide pour \"" + q.getText() + "\"";
                 }
-            }
-            case DATE -> {
+                break;
+            case DATE:
                 if (r.getDateAnswer() == null) {
                     return "Date manquante pour \"" + q.getText() + "\"";
                 }
-            }
-            case TIME -> {
+                break;
+            case TIME:
                 if (r.getTimeAnswer() == null) {
                     return "Heure manquante pour \"" + q.getText() + "\"";
                 }
-            }
+                break;
+            default:
+                break;
         }
         return null;
     }

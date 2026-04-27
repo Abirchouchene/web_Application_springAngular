@@ -75,55 +75,56 @@ public class ResponseService {
         String value = responseValues.get(0);
 
         switch (question.getQuestionType()) {
-            case MULTIPLE_CHOICE, DROPDOWN -> {
-                // ✅ Validate that the selected value is in the allowed options
+            case MULTIPLE_CHOICE:
+            case DROPDOWN: {
                 if (!question.getOptions().contains(value)) {
                     throw new RuntimeException("Selected value is not a valid option");
                 }
                 response.setAnswer(value);
+                break;
             }
-
-            case CHECKBOXES -> {
-                // ✅ Validate all selected values are in the allowed options
+            case CHECKBOXES: {
                 if (!new HashSet<>(question.getOptions()).containsAll(responseValues)) {
                     throw new RuntimeException("One or more selected values are not valid options");
                 }
                 response.setMultiAnswer(new ArrayList<>(responseValues));
+                break;
             }
-
-            case SHORT_ANSWER, PARAGRAPH -> {
+            case SHORT_ANSWER:
+            case PARAGRAPH: {
                 response.setAnswer(value);
+                break;
             }
-
-            case YES_OR_NO -> {
+            case YES_OR_NO: {
                 response.setBooleanAnswer(Boolean.parseBoolean(value));
+                break;
             }
-
-            case NUMBER -> {
+            case NUMBER: {
                 try {
                     response.setNumberAnswer(Double.parseDouble(value));
                 } catch (NumberFormatException e) {
                     throw new RuntimeException("Invalid number format");
                 }
+                break;
             }
-
-            case DATE -> {
+            case DATE: {
                 try {
                     response.setDateAnswer(LocalDate.parse(value));
                 } catch (Exception e) {
                     throw new RuntimeException("Invalid date format (expected yyyy-MM-dd)");
                 }
+                break;
             }
-
-            case TIME -> {
+            case TIME: {
                 try {
                     response.setTimeAnswer(LocalTime.parse(value));
                 } catch (Exception e) {
                     throw new RuntimeException("Invalid time format (expected HH:mm)");
                 }
+                break;
             }
-
-            default -> throw new IllegalArgumentException("Unsupported question type");
+            default:
+                throw new IllegalArgumentException("Unsupported question type");
         }
 
         responseRepository.save(response);

@@ -6,13 +6,17 @@ import com.example.callcenter.Entity.Report;
 import com.example.callcenter.Repository.ReportRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -30,6 +34,21 @@ public class OpenAiService {
 
     @Value("${openai.enabled:false}")
     private boolean enabled;
+
+    @Value("classpath:prompts/openai-insights-prompt.txt")
+    private Resource insightsPromptResource;
+
+    private String insightsSystemPrompt;
+
+    @PostConstruct
+    void loadPrompt() {
+        try {
+            insightsSystemPrompt = new String(FileCopyUtils.copyToByteArray(insightsPromptResource.getInputStream()), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("Failed to load OpenAI insights prompt", e);
+            insightsSystemPrompt = "";
+        }
+    }
 
     public OpenAiService(@Value("${openai.api-key:}") String apiKey,
                          @Value("${openai.base-url:https://api.openai.com/v1}") String baseUrl,
@@ -104,43 +123,13 @@ public class OpenAiService {
     }
 
     private String callOpenAi(String surveyContext) {
-        String systemPrompt = """
-                You are an expert survey data analyst for a call center system.
-                Analyze the provided anonymized survey data and return a JSON response with this exact structure:
-                {
-                  "summary": "A concise 2-3 sentence executive summary of the survey findings",
-                  "recommendations": [
-                    {
-                      "title": "Short title",
-                      "description": "Detailed description",
-                      "priority": "HIGH|MEDIUM|LOW",
-                      "category": "PROCESS_IMPROVEMENT|TRAINING|RESOURCE_ALLOCATION|FOLLOW_UP",
-                      "actionable": "Specific next step to take"
-                    }
-                  ],
-                  "keyFindings": [
-                    {
-                      "finding": "What was found",
-                      "evidence": "Data supporting this finding",
-                      "impact": "HIGH|MEDIUM|LOW"
-                    }
-                  ],
-                  "sentimentAnalysis": {
-                    "positivePercent": 0.0,
-                    "neutralPercent": 0.0,
-                    "negativePercent": 0.0,
-                    "overallSentiment": "POSITIVE|NEUTRAL|NEGATIVE|MIXED"
-                  }
-                }
-                Provide 3-5 recommendations and 3-5 key findings. Return ONLY valid JSON, no markdown.
-                """;
-
+        List<Map<String, String>> messages = List.of(
+                Map.of("role", "system", "content", insightsSystemPrompt),
+                Map.of("role", "user", "content", "Analyze this survey data:\n\n" + surveyContext)
+        );
         Map<String, Object> requestBody = Map.of(
                 "model", model,
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", "Analyze this survey data:\n\n" + surveyContext)
-                ),
+                "messages", messages,
                 "temperature", 0.3,
                 "max_tokens", 2000
         );
@@ -284,7 +273,7 @@ public class OpenAiService {
             String questionText = (String) question.getOrDefault("questionText", "Question");
 
             switch (type) {
-                case "YES_OR_NO" -> {
+                case "YES_OR_NO": {
                     Map<String, Object> counts = (Map<String, Object>) question.get("optionCounts");
                     if (counts != null) {
                         long yes = toLong(counts.get("Yes"));
@@ -306,8 +295,9 @@ public class OpenAiService {
                                     .build());
                         }
                     }
+                    break;
                 }
-                case "NUMBER" -> {
+                case "NUMBER": {
                     Map<String, Object> numStats = (Map<String, Object>) question.get("stats");
                     if (numStats != null) {
                         double avg = toDouble(numStats.get("average"));
@@ -321,8 +311,10 @@ public class OpenAiService {
                                     .build());
                         }
                     }
+                    break;
                 }
-                case "MULTIPLE_CHOICE", "DROPDOWN" -> {
+                case "MULTIPLE_CHOICE":
+                case "DROPDOWN": {
                     Map<String, Object> optCounts = (Map<String, Object>) question.get("optionCounts");
                     if (optCounts != null && !optCounts.isEmpty()) {
                         Optional<Map.Entry<String, Object>> dominant = optCounts.entrySet().stream()
@@ -340,6 +332,7 @@ public class OpenAiService {
                             }
                         }
                     }
+                    break;
                 }
             }
         }

@@ -1,14 +1,20 @@
 package com.example.callcenter.Controller;
 
 import com.example.callcenter.Entity.Report;
+import com.example.callcenter.Entity.User;
+import com.example.callcenter.Repository.UserRepository;
 import com.example.callcenter.Service.ReportService;
 import com.example.callcenter.Service.ReportSchedulerService;
 import com.example.callcenter.Service.MinioStorageService;
+import com.example.callcenter.Service.QualityEvaluationService;
 import com.example.callcenter.DTO.ReportDTO;
+import com.example.callcenter.DTO.QualityEvaluationDTO.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.Files;
@@ -24,15 +30,21 @@ public class ReportController {
     private final ReportService reportService;
     private final ReportSchedulerService reportSchedulerService;
     private final MinioStorageService minioStorageService;
+    private final QualityEvaluationService qualityEvaluationService;
+    private final UserRepository userRepository;
     private final String uploadDir;
 
     public ReportController(ReportService reportService,
                             ReportSchedulerService reportSchedulerService,
                             MinioStorageService minioStorageService,
+                            QualityEvaluationService qualityEvaluationService,
+                            UserRepository userRepository,
                             @Value("${file.upload-dir}") String uploadDir) {
         this.reportService = reportService;
         this.reportSchedulerService = reportSchedulerService;
         this.minioStorageService = minioStorageService;
+        this.qualityEvaluationService = qualityEvaluationService;
+        this.userRepository = userRepository;
         this.uploadDir = uploadDir;
     }
 
@@ -132,5 +144,31 @@ public class ReportController {
             }
         }
         return ResponseEntity.ok(Map.of("url", "", "stored", "false"));
+    }
+
+    /** Generate a contextual Service Quality Evaluation form for a report. */
+    @GetMapping("/{reportId}/quality-evaluation")
+    public ResponseEntity<EvaluationForm> getQualityEvaluationForm(@PathVariable Long reportId) {
+        EvaluationForm form = qualityEvaluationService.generateForm(reportId);
+        return ResponseEntity.ok(form);
+    }
+
+    /** Save a quality evaluation submission and return computed results. */
+    @PostMapping("/{reportId}/quality-evaluation")
+    public ResponseEntity<EvaluationResult> submitQualityEvaluation(
+            @PathVariable Long reportId,
+            @RequestBody EvaluationSubmission submission,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = null;
+        if (jwt != null) {
+            String username = jwt.getClaim("preferred_username");
+            if (username != null) {
+                userId = userRepository.findByUsername(username)
+                        .map(User::getIdUser)
+                        .orElse(null);
+            }
+        }
+        EvaluationResult result = qualityEvaluationService.processSubmission(reportId, userId, submission);
+        return ResponseEntity.ok(result);
     }
 }

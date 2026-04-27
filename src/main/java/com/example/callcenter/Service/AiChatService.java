@@ -1,17 +1,20 @@
 package com.example.callcenter.Service;
 
 import com.example.callcenter.DTO.AiChatDTO.*;
-import com.example.callcenter.DTO.DashboardDTO;
 import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.*;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -28,8 +31,6 @@ public class AiChatService {
     private final UserRepository userRepository;
     private final ReportRepository reportRepository;
     private final RequestContactStatusRepository contactStatusRepository;
-    private final LogsRepository logsRepository;
-    private final DashboardService dashboardService;
 
     @Value("${openai.enabled:false}")
     private boolean openAiEnabled;
@@ -42,6 +43,21 @@ public class AiChatService {
 
     @Value("${openai.model:gpt-4}")
     private String model;
+
+    @Value("classpath:prompts/ai-chat-system-prompt.txt")
+    private Resource promptResource;
+
+    private String systemPromptTemplate;
+
+    @PostConstruct
+    void loadPrompt() {
+        try {
+            systemPromptTemplate = new String(FileCopyUtils.copyToByteArray(promptResource.getInputStream()), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("Failed to load AI chat system prompt", e);
+            systemPromptTemplate = "Tu es un assistant IA pour un centre d'appels. Voici les données :\n\n%s";
+        }
+    }
 
     public ChatResponse processMessage(ChatRequest request) {
         String userMessage = request.getMessage().trim().toLowerCase();
@@ -70,20 +86,23 @@ public class AiChatService {
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
                 .build();
 
-        String systemPrompt = "Tu es un assistant IA pour un centre d'appels. " +
-                "Tu analyses les donnees en temps reel et tu reponds en francais. " +
-                "Sois concis, actionnable et professionnel. " +
-                "Voici les donnees actuelles du dashboard :\n\n" + context;
+        String systemPrompt = String.format(systemPromptTemplate, context);
 
-        Map<String, Object> body = Map.of(
-                "model", model,
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", userMessage)
-                ),
-                "temperature", 0.4,
-                "max_tokens", 500
-        );
+        List<Map<String, String>> messages = new ArrayList<>();
+        Map<String, String> sysMsg = new HashMap<>();
+        sysMsg.put("role", "system");
+        sysMsg.put("content", systemPrompt);
+        messages.add(sysMsg);
+        Map<String, String> userMsg = new HashMap<>();
+        userMsg.put("role", "user");
+        userMsg.put("content", userMessage);
+        messages.add(userMsg);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("model", model);
+        body.put("messages", messages);
+        body.put("temperature", 0.4);
+        body.put("max_tokens", 500);
 
         Map<String, Object> response = client.post()
                 .uri("/chat/completions")
@@ -101,7 +120,7 @@ public class AiChatService {
                 .sessionId(sessionId)
                 .type("text")
                 .timestamp(LocalDateTime.now())
-                .suggestedActions(List.of())
+                .suggestedActions(Collections.emptyList())
                 .build();
     }
 
@@ -324,14 +343,16 @@ public class AiChatService {
         sb.append(String.format("- **Taux de contact** : %.1f%% (%d/%d)\n", rate, contacted, total));
 
         distribution.forEach((status, count) -> {
-            String label = switch (status) {
-                case NOT_CONTACTED -> "Non contacte";
-                case CONTACTED_AVAILABLE -> "Contacte - Disponible";
-                case CONTACTED_UNAVAILABLE -> "Contacte - Indisponible";
-                case NO_ANSWER -> "Pas de reponse";
-                case CALL_BACK_LATER -> "A rappeler";
-                case WRONG_NUMBER -> "Mauvais numero";
-            };
+            String label;
+            switch (status) {
+                case NOT_CONTACTED:        label = "Non contacte";          break;
+                case CONTACTED_AVAILABLE:  label = "Contacte - Disponible"; break;
+                case CONTACTED_UNAVAILABLE:label = "Contacte - Indisponible";break;
+                case NO_ANSWER:            label = "Pas de reponse";        break;
+                case CALL_BACK_LATER:      label = "A rappeler";            break;
+                case WRONG_NUMBER:         label = "Mauvais numero";        break;
+                default:                   label = status.name();           break;
+            }
             sb.append(String.format("- %s : %d\n", label, count));
         });
 

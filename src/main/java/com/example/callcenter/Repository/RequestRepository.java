@@ -15,6 +15,7 @@ public interface RequestRepository extends JpaRepository<Request, Long> {
     List<Request> findByRequestType(RequestType requestType);
     List<Request> findByAgent_IdUser(Long agentId);
     List<Request> findByUserIdUser(Long userId);
+    Optional<Request> findByReport_Id(Long reportId);
     @Query("SELECT DISTINCT q FROM Request r JOIN r.questions q WHERE r.categoryRequest = 'RECLAMATION'")
     List<Question> findQuestionsByReclamationRequests();
 

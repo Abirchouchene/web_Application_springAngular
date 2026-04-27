@@ -100,6 +100,12 @@ public class ReportService {
 
         Report savedReport = reportRepository.save(report);
 
+        // Persist the owning side of the Request↔Report relationship.
+        // Without this, request.report_id stays NULL and features that look up the
+        // request from a report (e.g. per-survey AI assistant) find nothing.
+        request.setReport(savedReport);
+        requestRepository.save(request);
+
         // Automatically trigger AI analysis
         try {
             openAiService.generateInsights(savedReport.getId());
@@ -150,15 +156,20 @@ public class ReportService {
         // Send approval email to the requester
         try {
             Request request = report.getRequest();
+            log.info("approveReport {}: request={}", reportId, request != null ? request.getIdR() : "NULL");
             if (request != null && request.getUser() != null) {
                 User requester = request.getUser();
                 String email = requester.getEmail();
                 String recipientName = requester.getFullName();
+                log.info("approveReport {}: requester={} email={}", reportId, requester.getUsername(), email);
                 if (email != null && !email.isBlank()) {
                     emailService.sendReportApprovalEmail(
                         email, recipientName,
                         report.getRequestTitle(), report.getId(),
-                        report.getAiInsightsData()
+                        report.getAiInsightsData(),
+                        report.getTotalContacts(),
+                        report.getContactedContacts(),
+                        report.getContactRate()
                     );
                     report.setStatus(ReportStatus.SENT);
                     report.setSentDate(LocalDateTime.now());
@@ -170,10 +181,43 @@ public class ReportService {
                     result.put("sentAt", report.getSentDate());
                     log.info("Approval email sent to requester {} for report {}", email, reportId);
                 } else {
+                    log.warn("approveReport {}: requester has no email", reportId);
                     result.put("warning", "Le demandeur n'a pas d'email enregistré");
                 }
             } else {
-                result.put("warning", "Aucun demandeur lié à ce rapport");
+                // Fallback: try to find request via owning side (in case lazy-load inverse is null)
+                var requestOpt = requestRepository.findByReport_Id(reportId);
+                if (requestOpt.isPresent() && requestOpt.get().getUser() != null) {
+                    Request req = requestOpt.get();
+                    User requester = req.getUser();
+                    String email = requester.getEmail();
+                    String recipientName = requester.getFullName();
+                    log.info("approveReport {}: found request via owning side, requester={} email={}", reportId, requester.getUsername(), email);
+                    if (email != null && !email.isBlank()) {
+                        emailService.sendReportApprovalEmail(
+                            email, recipientName,
+                            report.getRequestTitle(), report.getId(),
+                            report.getAiInsightsData(),
+                            report.getTotalContacts(),
+                            report.getContactedContacts(),
+                            report.getContactRate()
+                        );
+                        report.setStatus(ReportStatus.SENT);
+                        report.setSentDate(LocalDateTime.now());
+                        reportRepository.save(report);
+                        result.put("status", "SENT");
+                        result.put("emailSent", true);
+                        result.put("recipientEmail", email);
+                        result.put("recipientName", recipientName);
+                        result.put("sentAt", report.getSentDate());
+                        log.info("Approval email sent to {} for report {} (via owning-side lookup)", email, reportId);
+                    } else {
+                        result.put("warning", "Le demandeur n'a pas d'email enregistré");
+                    }
+                } else {
+                    log.warn("approveReport {}: no linked request found (inverse=null, owning-side empty)", reportId);
+                    result.put("warning", "Aucun demandeur lié à ce rapport");
+                }
             }
         } catch (Exception e) {
             log.warn("Failed to send approval email for report {}: {}", reportId, e.getMessage());
@@ -240,13 +284,31 @@ public class ReportService {
         questionSummary.put("type", question.getQuestionType().name());
 
         switch (question.getQuestionType()) {
-            case SHORT_ANSWER, PARAGRAPH -> questionSummary.put("responses", getTextAnswers(allResponses));
-            case NUMBER -> addNumberStats(questionSummary, allResponses);
-            case MULTIPLE_CHOICE, DROPDOWN -> questionSummary.put("optionCounts", getOptionCounts(allResponses));
-            case CHECKBOXES -> questionSummary.put("optionCounts", getCheckboxCounts(allResponses));
-            case YES_OR_NO -> questionSummary.put("optionCounts", getYesNoCounts(allResponses));
-            case DATE -> questionSummary.put("responses", getDateAnswers(allResponses));
-            case TIME -> questionSummary.put("responses", getTimeAnswers(allResponses));
+            case SHORT_ANSWER:
+            case PARAGRAPH:
+                questionSummary.put("responses", getTextAnswers(allResponses));
+                break;
+            case NUMBER:
+                addNumberStats(questionSummary, allResponses);
+                break;
+            case MULTIPLE_CHOICE:
+            case DROPDOWN:
+                questionSummary.put("optionCounts", getOptionCounts(allResponses));
+                break;
+            case CHECKBOXES:
+                questionSummary.put("optionCounts", getCheckboxCounts(allResponses));
+                break;
+            case YES_OR_NO:
+                questionSummary.put("optionCounts", getYesNoCounts(allResponses));
+                break;
+            case DATE:
+                questionSummary.put("responses", getDateAnswers(allResponses));
+                break;
+            case TIME:
+                questionSummary.put("responses", getTimeAnswers(allResponses));
+                break;
+            default:
+                break;
         }
         return questionSummary;
     }
@@ -365,9 +427,9 @@ public class ReportService {
         dto.setStatus(report.getStatus());
         dto.setApprovedDate(report.getApprovedDate());
         dto.setSentDate(report.getSentDate());
-        dto.setTotalContacts(report.getTotalContacts());
-        dto.setContactedContacts(report.getContactedContacts());
-        dto.setContactRate(report.getContactRate());
+        dto.setTotalContacts(report.getTotalContacts() != null ? report.getTotalContacts() : 0);
+        dto.setContactedContacts(report.getContactedContacts() != null ? report.getContactedContacts() : 0);
+        dto.setContactRate(report.getContactRate() != null ? report.getContactRate() : 0.0);
         dto.setStatisticsData(report.getStatisticsData());
         dto.setAiInsightsData(report.getAiInsightsData());
         dto.setAiGeneratedDate(report.getAiGeneratedDate());
@@ -610,7 +672,10 @@ public class ReportService {
             document.add(qTitle);
 
             switch (type) {
-                case "MULTIPLE_CHOICE", "DROPDOWN", "CHECKBOXES", "YES_OR_NO" -> {
+                case "MULTIPLE_CHOICE":
+                case "DROPDOWN":
+                case "CHECKBOXES":
+                case "YES_OR_NO": {
                     Map<String, Object> optionCounts = (Map<String, Object>) questionData.get("optionCounts");
                     if (optionCounts != null && !optionCounts.isEmpty()) {
                         PdfPTable optTable = new PdfPTable(2);
@@ -623,8 +688,9 @@ public class ReportService {
                         optTable.setSpacingAfter(8);
                         document.add(optTable);
                     }
+                    break;
                 }
-                case "NUMBER" -> {
+                case "NUMBER": {
                     Map<String, Object> numStats = (Map<String, Object>) questionData.get("stats");
                     List<?> responses = (List<?>) questionData.get("responses");
                     if (numStats != null) {
@@ -638,9 +704,9 @@ public class ReportService {
                         numTable.setSpacingAfter(8);
                         document.add(numTable);
                     }
+                    break;
                 }
-                default -> {
-                    // TEXT, DATE, TIME - show list of responses
+                default: {
                     List<?> responses = (List<?>) questionData.get("responses");
                     if (responses != null && !responses.isEmpty()) {
                         for (Object r : responses) {
@@ -651,6 +717,7 @@ public class ReportService {
                     } else {
                         document.add(new Paragraph("  Aucune réponse", VALUE_FONT));
                     }
+                    break;
                 }
             }
             qNum++;

@@ -60,20 +60,14 @@ public class AdminService {
         localUser = userRepository.save(localUser);
         log.info("Created local user {} (id={})", dto.getUsername(), localUser.getIdUser());
 
-        // 2. Sync to Keycloak (non-blocking — requires service account with manage-users role)
-        try {
-            String kcId = createKeycloakUser(dto);
-            if (kcId != null) {
-                String roleName = dto.getRole() != null ? dto.getRole().name() : "AGENT";
-                tryAssignRealmRole(kcId, roleName);
-                tryAssignGroup(kcId, roleName);
-                // Send Keycloak verification email — user is forced to verify on first login
-                trySendActionsEmail(kcId, dto.getEmail(), Collections.singletonList("VERIFY_EMAIL"));
-                log.info("User {} synced to Keycloak (kcId={})", dto.getUsername(), kcId);
-            }
-        } catch (Exception e) {
-            log.warn("Keycloak sync failed for {} — user created locally but cannot login via SSO. Cause: {}",
-                    dto.getUsername(), e.getMessage());
+        // 2. Sync to Keycloak — required for SSO login. Any failure rolls back the local DB insert.
+        String kcId = createKeycloakUser(dto);
+        if (kcId != null) {
+            String roleName = dto.getRole() != null ? dto.getRole().name() : "AGENT";
+            tryAssignRealmRole(kcId, roleName);
+            tryAssignGroup(kcId, roleName);
+            trySendActionsEmail(kcId, dto.getEmail(), Collections.singletonList("VERIFY_EMAIL"));
+            log.info("User {} synced to Keycloak (kcId={})", dto.getUsername(), kcId);
         }
 
         // 3. Send welcome email

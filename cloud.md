@@ -1,7 +1,7 @@
 # cloud.md — Project Memory
 
 > Primary context file. Check here before reading any other file.
-> Updated: 2026-04-23
+> Updated: 2026-04-27
 
 ---
 
@@ -11,191 +11,325 @@
 |---|---|---|---|
 | `callcenter-service` | 8082 | `/api` | `c:/Users/Abir/callcenter-service/` |
 | `contact-service` | 8081 | `/api` | `c:/Users/Abir/contact-service/` |
-| Angular frontend | 4200 | — | `c:/Users/Abir/frontend/` |
+| Angular frontend | 4200 | — | `c:/Users/Abir/Desktop/test/frontend/` |
 | Keycloak | 8080 | — | `http://192.168.10.161:8080/` |
 | MySQL | 3306 | — | `192.168.10.161:3306` (DB: `call-center`) |
 | MinIO | 9000 | — | `http://192.168.10.161:9000` |
 
-> ⚠️ `c:/Users/Abir/frontend/src/main/java/...` is a STALE COPY of backend code — never edit it. The real contact-service is at `c:/Users/Abir/contact-service/`.
+> ⚠️ Angular frontend is at `c:/Users/Abir/Desktop/test/frontend/` — NOT `c:/Users/Abir/frontend/`
+> ⚠️ `c:/Users/Abir/frontend/` is a STALE COPY of backend code — never edit it.
 
 ---
 
 ## 2. Keycloak Configuration
 
 - **Realm**: `Portal`
-- **Admin client ID**: `callcenter-backend`
+- **Admin client ID**: `call-center-backend` (with dash — never `callcenter-backend`)
 - **Client secret**: `lGNpcgyHlDiFcubxhQo9nxeItxkl6Rgr`
 - **Grant type**: `client_credentials`
 - **Frontend client ID**: `uptech-rest-api`
-- **Config bean**: `c:/Users/Abir/callcenter-service/src/main/java/com/example/callcenter/Config/KeyCloakConfig.java`
+- **Config bean**: `Config/KeyCloakConfig.java`
   - Strips `/realms/xxx` from `keycloak.auth-server-url` to get admin base URL
   - Profile guard: `@Profile("!dev-local")`
 - **Roles (realm)**: `admin`, `manager`, `agent`, `demandeur`
 - **Groups**: `Admins`, `Managers`, `Agents`, `Demandeurs`
+- **JWT principal attribute**: `sub` (set in `application.properties`)
+- **Username claim used in controllers**: `preferred_username` → `userRepository.findByUsername()`
 
 ---
 
-## 3. Key Entities & Packages
+## 3. Key Entities & DB Tables
 
-### callcenter-service (`com.example.callcenter`)
+### callcenter-service entities (`com.example.callcenter.Entity`)
 
-| Layer | Package |
-|---|---|
-| Controllers | `Controller/` |
-| Services | `Service/` |
-| Entities | `Entity/` |
-| DTOs | `DTO/` |
-| Repositories | `Repository/` |
-| Config | `Config/` |
+| Entity | Table | Notes |
+|---|---|---|
+| `User` | `user` | id_user PK, role enum |
+| `Request` | `request` | title TEXT, description TEXT (altered by DbSchemaMigration) |
+| `Report` | `report` | FK → request (owning side: request.report_id) |
+| `RequestContactStatus` | `request_contact_status` | per-request-per-contact status |
+| `EvaluationRecord` | `evaluation_record` | quality eval form submissions (ratings JSON, binary answers JSON) |
+| `Feedback` | `feedback` | requester star rating + comment per report (nullable user_id) |
+| `Notification` | `notification` | — |
+| `PasswordResetToken` | `password_reset_token` | — |
+| `Logs` | `logs` | action log entries |
 
-**Key entities**: `User`, `Role` (enum: ADMIN, MANAGER, AGENT, SURVEY_REQUESTER), `Request`, `Report`, `Notification`, `RequestContactStatus`, `PasswordResetToken`
+**Role enum**: `ADMIN`, `MANAGER`, `AGENT`, `SURVEY_REQUESTER`
 
 **Dual-status system**:
 - `Contact.callStatus` — global status on the contact
-- `RequestContactStatus.status` — per-request-per-contact status (read by `RequestController.convertToResponseDTO()`)
-- Both must be updated together when an agent changes a call status in the workflow
-
-### contact-service (`com.example.contactservice`)
-
-| Layer | Class |
-|---|---|
-| Controller | `ContactController.java` |
-| Service | `ContactService.java` |
-| Entities | `Contact`, `Tag`, `ContactStatus` |
-| Repositories | `ContactRepository`, `TagRepository` |
+- `RequestContactStatus.status` — per-request-per-contact status
+- Both must be updated together when an agent changes a call status
 
 ---
 
-## 4. File Summaries
+## 4. Java Coding Rules (Eclipse / Java 8 compliance)
 
-### `callcenter-service/src/.../Service/AdminService.java`
-- Full Keycloak integration: create/delete/role-change/sync users
-- `createUser(dto)`: creates Keycloak user first (fail-fast), then local DB, then sends welcome email
-- Password set as **non-temporary** (`cred.setTemporary(false)`) — users can login immediately
-- Email verified set to **true** — no verification step
-- Keycloak errors now throw (not silently swallowed) — 409 = duplicate user message
+All new `.java` files are compiled with Java 8 compliance by Eclipse. These patterns MUST be used:
+
+| Avoid | Use instead |
+|---|---|
+| `str.isBlank()` | `str.trim().isEmpty()` |
+| `List.of(a, b)` | `new ArrayList<>()` + `.add()` |
+| `Map.of(k, v)` | `new LinkedHashMap<>()` + `.put()` |
+| `switch (x) { case A -> ... }` | `switch (x) { case A: ... break; }` |
+| Text blocks `"""..."""` | `String.format(loadedTemplate, args)` |
+
+**Prompts and HTML templates**: never hardcode in Java source. Use:
+- `@Value("classpath:prompts/xxx.txt") Resource promptResource;`
+- `@PostConstruct void loadPrompt()` with `FileCopyUtils.copyToByteArray()`
+- Store in `src/main/resources/prompts/` and `src/main/resources/templates/email/`
+
+---
+
+## 5. Service Layer — Key Files
+
+### `Service/EmailService.java`
+- Loads 4 HTML templates at startup via `@PostConstruct` from `resources/templates/email/`
+- `buildResetPasswordHtml()` → `String.format(resetPasswordTemplate, name, resetLink)`
+- `buildWelcomeHtml()` → `String.format(welcomeTemplate, name, username, tempPassword)`
+- `buildReportApprovalHtml()` → `String.format(reportApprovalTemplate, 10 args)`
+
+### `Service/ReportService.java`
+- `generateReport(requestId)`: sets BOTH sides of the FK — `report.setRequest(request)` AND `request.setReport(report)`
+- `generatePdf(reportId)`: builds PDF, uploads to MinIO, falls back to local file
+- `toReportDTO()`: null-safe — returns `0`/`0.0` for null `totalContacts`, `contactedContacts`, `contactRate`
+- `DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")` — used only for PDF internal formatting (NOT in JSON responses)
+
+### `Service/QualityEvaluationService.java`
+- `generateForm(reportId)`: returns contextual `EvaluationForm` (ratings + binary questions + open question)
+  - If no linked request → `generateDefault()`
+  - If OpenAI enabled → `generateWithAI()`
+  - Fallback → `generateRuleBased()`
+- `processSubmission(reportId, userId, submission)`: upserts `EvaluationRecord` (one per user per report)
+
+### `Service/FeedbackService.java`
+- `submitFeedback(reportId, rating, comment, userId)`: upserts `Feedback` record
+  - If `userId` is null → creates new record (no upsert lookup)
+  - If OpenAI enabled → calls `callOpenAiAnalysis()` and stores result
+- `getFeedbackByReport(reportId)`: list all feedback for a report
+- `getFeedbackByReportAndUser(reportId, userId)`: get current user's feedback
+- Prompt loaded from `resources/prompts/feedback-analysis-prompt.txt`
+
+### `Service/SurveyAssistantService.java`
+- Per-survey AI assistant scoped to a specific request's data
+- `askByReportId(reportId, req, username)`: resolves request via `RequestRepository.findByReport_Id()`
+- Ownership check: requester must own the survey, or be ADMIN/MANAGER → throws `AccessDeniedException`
+- Builds context JSON: contacts, responses by question, report summary
+- Rule-based fallback with 12 intent categories (French)
+- Prompt loaded from `resources/prompts/survey-assistant-prompt.txt`
+
+### `Service/DashboardService.java`
+- `buildRecentActivity()`: timestamps formatted as ISO 8601 (`yyyy-MM-dd'T'HH:mm:ss`) for Angular DatePipe
+- `buildDailyTrend()`: dates formatted as `dd/MM` — this is for chart labels only (not DatePipe)
+
+### `Service/AdminService.java`
+- `createUser()`: creates KC user first (fail-fast), then local DB, sends welcome email
+- `changeUserRole()`: updates DB + KC role/group + calls `logout()` to invalidate KC sessions
 - `syncKeycloakUsers()`: syncs all KC users into local DB
-- `changeUserRole()`: updates local DB + removes old KC role/group + assigns new KC role/group
-
-### `callcenter-service/src/.../Controller/AdminController.java`
-- `POST /admin/users` → `adminService.createUser(dto)` → returns `{ "error": msg }` on failure
-- All endpoints wrapped in try-catch returning `Map.of("error", e.getMessage())`
-- Endpoints: CRUD users, toggle-enabled, send-reset-email, reset-password, forgot-password, reset-password-token, sync, change-role
-
-### `callcenter-service/src/.../DTO/CreateUserDTO.java`
-- Fields: `username`, `email`, `firstName`, `lastName`, `password`, `role` (Role enum)
-
-### `callcenter-service/src/main/resources/application.properties`
-- MySQL, Keycloak, MinIO, Mailjet, RabbitMQ, OpenAI config
-- `app.frontend-url=http://localhost:4200`
-- Mailjet keys are placeholder (`YOUR_MAILJET_API_KEY`) — email may not work
-
-### `callcenter-service/src/main/resources/application-dev-local.properties`
-- Uses H2 in-memory DB, disables Keycloak OAuth2 auto-config
-- Start with: `mvn spring-boot:run -Dspring-boot.run.profiles=dev-local`
-
-### `contact-service/src/.../controller/ContactController.java`
-- CRUD contacts + tag management endpoints
-- Debug endpoints: `GET /debug/tag-contacts`, `POST /debug/fix-pk`
-- `JdbcTemplate jdbc` injected for debug queries
-
-### `contact-service/src/.../service/ContactService.java`
-- `deleteTag()`: detaches tag from all contacts before deleting (avoids FK violation)
-- `createContact()`, `updateContact()`: handle tag assignment via `tagIds`
-- `updateContactCallStatus()`: updates `callStatus`, `callNote`, `lastCallAttempt`
 
 ---
 
-## 5. Frontend Key Files
+## 6. Controller Endpoints
 
-### Angular services
-| Service | File | Base URL |
+### `Controller/ReportController.java` — `/reports`
+
+| Method | Path | Description |
 |---|---|---|
-| ContactService | `src/app/services/apps/contact/contact.service.ts` | `environment.contactApiUrl` |
-| UserService | `src/app/services/apps/user/user.service.ts` | `environment.adminUrl` |
-| RequestService | `src/app/services/apps/ticket/request.service.ts` | `environment.apiUrl` |
+| POST | `/generate/{requestId}` | Generate report for a request |
+| GET | `/{reportId}` | Get report by ID |
+| GET | `/request/{requestId}` | Get report by request |
+| GET | `/request/{requestId}/status` | Get report generation status |
+| GET | `/{reportId}/pdf` | Download PDF |
+| GET | `/{reportId}/download-url` | Get MinIO presigned URL (fallback: local) |
+| POST | `/{reportId}/approve` | Approve report |
+| POST | `/{reportId}/reject` | Reject report |
+| POST | `/auto-generate` | Trigger scheduled auto-generation |
+| GET | `/{reportId}/quality-evaluation` | Get contextual eval form |
+| POST | `/{reportId}/quality-evaluation` | Submit evaluation → saves EvaluationRecord |
 
-### Key components
-| Component | Path | Notes |
+### `Controller/FeedbackController.java` — `/reports`
+
+| Method | Path | Description |
 |---|---|---|
-| ContactManagement | `pages/apps/contact/contact-management/` | Tag CRUD at bottom of page |
-| AddUserDialog | `pages/apps/user-management/add-user-dialog.component.ts` | Inline template, creates/edits users |
-| AddRequestDialog | `pages/apps/invoice/add-invoice/add-request.component.*` | Multi-step form; `trackByIndex` fixes focus loss on option inputs |
-| EditRequestDialog | `pages/apps/invoice/edit-request-dialog/` | Modal dialog (not page) with transfer panel for contacts |
-| CallsComponent | `pages/apps/Calls/calls.component.ts` | Uses `forkJoin` to update both per-request and global contact status |
-| InvoiceList | `pages/apps/invoice/invoice-list/` | Edit button opens `EditRequestDialogComponent` as modal |
+| POST | `/{reportId}/feedback` | Submit/update feedback (userId from JWT) |
+| GET | `/{reportId}/feedback` | List all feedback for report |
+| GET | `/{reportId}/feedback/mine` | Get current user's feedback |
+| POST | `/{reportId}/feedback/{feedbackId}/analyze` | Trigger AI analysis |
 
-### `add-user-dialog.component.ts`
-- Form: `username`, `email`, `firstName`, `lastName`, `password`, `role`
-- `onSubmit()` sends full payload to `userService.createUser()`
-- Error display: reads `err?.error?.message || err?.error?.error` from HTTP error
+### `Controller/AiChatController.java` — `/ai-chat`
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/message` | Global dashboard AI chat |
+| POST | `/survey/{requestId}/message` | Per-survey assistant (by requestId) |
+| POST | `/report/{reportId}/message` | Per-survey assistant (by reportId) |
+
+### `Controller/AuthController.java` — `/admin`
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/user/profile` | Get current user's profile from DB |
+| PUT | `/user/profile` | Update fullName + email |
 
 ---
 
-## 6. Important Fixes Applied (this session)
+## 7. DTOs
 
-| Bug/Feature | Fix |
+| DTO | Location | Key fields |
+|---|---|---|
+| `ReportDTO` | `DTO/ReportDTO.java` | id, requestTitle, totalContacts(0 if null), contactedContacts(0 if null), contactRate(0.0 if null) |
+| `QualityEvaluationDTO` | `DTO/QualityEvaluationDTO.java` | `EvaluationForm`, `EvaluationSubmission`, `EvaluationResult` (has `recordId`) |
+| `FeedbackDTO` | `DTO/FeedbackDTO.java` | id, reportId, reportTitle, userId, rating, comment, submittedAt, aiAnalysis, aiAnalyzed |
+| `UpdateProfileDTO` | `DTO/UpdateProfileDTO.java` | fullName, email |
+| `DashboardDTO` | `DTO/DashboardDTO.java` | KPIs, maps, lists, `RecentActivityDTO` (timestamp as ISO string) |
+
+---
+
+## 8. Repositories
+
+| Repository | Key custom methods |
 |---|---|
-| Call status not persisted to DB | `forkJoin` in `calls.component.ts` now updates both `RequestContactStatus` and global `Contact.callStatus` |
-| Option input focus loss in add-request form | `trackByIndex` on `*ngFor` + `(keydown.enter)="$event.preventDefault()"` |
-| "Modifier la demande" as full page | Replaced with `EditRequestDialogComponent` modal dialog |
-| Tag delete 404 | Was editing stale frontend copy; fixed real `contact-service` at `c:/Users/Abir/contact-service/` |
-| Keycloak `invalid_client` 401 | Client ID in `application.properties` was `callcenter-backend`, real Keycloak client name is `call-center-backend` (with dash) |
-| Keycloak trailing whitespace | Client secret had trailing space in properties file — stripped |
-| Email verification on user creation | Keycloak user now created with `emailVerified=false` + required action `VERIFY_EMAIL`; `executeActionsEmail` called after creation → Keycloak auto-redirects user to verification page on first login |
-| Rich approval notification UI | Backend `approveReport()` returns `Map<String,Object>` with recipient info; frontend opens `ReportApprovalResultDialogComponent` instead of snackbar |
-| Role change not reflected in Keycloak at auth time | `changeUserRole()` now calls `getUsersResource().get(kcUserId).logout()` after role/group update — invalidates all active KC sessions so next login gets a fresh JWT with the new role |
-| Add-user KC sync failing on 409 (user silently not synced) | `createKeycloakUser()` on HTTP 409: if KC has a user with the SAME USERNAME, reuse that kcId to sync role/group; if collision is email-only (different username), throw "L'email est déjà utilisé par un autre utilisateur Keycloak" so admin picks a different email |
-| Frontend 404 on `GET /api/callbacks/upcoming/{agentId}` | `CallbackController` lives in **contact-service** (port 8081), not callcenter-service. Added `environment.callbackApiUrl='http://localhost:8081/api/callbacks'` and switched `callback.service.ts` to use it. Follows existing pattern where contacts also call 8081 directly via `contactApiUrl`. |
-| 500 on `POST /requests/submit` — "Data too long for column 'description'" | `description` and `note` columns in `request` table were VARCHAR(255). Annotated fields with `@Column(columnDefinition="TEXT")` in [Request.java](src/main/java/com/example/callcenter/Entity/Request.java). Hibernate `ddl-auto=update` doesn't alter existing VARCHAR→TEXT — added [DbSchemaMigration.java](src/main/java/com/example/callcenter/Config/DbSchemaMigration.java) `CommandLineRunner` that runs `ALTER TABLE` via `JdbcTemplate` on startup (idempotent: checks `INFORMATION_SCHEMA.COLUMNS` first). |
-| Submitted requests always attributed to "abir" (user id=1) regardless of logged-in user | `add-request.component.ts` had `userId: [environment.callCenterSubmitUserId, ...]` (hardcoded `1`). Now injects `RoleService`, reads current user id from `/user/me` via `getUserInfoSnapshot()?.id`, and patches form in `ngOnInit` subscription to handle async load. |
-| Agent's request list showed nothing / wrong requests | `invoice-list.component.ts` called `getAssignedRequests(1)` (hardcoded). Now uses `roleService.getUserInfo()` to drive routing: `AGENT`→`getAssignedRequests(currentUserId)`, `SURVEY_REQUESTER`→`getRequestsByUserId(currentUserId)` (scoped to their own), others→`getAllRequests()`. |
-| All requests showed "abir" as demandeur in details view | Hardened [RequestController.java](src/main/java/com/example/callcenter/Controller/RequestController.java) `submitRequest()`: now **always derives the requester from the JWT's `preferred_username`**, overrides `requestDTO.userId` with the DB id matched from the authenticated user. Any client-supplied userId is ignored — so even if the frontend is buggy or malicious, the server attributes the request correctly. **Note**: existing requests stored with `user_id=1` cannot be retroactively reassigned — only requests submitted after this fix will carry the correct user. |
-| Request details page: contact names + phone null | `ContactClient` Feign was `@FeignClient(name="contact-service")` — resolved via Eureka, but Eureka isn't running (port 8761 connection refused → `UnknownHostException: contact-service`). Fix: added `url = "${contact.service.url:http://localhost:8081}"` on the `@FeignClient` annotation, and property `contact.service.url=http://localhost:8081` in `application.properties`. Now hits contact-service directly, bypassing service discovery. |
-| Manager approval list took ~3 min to load | `convertToResponseDTO()` was doing a Feign call to contact-service **per contact per request** for every list endpoint. 49 requests × ~5 contacts each = ~250 blocking HTTP calls. Fix: added `convertToResponseDTO(Request, boolean loadContacts)` overload; list endpoints (`/All`, `/user/{id}`, `/type/{t}`, `/assigned/{agentId}`) now call with `loadContacts=false` and return empty `contacts[]`. Single-item details endpoint (`/requests/{id}`) still loads full contact details. Dropped `/All` latency from ~3 min to ~4.3 s. |
-| Agent "Appeler" → contacts missing in calls workflow | Side-effect of the list-speedup above: `/assigned/{agentId}` now returns requests with empty `contacts[]`, so `calls.component.ts buildCallEntries()` had nothing to iterate. Fix: `openDetailView()` now calls `requestService.getRequestById(req.idR)` to fetch the full request (with contacts) on click, replaces the row in `assignedRequests`, then rebuilds call entries. List stays fast; contacts load on-demand when an agent drills in. |
-| Report details "Analyse IA" tab always showed "Aucune analyse disponible" | Frontend only rendered `report.aiInsightsData` if pre-populated in DB — never called the `GET /reports/{id}/ai-insights` endpoint (which generates on demand + caches). Fix: added `getAiInsights()` and `generateAiInsights()` to `report.service.ts`; `parseAiInsights()` in `report-details.component.ts` now falls back to `loadAiInsights()` when `aiInsightsData` is null. Added loading spinner and "Régénérer l'analyse" button. Backend endpoint uses rule-based fallback if OpenAI is disabled (`openai.enabled=false`). |
-
-## 7. Mailjet Configuration
-
-Real API keys are set in `application.properties` lines 61-62 (`api-key` + `secret-key`).
-Login to Mailjet dashboard is `upskills@uptech.com.tn` / `p#7ykH5H6*LkSnS` — NOT used by the app; only for Mailjet web UI access.
-Sender: `noreply@callflow.com` / `CallFlow`
-
-## 8. Keycloak Client Config (Realm: Portal)
-
-- Client ID: **`call-center-backend`** (with dash — do NOT write `callcenter-backend`)
-- Service account roles assigned: `manage-users`, `view-users`, `view-realm`, `query-groups` (all from `realm-management` client)
-- Required for admin-level operations via `AdminService.java`
+| `RequestRepository` | `findByReport_Id(Long)`, `findCompletedRequestsWithoutReport()` |
+| `EvaluationRecordRepository` | `findByReport_Id`, `findByReport_IdAndUserId` |
+| `FeedbackRepository` | `findByReport_Id`, `findByReport_IdAndUserId`, `existsByReport_IdAndUserId` |
+| `UserRepository` | `findByUsername(String)` |
 
 ---
 
-## 9. Build & Restart Commands
+## 9. Application Properties (key entries)
 
-```bash
-# callcenter-service
-cd c:/Users/Abir/callcenter-service
-./mvnw.cmd clean package -DskipTests
-# Kill old process
-netstat -ano | grep :8082   # find PID
-taskkill //F //PID <PID>
-# Start
-java -jar target/callcenter-0.0.1-SNAPSHOT.jar > /tmp/callcenter.log 2>&1 &
+```properties
+server.port=8082
+spring.datasource.url=jdbc:mysql://192.168.10.161:3306/call-center
+spring.jpa.hibernate.ddl-auto=update
 
-# contact-service
-cd c:/Users/Abir/contact-service
-./mvnw.cmd clean package -DskipTests
-netstat -ano | grep :8081   # find PID
-taskkill //F //PID <PID>
-java -jar target/contact-service-0.0.1-SNAPSHOT.jar > /tmp/contact.log 2>&1 &
+# Jackson — serialize LocalDateTime as ISO-8601 strings (not arrays)
+spring.jackson.serialization.write-dates-as-timestamps=false
+
+# Eureka — disabled (no registry running)
+eureka.client.enabled=false
+logging.level.com.netflix.discovery=ERROR
+logging.level.com.netflix.eureka=ERROR
+
+# OpenAI — disabled by default
+openai.api-key=${OPENAI_API_KEY:}
+openai.enabled=${OPENAI_ENABLED:false}
+openai.model=gpt-4
 ```
 
-> ⚠️ Use `taskkill //F //PID` (double-slash) in bash. Single-slash parses as flags.
-> ⚠️ MySQL has a low `max_connections` — killing java processes with `//F` leaves dangling connections. Wait ~30s before restarting.
+---
+
+## 10. Angular Frontend — `c:/Users/Abir/Desktop/test/frontend/`
+
+### Environment (`src/environments/environment.ts`)
+```typescript
+gatewayUrl: 'http://localhost:8082'
+apiUrl: 'http://localhost:8082/api'
+contactApiUrl: 'http://localhost:8082/api/contacts'
+authUrl: 'http://localhost:8082/api/auth'
+adminUrl: 'http://localhost:8082/api/admin'
+userUrl: 'http://localhost:8082/api/users'
+wsUrl: 'ws://localhost:8082/ws'
+```
+
+### Key Services
+
+| Service | File | Key methods |
+|---|---|---|
+| `DashboardService` | `services/apps/dashboard.service.ts` | `getStats()` |
+| `ReportService` | `services/apps/report.service.ts` | `generateReport`, `approveReport`, `rejectReport`, `getReportStatus`, `generateReportPdf`, `getQualityEvaluationForm`, `submitQualityEvaluation`, `submitFeedback`, `getMyFeedback` |
+| `RequestService` | `services/apps/ticket/request.service.ts` | full CRUD for requests |
+
+### Key Components
+
+| Component | Path | Notes |
+|---|---|---|
+| Dashboard | `pages/dashboards/dashboard1/` | ApexCharts — all series guarded against empty arrays |
+| ReportList | `pages/apps/Reports/report-list/` | "Donner mon avis" button → opens inline feedback overlay dialog |
+| ReportDetails | `pages/apps/Reports/report-details/` | Dialog showing report stats |
+| TicketDetails | `pages/apps/Requests/TicketDetails/` | Agent view of a request |
+| RequestManagerView | `pages/apps/RequestManager/request-manager-view/` | Manager assigns agent |
 
 ---
 
-## 10. Role Mapping
+## 11. Important Fixes Applied
+
+### Fixes from 2026-04-27 session
+
+| Bug | Fix |
+|---|---|
+| `DatePipe` error — `'Unable to convert "24/04/2026 18:27" into a date'` | `DashboardService.buildRecentActivity()` changed formatter to ISO 8601 `yyyy-MM-dd'T'HH:mm:ss`. Added `spring.jackson.serialization.write-dates-as-timestamps=false` to serialize all `LocalDateTime` DTOs as ISO strings. |
+| ApexCharts `translate(NaN, 0)` | `dashboard1.component.ts`: all chart series guarded — `statusChart.series` was `[]` when no data → now `[1]` with label "Aucune donnée". Same fix for `priorityChart`, `categoryChart`, `trendChart`. |
+| Feedback not saved — backend returned 401 | `FeedbackController.submitFeedback()` was calling `resolveUserId()` and returning 401 when JWT user not found in DB. Removed early 401 return. `Feedback.userId` column made nullable. `FeedbackService` skips upsert lookup when `userId` is null. |
+| Feedback form missing in frontend | `ReportService` had no feedback methods. Added `submitFeedback()`, `getMyFeedback()`. Added `FormsModule` + `ReportService` to `ReportListComponent`. Added "Donner mon avis" menu item + full overlay dialog (⭐ stars + textarea + send button) to `report-list.component.html`. |
+| Quality evaluation 404 | Caused by `QualityEvaluationService` using `isBlank()` + `List.of()` → Eclipse Java 8 compile failure → bean not created → controller constructor failure. Fixed: `isBlank()` → `trim().isEmpty()`, `List.of()` → `new ArrayList<>() + .add()`. |
+| `EvaluationRecord` not stored | `processSubmission` had wrong signature in controller call. Fixed controller to pass `userId` from JWT. |
+| Eureka heartbeat ERROR logs every 30s | `eureka.client.enabled=false` + `logging.level.com.netflix.*=ERROR` |
+
+### Fixes from earlier sessions (summarized)
+
+| Bug | Fix |
+|---|---|
+| Call status not persisted | `forkJoin` updates both `RequestContactStatus` and `Contact.callStatus` |
+| Requests attributed to user id=1 | `submitRequest()` derives user from JWT `preferred_username`, ignores client-supplied userId |
+| Agent list 3-min load | `convertToResponseDTO(request, boolean loadContacts)` — list endpoints skip contact loading |
+| Report AI tab always empty | Frontend now calls `GET /reports/{id}/ai-insights` on-demand when `aiInsightsData` is null |
+| `request.report_id` FK null | `generateReport()` sets both sides of FK; `DbSchemaMigration.repairOrphanReportLinks()` repairs historical rows |
+| Contact Feign fails (Eureka down) | `@FeignClient(url="${contact.service.url}")` bypasses Eureka |
+
+---
+
+## 12. Prompts & Templates
+
+```
+src/main/resources/
+  prompts/
+    quality-evaluation-prompt.txt    ← QualityEvaluationService (AI form generation)
+    feedback-analysis-prompt.txt     ← FeedbackService (AI feedback analysis)
+    survey-assistant-prompt.txt      ← SurveyAssistantService (per-survey chat)
+    ai-report-prompt.txt             ← ReportService (AI report insights)
+    call-copilot-prompt.txt          ← CallCopilotService
+    consistency-check-prompt.txt     ← ConsistencyService
+  templates/email/
+    reset-password.html
+    welcome.html
+    report-approval.html
+    stats-section.html
+```
+
+---
+
+## 13. Build & Restart
+
+```bash
+# Kill process on port 8082
+netstat -ano | findstr :8082   # find PID (Windows)
+taskkill /F /PID <PID>
+
+# Build & start callcenter-service
+cd c:/Users/Abir/callcenter-service
+mvn package -DskipTests
+java -jar target/callcenter-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+
+# Wait for startup
+until grep -q "Started CallCenter" app.log; do sleep 3; done
+```
+
+> ⚠️ JAR file is locked while running — must kill before rebuilding.
+> ⚠️ MySQL has low `max_connections` — wait ~30s after kill before restart.
+> ⚠️ Use PowerShell `Get-NetTCPConnection -LocalPort 8082` to find PID if `netstat` shows PID 0.
+
+---
+
+## 14. Mailjet Configuration
+
+Real API keys in `application.properties` lines 67-70.
+Sender: `noreply@uptech.com.tn` / `NO-REPLY`
+
+---
+
+## 15. Role Mapping
 
 | App Role | Keycloak Realm Role | Keycloak Group |
 |---|---|---|

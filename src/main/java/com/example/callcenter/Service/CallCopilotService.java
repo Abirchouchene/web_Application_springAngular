@@ -4,13 +4,17 @@ import com.example.callcenter.Entity.*;
 import com.example.callcenter.Repository.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +35,27 @@ public class CallCopilotService {
 
     @Value("${openai.enabled:false}")
     private boolean enabled;
+
+    @Value("classpath:prompts/call-copilot-analysis-prompt.txt")
+    private Resource analysisPromptResource;
+
+    @Value("classpath:prompts/call-copilot-summary-prompt.txt")
+    private Resource summaryPromptResource;
+
+    private String analysisPrompt;
+    private String summaryPrompt;
+
+    @PostConstruct
+    void loadPrompts() {
+        try {
+            analysisPrompt = new String(FileCopyUtils.copyToByteArray(analysisPromptResource.getInputStream()), StandardCharsets.UTF_8);
+            summaryPrompt  = new String(FileCopyUtils.copyToByteArray(summaryPromptResource.getInputStream()), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.error("Failed to load call copilot prompts", e);
+            analysisPrompt = "";
+            summaryPrompt  = "";
+        }
+    }
 
     public CallCopilotService(@Value("${openai.api-key:}") String apiKey,
                               @Value("${openai.base-url:https://api.openai.com/v1}") String baseUrl,
@@ -203,43 +228,9 @@ public class CallCopilotService {
         return (String) message.get("content");
     }
 
-    private String getAnalysisSystemPrompt() {
-        return """
-                Tu es un assistant IA expert en centre d'appel. Pendant qu'un agent mène un sondage téléphonique,
-                analyse la réponse du contact et fournis des suggestions utiles.
-                
-                Retourne un JSON avec cette structure exacte :
-                {
-                  "suggestion": "Suggestion pour la prochaine question ou reformulation",
-                  "reformulation": "Si la réponse est vague, propose une reformulation de la question. Sinon null",
-                  "detectedPoints": [
-                    { "type": "URGENCY|PROBLEM|DISSATISFACTION|POSITIVE|INFO", "label": "Court libellé", "detail": "Détail" }
-                  ],
-                  "nextQuestionHint": "Conseil pour aborder la prochaine question",
-                  "sentiment": "POSITIVE|NEUTRAL|NEGATIVE|MIXED",
-                  "confidence": 0.0-1.0
-                }
-                Retourne UNIQUEMENT du JSON valide, pas de markdown.
-                """;
-    }
+    private String getAnalysisSystemPrompt() { return analysisPrompt; }
 
-    private String getSummarySystemPrompt() {
-        return """
-                Tu es un assistant IA expert en centre d'appel. Génère un résumé automatique d'un appel téléphonique
-                basé sur les réponses collectées pendant le sondage.
-                
-                Retourne un JSON avec cette structure exacte :
-                {
-                  "summary": "Résumé concis de l'appel en 2-3 phrases",
-                  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
-                  "sentiment": "POSITIVE|NEUTRAL|NEGATIVE|MIXED",
-                  "keyPoints": [
-                    { "type": "IMPORTANT|WARNING|POSITIVE|NEUTRAL", "text": "Point clé identifié" }
-                  ]
-                }
-                Les tags doivent être 3 à 5 mots-clés pertinents. Retourne UNIQUEMENT du JSON valide.
-                """;
-    }
+    private String getSummarySystemPrompt() { return summaryPrompt; }
 
     private String buildAnalysisContext(Request request, Question currentQ, String answer,
                                         List<Map<String, String>> previousResponses,
@@ -377,13 +368,25 @@ public class CallCopilotService {
         String nextQuestionHint = "";
         if (!remainingQuestions.isEmpty()) {
             String nextType = remainingQuestions.get(0).get("type");
-            nextQuestionHint = switch (nextType) {
-                case "YES_OR_NO" -> "Question fermée — attendez une réponse claire Oui/Non.";
-                case "PARAGRAPH", "SHORT_ANSWER" -> "Question ouverte — laissez le contact s'exprimer librement.";
-                case "NUMBER" -> "Question numérique — demandez une valeur précise.";
-                case "MULTIPLE_CHOICE", "DROPDOWN" -> "Question à choix — lisez les options au contact.";
-                default -> "Posez la question naturellement et notez la réponse.";
-            };
+            switch (nextType) {
+                case "YES_OR_NO":
+                    nextQuestionHint = "Question fermée — attendez une réponse claire Oui/Non.";
+                    break;
+                case "PARAGRAPH":
+                case "SHORT_ANSWER":
+                    nextQuestionHint = "Question ouverte — laissez le contact s'exprimer librement.";
+                    break;
+                case "NUMBER":
+                    nextQuestionHint = "Question numérique — demandez une valeur précise.";
+                    break;
+                case "MULTIPLE_CHOICE":
+                case "DROPDOWN":
+                    nextQuestionHint = "Question à choix — lisez les options au contact.";
+                    break;
+                default:
+                    nextQuestionHint = "Posez la question naturellement et notez la réponse.";
+                    break;
+            }
         }
 
         result.put("suggestion", suggestion);
@@ -463,41 +466,42 @@ public class CallCopilotService {
     }
 
     private String formatQuestionType(String type) {
-        return switch (type) {
-            case "YES_OR_NO" -> "Oui/Non";
-            case "MULTIPLE_CHOICE" -> "Choix multiple";
-            case "DROPDOWN" -> "Menu déroulant";
-            case "SHORT_ANSWER" -> "Réponse courte";
-            case "PARAGRAPH" -> "Paragraphe";
-            case "NUMBER" -> "Nombre";
-            case "DATE" -> "Date";
-            case "TIME" -> "Heure";
-            case "CHECKBOXES" -> "Cases à cocher";
-            default -> type;
-        };
+        switch (type) {
+            case "YES_OR_NO":        return "Oui/Non";
+            case "MULTIPLE_CHOICE":  return "Choix multiple";
+            case "DROPDOWN":         return "Menu déroulant";
+            case "SHORT_ANSWER":     return "Réponse courte";
+            case "PARAGRAPH":        return "Paragraphe";
+            case "NUMBER":           return "Nombre";
+            case "DATE":             return "Date";
+            case "TIME":             return "Heure";
+            case "CHECKBOXES":       return "Cases à cocher";
+            default:                 return type;
+        }
     }
 
     private String formatCategory(String cat) {
-        return switch (cat) {
-            case "PRODUCT_SATISFACTION" -> "Satisfaction Produit";
-            case "SERVICE_FEEDBACK" -> "Retour Service";
-            case "MARKET_RESEARCH" -> "Étude de Marché";
-            case "CUSTOMER_NEEDS" -> "Besoins Client";
-            case "GENERAL_INQUIRY" -> "Demande Générale";
-            case "RECLAMATION" -> "Réclamation";
-            case "COMMANDE" -> "Commande";
-            case "DEVIS" -> "Devis";
-            case "INTERVENTION" -> "Intervention";
-            default -> cat != null ? cat : "";
-        };
+        if (cat == null) return "";
+        switch (cat) {
+            case "PRODUCT_SATISFACTION": return "Satisfaction Produit";
+            case "SERVICE_FEEDBACK":     return "Retour Service";
+            case "MARKET_RESEARCH":      return "Étude de Marché";
+            case "CUSTOMER_NEEDS":       return "Besoins Client";
+            case "GENERAL_INQUIRY":      return "Demande Générale";
+            case "RECLAMATION":          return "Réclamation";
+            case "COMMANDE":             return "Commande";
+            case "DEVIS":                return "Devis";
+            case "INTERVENTION":         return "Intervention";
+            default:                     return cat;
+        }
     }
 
     private String formatSentiment(String sentiment) {
-        return switch (sentiment) {
-            case "POSITIVE" -> "Positif";
-            case "NEGATIVE" -> "Négatif";
-            case "MIXED" -> "Mixte";
-            default -> "Neutre";
-        };
+        switch (sentiment) {
+            case "POSITIVE": return "Positif";
+            case "NEGATIVE": return "Négatif";
+            case "MIXED":    return "Mixte";
+            default:         return "Neutre";
+        }
     }
 }
