@@ -107,6 +107,32 @@ export class ReportService {
     return this.http.post<any>(`${this.apiUrl}/${reportId}/ai-insights/generate`, {});
   }
 
+  /** Ask the per-survey AI assistant a question scoped to one request (by request id). */
+  askSurveyAssistant(requestId: number, message: string, sessionId?: string): Observable<any> {
+    return this.http.post<any>(
+      `${environment.apiUrl}/ai-chat/survey/${requestId}/message`,
+      { message, sessionId }
+    );
+  }
+
+  /** Get the contextual quality evaluation form for a report. */
+  getQualityEvaluationForm(reportId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${reportId}/quality-evaluation`);
+  }
+
+  /** Submit a quality evaluation and get the computed result. */
+  submitQualityEvaluation(reportId: number, submission: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${reportId}/quality-evaluation`, submission);
+  }
+
+  /** Ask the per-survey AI assistant using a REPORT id (the frontend usually only has this). */
+  askSurveyAssistantByReport(reportId: number, message: string, sessionId?: string): Observable<any> {
+    return this.http.post<any>(
+      `${environment.apiUrl}/ai-chat/report/${reportId}/message`,
+      { message, sessionId }
+    );
+  }
+
   // Helper method to calculate statistics for a request
   calculateStatistics(request: Request): ReportDetails['statistics'] {
     if (!request.contacts || !request.questions) {

@@ -31,6 +31,7 @@ import { ReportDetailsComponent } from './Reports/report-details/report-details.
 import { NotificationsComponent } from './Notifications/notifications.component';
 import { LogsComponent } from './Logs/logs.component';
 import { CallsComponent } from './Calls/calls.component';
+import { AgentDashboardComponent } from './agent-dashboard/agent-dashboard.component';
 
 
 export const AppsRoutes: Routes = [
@@ -373,6 +374,19 @@ export const AppsRoutes: Routes = [
         },
       },
       {
+        path: 'agent-dashboard',
+        component: AgentDashboardComponent,
+        canActivate: [AuthGuard],
+        data: {
+          title: 'Tableau de bord Agent',
+          roles: ['AGENT', 'MANAGER', 'ADMIN'],
+          urls: [
+            { title: 'Accueil', url: '/apps/agent-dashboard' },
+            { title: 'Tableau de bord Agent' },
+          ],
+        },
+      },
+      {
         path: 'calls',
         component: CallsComponent,
         canActivate: [AuthGuard],
@@ -380,7 +394,7 @@ export const AppsRoutes: Routes = [
           title: 'Gestion des Appels',
           roles: ['AGENT', 'MANAGER', 'ADMIN'],
           urls: [
-            { title: 'Dashboard', url: '/dashboards/dashboard1' },
+            { title: 'Dashboard', url: '/apps/agent-dashboard' },
             { title: 'Gestion des Appels' },
           ],
         },

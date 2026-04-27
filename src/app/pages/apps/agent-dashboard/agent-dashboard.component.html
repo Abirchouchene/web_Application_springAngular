@@ -1,0 +1,342 @@
+<div class="agt-dash">
+
+  <!-- ══════ LOADING ══════ -->
+  <div *ngIf="isLoading" class="agt-loading">
+    <mat-spinner diameter="44" color="primary"></mat-spinner>
+    <span>Chargement...</span>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+
+    <!-- ══════ GREETING ══════ -->
+    <div class="agt-greeting">
+      <div>
+        <h1>Bonjour {{ agentName }} 👋</h1>
+        <p>Voici ce qui se passe aujourd'hui, {{ currentDate | date:'d MMMM yyyy':'':'fr' }}</p>
+      </div>
+      <div class="agt-greeting-right">
+        <button mat-icon-button class="notif-btn" (click)="navigate('/apps/notifications')"
+                [matBadge]="unreadNotifications > 0 ? unreadNotifications : null"
+                matBadgeColor="warn" matBadgeSize="small">
+          <i-tabler name="bell"></i-tabler>
+        </button>
+        <div class="agt-avatar">{{ agentInitials }}</div>
+      </div>
+    </div>
+
+    <!-- ══════ IA BANNER ══════ -->
+    <div class="ia-banner">
+      <!-- Robot illustration -->
+      <div class="ia-robot">
+        <div class="robot-body">
+          <div class="robot-head">
+            <div class="robot-eye left"></div>
+            <div class="robot-eye right"></div>
+            <div class="robot-mouth"></div>
+          </div>
+          <div class="robot-torso">
+            <div class="robot-chest">
+              <div class="robot-light"></div>
+              <div class="robot-light"></div>
+            </div>
+          </div>
+          <div class="robot-arms">
+            <div class="robot-arm left"></div>
+            <div class="robot-arm right"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <div class="ia-center">
+        <div class="ia-title">
+          <i-tabler name="sparkles" style="color:#667eea;width:18px;height:18px"></i-tabler>
+          Résumé IA du jour
+          <span class="ia-badge">✨</span>
+        </div>
+        <div class="ia-updated">Mis à jour à {{ currentDate | date:'HH:mm' }}</div>
+
+        <div class="ia-chips">
+          <div class="ia-chip" *ngFor="let ins of iaInsights"
+               [style.background]="ins.bg" [style.border-color]="ins.color + '33'">
+            <div class="ia-chip-icon" [style.background]="ins.color + '22'">
+              <i-tabler [name]="ins.icon" [style.color]="ins.color" style="width:16px;height:16px"></i-tabler>
+            </div>
+            <div>
+              <div class="ia-chip-title" [style.color]="ins.color">{{ ins.title }}</div>
+              <div class="ia-chip-detail">{{ ins.detail }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ask AI -->
+      <div class="ia-chat-card">
+        <div class="ia-chat-title">Demandez à l'IA</div>
+        <div class="ia-chat-example">Ex : « {{ aiChatExample }} »</div>
+        <button class="ia-chat-btn" (click)="navigate('/apps/calls')">
+          Poser une question &nbsp;→
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════ KPI CARDS ══════ -->
+    <div class="kpi-row">
+
+      <!-- Taux de contact -->
+      <div class="kpi-card" (click)="navigate('/apps/calls')">
+        <div class="kpi-top">
+          <div class="kpi-icon-wrap" style="background:#eff6ff">
+            <i-tabler name="phone" style="color:#3b82f6;width:20px;height:20px"></i-tabler>
+          </div>
+          <span class="kpi-trend" [class.up]="contactRateTrend >= 0" [class.down]="contactRateTrend < 0">
+            <i-tabler [name]="contactRateTrend >= 0 ? 'trending-up' : 'trending-down'" style="width:14px;height:14px"></i-tabler>
+            {{ contactRateTrend >= 0 ? '+' : '' }}{{ contactRateTrend }}%
+          </span>
+        </div>
+        <div class="kpi-val">{{ contactRate }}<span class="kpi-unit">%</span></div>
+        <div class="kpi-lbl">Taux de contact</div>
+        <div class="kpi-sublbl">vs hier</div>
+        <div class="kpi-spark" *ngIf="sparkContact?.series">
+          <apx-chart [series]="sparkContact.series!" [chart]="sparkContact.chart!"
+                     [stroke]="sparkContact.stroke!" [fill]="sparkContact.fill!"
+                     [colors]="sparkContact.colors!" [dataLabels]="sparkContact.dataLabels!"
+                     [grid]="sparkContact.grid!" [xaxis]="sparkContact.xaxis!"
+                     [tooltip]="sparkContact.tooltip!"></apx-chart>
+        </div>
+      </div>
+
+      <!-- Demandes en cours -->
+      <div class="kpi-card" (click)="navigate('/apps/tickets')">
+        <div class="kpi-top">
+          <div class="kpi-icon-wrap" style="background:#fff7ed">
+            <i-tabler name="loader" style="color:#f59e0b;width:20px;height:20px"></i-tabler>
+          </div>
+        </div>
+        <div class="kpi-val">{{ inProgress }}</div>
+        <div class="kpi-lbl">Demandes en cours</div>
+        <div class="kpi-sublbl">vs hier</div>
+        <div class="kpi-spark" *ngIf="sparkProgress?.series">
+          <apx-chart [series]="sparkProgress.series!" [chart]="sparkProgress.chart!"
+                     [stroke]="sparkProgress.stroke!" [fill]="sparkProgress.fill!"
+                     [colors]="sparkProgress.colors!" [dataLabels]="sparkProgress.dataLabels!"
+                     [grid]="sparkProgress.grid!" [xaxis]="sparkProgress.xaxis!"
+                     [tooltip]="sparkProgress.tooltip!"></apx-chart>
+        </div>
+      </div>
+
+      <!-- Urgentes -->
+      <div class="kpi-card" (click)="navigate('/apps/tickets')">
+        <div class="kpi-top">
+          <div class="kpi-icon-wrap" style="background:#fef2f2">
+            <i-tabler name="alert-circle" style="color:#ef4444;width:20px;height:20px"></i-tabler>
+          </div>
+        </div>
+        <div class="kpi-val urgent">{{ urgentCount }}</div>
+        <div class="kpi-lbl">Urgentes</div>
+        <div class="kpi-sublbl">vs hier</div>
+        <div class="kpi-spark" *ngIf="sparkUrgent?.series">
+          <apx-chart [series]="sparkUrgent.series!" [chart]="sparkUrgent.chart!"
+                     [stroke]="sparkUrgent.stroke!" [fill]="sparkUrgent.fill!"
+                     [colors]="sparkUrgent.colors!" [dataLabels]="sparkUrgent.dataLabels!"
+                     [grid]="sparkUrgent.grid!" [xaxis]="sparkUrgent.xaxis!"
+                     [tooltip]="sparkUrgent.tooltip!"></apx-chart>
+        </div>
+      </div>
+
+      <!-- Résolues aujourd'hui -->
+      <div class="kpi-card" (click)="navigate('/apps/tickets')">
+        <div class="kpi-top">
+          <div class="kpi-icon-wrap" style="background:#f0fdf4">
+            <i-tabler name="circle-check" style="color:#10b981;width:20px;height:20px"></i-tabler>
+          </div>
+        </div>
+        <div class="kpi-val success">{{ resolvedToday }}</div>
+        <div class="kpi-lbl">Résolues aujourd'hui</div>
+        <div class="kpi-sublbl">vs hier</div>
+        <div class="kpi-spark" *ngIf="sparkResolved?.series">
+          <apx-chart [series]="sparkResolved.series!" [chart]="sparkResolved.chart!"
+                     [stroke]="sparkResolved.stroke!" [fill]="sparkResolved.fill!"
+                     [colors]="sparkResolved.colors!" [dataLabels]="sparkResolved.dataLabels!"
+                     [grid]="sparkResolved.grid!" [xaxis]="sparkResolved.xaxis!"
+                     [tooltip]="sparkResolved.tooltip!"></apx-chart>
+        </div>
+      </div>
+
+      <!-- Rappels planifiés -->
+      <div class="kpi-card" (click)="navigate('/apps/callbacks')">
+        <div class="kpi-top">
+          <div class="kpi-icon-wrap" style="background:#faf5ff">
+            <i-tabler name="clock" style="color:#8b5cf6;width:20px;height:20px"></i-tabler>
+          </div>
+        </div>
+        <div class="kpi-val purple">{{ pendingCallbacks }}</div>
+        <div class="kpi-lbl">Rappels planifiés</div>
+        <div class="kpi-sublbl">en attente</div>
+      </div>
+
+    </div>
+
+    <!-- ══════ BOTTOM 3 COLUMNS ══════ -->
+    <div class="bottom-grid">
+
+      <!-- ── Col 1: Tasks ── -->
+      <div class="card tasks-col">
+        <div class="card-head">
+          <span class="card-title">
+            <i-tabler name="list-check" style="color:#667eea;width:18px;height:18px"></i-tabler>
+            Mes tâches prioritaires
+            <span class="task-badge">{{ priorityTasks.length }}</span>
+          </span>
+          <button mat-button class="link-btn" (click)="navigate('/apps/tickets')">Voir toutes</button>
+        </div>
+
+        <div class="task-list">
+          <div class="task-row" *ngFor="let t of priorityTasks" (click)="navigate(t.actionRoute)">
+            <div class="task-icon">
+              <i-tabler [name]="t.actionIcon" style="width:16px;height:16px;color:#667eea"></i-tabler>
+            </div>
+            <div class="task-body">
+              <div class="task-title">{{ t.title }}</div>
+              <div class="task-sub">{{ t.subtitle }}</div>
+            </div>
+            <span class="priority-badge"
+                  [class.urgent]="t.priority === 'Urgent'"
+                  [class.important]="t.priority === 'Important'"
+                  [class.normal]="t.priority === 'Normal'">{{ t.priority }}</span>
+            <span class="task-time">{{ t.time }}</span>
+            <button mat-icon-button class="task-action" [matTooltip]="t.priority === 'Urgent' ? 'Appeler' : 'Voir'">
+              <i-tabler [name]="t.priority === 'Urgent' ? 'phone' : 'eye'" style="width:16px;height:16px"></i-tabler>
+            </button>
+          </div>
+
+          <div class="task-empty" *ngIf="priorityTasks.length === 0">
+            <i-tabler name="mood-happy" style="width:36px;height:36px;color:#10b981"></i-tabler>
+            <p>Aucune tâche prioritaire</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Col 2: AI Insights ── -->
+      <div class="card insights-col">
+        <div class="card-head">
+          <span class="card-title">
+            <i-tabler name="sparkles" style="color:#8b5cf6;width:18px;height:18px"></i-tabler>
+            Insights IA
+          </span>
+          <button mat-button class="link-btn" (click)="navigate('/apps/calls')">Voir plus</button>
+        </div>
+
+        <div class="insights-list" *ngIf="aiRecs.length > 0">
+          <div class="insight-row" *ngFor="let rec of aiRecs"
+               [style.border-left-color]="getSeverityColor(rec.severity)">
+            <div class="insight-icon" [style.background]="getSeverityBg(rec.severity)">
+              <i-tabler [name]="getSeverityIcon(rec.severity)"
+                        [style.color]="getSeverityColor(rec.severity)"
+                        style="width:18px;height:18px"></i-tabler>
+            </div>
+            <div class="insight-body">
+              <div class="insight-title" [style.color]="getSeverityColor(rec.severity)">{{ rec.title }}</div>
+              <div class="insight-msg">{{ rec.message }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fallback insights from IA banner -->
+        <div class="insights-list" *ngIf="aiRecs.length === 0">
+          <div class="insight-row" *ngFor="let ins of iaInsights"
+               [style.border-left-color]="ins.color">
+            <div class="insight-icon" [style.background]="ins.bg">
+              <i-tabler [name]="ins.icon" [style.color]="ins.color" style="width:18px;height:18px"></i-tabler>
+            </div>
+            <div class="insight-body">
+              <div class="insight-title" [style.color]="ins.color">{{ ins.title }}</div>
+              <div class="insight-msg">{{ ins.detail }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Col 3: Quick Actions + Activity ── -->
+      <div class="right-col">
+
+        <!-- Quick Actions -->
+        <div class="card actions-card">
+          <div class="card-head">
+            <span class="card-title">
+              <i-tabler name="zap" style="color:#f59e0b;width:18px;height:18px"></i-tabler>
+              Actions rapides
+            </span>
+          </div>
+          <div class="quick-grid">
+            <button class="quick-btn" (click)="navigate('/apps/calls')">
+              <div class="quick-icon" style="background:#eff6ff">
+                <i-tabler name="phone" style="color:#3b82f6;width:22px;height:22px"></i-tabler>
+              </div>
+              <span>Appeler</span>
+            </button>
+            <button class="quick-btn" (click)="navigate('/apps/callbacks')">
+              <div class="quick-icon" style="background:#faf5ff">
+                <i-tabler name="refresh" style="color:#8b5cf6;width:22px;height:22px"></i-tabler>
+              </div>
+              <span>Relancer</span>
+            </button>
+            <button class="quick-btn" (click)="navigate('/apps/tickets')">
+              <div class="quick-icon" style="background:#f0fdf4">
+                <i-tabler name="plus" style="color:#10b981;width:22px;height:22px"></i-tabler>
+              </div>
+              <span>Nouveau ticket</span>
+            </button>
+            <button class="quick-btn" (click)="navigate('/apps/notifications')">
+              <div class="quick-icon" style="background:#fff7ed">
+                <i-tabler name="mail" style="color:#f59e0b;width:22px;height:22px"></i-tabler>
+              </div>
+              <span>Email</span>
+            </button>
+            <button class="quick-btn" (click)="navigate('/apps/calls')">
+              <div class="quick-icon" style="background:#fef2f2">
+                <i-tabler name="pencil" style="color:#ef4444;width:22px;height:22px"></i-tabler>
+              </div>
+              <span>Note client</span>
+            </button>
+            <button class="quick-btn" (click)="navigate('/apps/reports/list')">
+              <div class="quick-icon" style="background:#f8f7ff">
+                <i-tabler name="file-report" style="color:#667eea;width:22px;height:22px"></i-tabler>
+              </div>
+              <span>Rapport IA</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card activity-card">
+          <div class="card-head">
+            <span class="card-title">
+              <i-tabler name="activity" style="color:#10b981;width:18px;height:18px"></i-tabler>
+              Activité récente
+            </span>
+          </div>
+          <div class="activity-list" *ngIf="recentActivity.length > 0">
+            <div class="activity-row" *ngFor="let act of recentActivity">
+              <div class="act-icon" [style.background]="getActivityColor(act.action) + '22'">
+                <i-tabler [name]="getActivityIcon(act.action)"
+                          [style.color]="getActivityColor(act.action)"
+                          style="width:14px;height:14px"></i-tabler>
+              </div>
+              <div class="act-body">
+                <div class="act-desc">{{ act.description }}</div>
+                <div class="act-time">{{ act.timestamp | date:'HH:mm' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="activity-empty" *ngIf="recentActivity.length === 0">
+            <i-tabler name="history" style="width:32px;height:32px;color:#cbd5e1"></i-tabler>
+            <p>Aucune activité récente</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </ng-container>
+</div>

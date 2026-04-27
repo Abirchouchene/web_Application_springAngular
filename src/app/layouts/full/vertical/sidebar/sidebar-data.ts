@@ -17,12 +17,19 @@ export const navItems: NavItem[] = [
     iconName: 'layout-dashboard',
     bgcolor: 'primary',
     route: '/dashboards/dashboard1',
-    roles: ['MANAGER', 'AGENT', 'SURVEY_REQUESTER'],
+    roles: ['MANAGER', 'SURVEY_REQUESTER'],
   },
 
   // ===================== AGENT =====================
   {
     navCap: 'CALL CENTER MODULES',
+    roles: ['AGENT'],
+  },
+  {
+    displayName: 'Tableau de bord',
+    iconName: 'layout-dashboard',
+    bgcolor: 'primary',
+    route: 'apps/agent-dashboard',
     roles: ['AGENT'],
   },
   {

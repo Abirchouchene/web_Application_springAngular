@@ -3,6 +3,7 @@ import { BlankComponent } from './layouts/blank/blank.component';
 import { FullComponent } from './layouts/full/full.component';
 import { ListeJobComponent } from './components/jobOffer/liste-job/liste-job.component';
 import { AuthGuard } from './guard/auth.guard';
+import { HomeRedirectComponent } from './pages/home-redirect/home-redirect.component';
 
 export const routes: Routes = [
   {
@@ -18,7 +19,7 @@ export const routes: Routes = [
 
       {
         path: '',
-        redirectTo: '/dashboards/dashboard1',
+        component: HomeRedirectComponent,
         pathMatch: 'full',
       },
       {

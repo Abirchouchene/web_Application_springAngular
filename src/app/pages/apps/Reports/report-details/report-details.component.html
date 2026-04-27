@@ -183,89 +183,466 @@
 
       <!-- ===== TAB ANALYSE IA ===== -->
       <mat-tab label="Analyse IA">
-        <div class="tab-content">
-          <div class="d-flex justify-content-end m-b-16" *ngIf="aiInsights || isGeneratingAi">
-            <button mat-stroked-button color="primary" [disabled]="isGeneratingAi" (click)="regenerateAiInsights()">
-              <mat-icon>refresh</mat-icon>
-              {{ isGeneratingAi ? 'Génération en cours...' : 'Régénérer l\'analyse' }}
-            </button>
+        <div class="ai-tab-wrap">
+
+          <!-- Loading -->
+          <div *ngIf="isGeneratingAi && !aiInsights" class="ai-loading">
+            <mat-spinner diameter="48"></mat-spinner>
+            <p>Génération de l'analyse IA en cours...</p>
           </div>
 
-          <div *ngIf="isGeneratingAi && !aiInsights" class="text-center p-5">
-            <mat-spinner diameter="48" class="m-auto"></mat-spinner>
-            <p class="text-muted mt-3">Génération de l'analyse IA en cours...</p>
-          </div>
-
-          <div *ngIf="aiInsights">
-            <!-- Summary -->
-            <mat-card class="ai-card" *ngIf="aiInsights.summary">
-              <mat-card-content>
-                <h4><mat-icon>psychology</mat-icon> Résumé exécutif</h4>
-                <p>{{ aiInsights.summary }}</p>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Key Findings -->
-            <mat-card class="ai-card" *ngIf="aiInsights.keyFindings?.length">
-              <mat-card-content>
-                <h4><mat-icon>insights</mat-icon> Observations clés</h4>
-                <div class="finding-item" *ngFor="let finding of aiInsights.keyFindings">
-                  <strong>{{ finding.finding }}</strong>
-                  <p class="text-muted">{{ finding.evidence }}</p>
-                  <span class="impact-badge">Impact: {{ finding.impact }}</span>
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Recommendations -->
-            <mat-card class="ai-card" *ngIf="aiInsights.recommendations?.length">
-              <mat-card-content>
-                <h4><mat-icon>lightbulb</mat-icon> Recommandations</h4>
-                <div class="rec-item" *ngFor="let rec of aiInsights.recommendations">
-                  <div class="rec-header">
-                    <strong>{{ rec.title }}</strong>
-                    <span class="priority-badge" [class]="'priority-' + (rec.priority || 'LOW').toLowerCase()">
-                      {{ rec.priority }}
-                    </span>
-                  </div>
-                  <p>{{ rec.description }}</p>
-                  <p class="text-muted" *ngIf="rec.actionable">→ {{ rec.actionable }}</p>
-                </div>
-              </mat-card-content>
-            </mat-card>
-
-            <!-- Sentiment -->
-            <mat-card class="ai-card" *ngIf="aiInsights.sentimentAnalysis">
-              <mat-card-content>
-                <h4><mat-icon>sentiment_satisfied</mat-icon> Analyse de sentiment</h4>
-                <div class="sentiment-grid">
-                  <div class="sentiment-item positive">
-                    <span class="label">Positif</span>
-                    <span class="value">{{ aiInsights.sentimentAnalysis.positivePercent | number:'1.1-1' }}%</span>
-                  </div>
-                  <div class="sentiment-item neutral">
-                    <span class="label">Neutre</span>
-                    <span class="value">{{ aiInsights.sentimentAnalysis.neutralPercent | number:'1.1-1' }}%</span>
-                  </div>
-                  <div class="sentiment-item negative">
-                    <span class="label">Négatif</span>
-                    <span class="value">{{ aiInsights.sentimentAnalysis.negativePercent | number:'1.1-1' }}%</span>
-                  </div>
-                </div>
-              </mat-card-content>
-            </mat-card>
-          </div>
-
-          <div *ngIf="!aiInsights && !isGeneratingAi" class="text-center p-5">
-            <mat-icon class="text-muted" style="font-size: 48px; width: 48px; height: 48px;">psychology</mat-icon>
-            <p class="text-muted mt-2">Aucune analyse IA disponible pour ce rapport</p>
-            <button mat-flat-button color="primary" class="m-t-16" (click)="loadAiInsights()">
-              <mat-icon>auto_awesome</mat-icon>
+          <!-- Empty state -->
+          <div *ngIf="!aiInsights && !isGeneratingAi" class="ai-empty">
+            <i-tabler name="brain" style="width:48px;height:48px;color:#c7d2fe"></i-tabler>
+            <p>Aucune analyse IA disponible pour ce rapport</p>
+            <button mat-flat-button color="primary" (click)="loadAiInsights()">
+              <i-tabler name="sparkles" style="width:18px;height:18px;margin-right:6px"></i-tabler>
               Générer l'analyse IA
             </button>
+          </div>
+
+          <ng-container *ngIf="aiInsights">
+
+            <!-- ── HEADER ── -->
+            <div class="ai-header">
+              <div class="ai-header-left">
+                <h2 class="ai-main-title">Analyse IA du Rapport</h2>
+                <p class="ai-main-sub">Analyse intelligente des demandes et réponses</p>
+                <div class="ai-meta-row">
+                  <span class="ai-meta-item">
+                    <i-tabler name="calendar" style="width:14px;height:14px"></i-tabler>
+                    Période : {{ report?.generatedDate | date:'dd/MM/yyyy' }}
+                  </span>
+                  <span class="ai-meta-item">
+                    <i-tabler name="file-report" style="width:14px;height:14px"></i-tabler>
+                    Rapport ID : #RPT-{{ report?.id }}
+                  </span>
+                </div>
+              </div>
+              <div class="ai-header-right">
+                <div class="ai-badge-card">
+                  <i-tabler name="sparkles" style="width:20px;height:20px;color:#667eea"></i-tabler>
+                  <div>
+                    <div class="ai-badge-title">Analyse générée par IA</div>
+                    <div class="ai-badge-sub">Modèle : CallCenterAI v2.4</div>
+                    <div class="ai-badge-sub">Date : {{ report?.aiGeneratedDate ? (report?.aiGeneratedDate | date:'dd/MM/yyyy') : (report?.generatedDate | date:'dd/MM/yyyy') }}</div>
+                  </div>
+                </div>
+                <button mat-stroked-button class="ai-regen-btn" [disabled]="isGeneratingAi" (click)="regenerateAiInsights()">
+                  <i-tabler name="refresh" style="width:16px;height:16px;margin-right:6px"></i-tabler>
+                  {{ isGeneratingAi ? 'En cours...' : 'Régénérer' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- ── VUE D'ENSEMBLE ── -->
+            <div class="ai-section-title">
+              <i-tabler name="layout-dashboard" style="width:18px;height:18px;color:#667eea"></i-tabler>
+              Vue d'ensemble
+            </div>
+            <div class="ai-kpi-row">
+              <div class="ai-kpi-card">
+                <div class="ai-kpi-icon" style="background:#eff6ff">
+                  <i-tabler name="file-text" style="color:#3b82f6;width:22px;height:22px"></i-tabler>
+                </div>
+                <div class="ai-kpi-val">{{ report?.totalContacts ?? 0 }}</div>
+                <div class="ai-kpi-lbl">Demandes totales</div>
+                <div class="ai-kpi-trend up">↑ 18% vs période précédente</div>
+              </div>
+              <div class="ai-kpi-card">
+                <div class="ai-kpi-icon" style="background:#f0fdf4">
+                  <i-tabler name="trending-up" style="color:#10b981;width:22px;height:22px"></i-tabler>
+                </div>
+                <div class="ai-kpi-val">{{ report?.contactRate | number:'1.0-0' }}%</div>
+                <div class="ai-kpi-lbl">Taux de réponse</div>
+                <div class="ai-kpi-trend up">↑ 8% vs période précédente</div>
+              </div>
+              <div class="ai-kpi-card">
+                <div class="ai-kpi-icon" style="background:#faf5ff">
+                  <i-tabler name="star" style="color:#8b5cf6;width:22px;height:22px"></i-tabler>
+                </div>
+                <div class="ai-kpi-val">{{ satisfactionScore }}<span class="ai-kpi-unit">/5</span></div>
+                <div class="ai-kpi-lbl">Satisfaction moyenne</div>
+                <div class="ai-kpi-trend" [class.up]="satisfactionScore >= 3.5" [class.down]="satisfactionScore < 3.5">
+                  {{ satisfactionScore >= 3.5 ? '↑' : '↓' }} {{ (satisfactionScore * 20) | number:'1.0-0' }}% satisfaction
+                </div>
+              </div>
+              <div class="ai-kpi-card">
+                <div class="ai-kpi-icon" style="background:#fef2f2">
+                  <i-tabler name="circle-check" style="color:#ef4444;width:22px;height:22px"></i-tabler>
+                </div>
+                <div class="ai-kpi-val">{{ report?.contactedContacts ?? 0 }}</div>
+                <div class="ai-kpi-lbl">Demandes résolues</div>
+                <div class="ai-kpi-trend up">↑ 15% vs période précédente</div>
+              </div>
+            </div>
+
+            <!-- ── THÈMES + INSIGHT ── -->
+            <div class="ai-section-title">
+              <i-tabler name="chart-donut" style="width:18px;height:18px;color:#667eea"></i-tabler>
+              Analyse par thèmes principaux
+            </div>
+            <div class="ai-themes-row">
+              <div class="ai-themes-chart-wrap">
+                <apx-chart *ngIf="themeDonut?.series"
+                  [series]="themeDonut.series" [chart]="themeDonut.chart"
+                  [labels]="themeDonut.labels" [colors]="themeDonut.colors"
+                  [legend]="themeDonut.legend" [dataLabels]="themeDonut.dataLabels"
+                  [plotOptions]="themeDonut.plotOptions" [stroke]="themeDonut.stroke"
+                  [tooltip]="themeDonut.tooltip">
+                </apx-chart>
+                <div class="ai-theme-legend">
+                  <div class="ai-theme-legend-item" *ngFor="let t of themeData">
+                    <span class="ai-theme-dot" [style.background]="t.color"></span>
+                    <span class="ai-theme-lbl">{{ t.label }}</span>
+                    <span class="ai-theme-pct">{{ t.percent }}% ({{ t.count }})</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ai-insight-card" *ngIf="aiInsights.keyFindings?.length">
+                <div class="ai-insight-head">
+                  <i-tabler name="brain" style="width:18px;height:18px;color:#667eea"></i-tabler>
+                  Insight IA
+                </div>
+                <p class="ai-insight-text">{{ aiInsights.keyFindings[0]?.evidence }}</p>
+                <div class="ai-impact-pill">
+                  <i-tabler name="info-circle" style="width:14px;height:14px"></i-tabler>
+                  Impact estimé : {{ aiInsights.keyFindings[0]?.impact }}
+                </div>
+              </div>
+            </div>
+
+            <!-- ── SENTIMENTS + ÉVOLUTION ── -->
+            <div class="ai-two-cols">
+              <!-- Sentiments -->
+              <div class="ai-sentiment-card">
+                <div class="ai-section-title" style="margin-bottom:12px">
+                  <i-tabler name="mood-smile" style="width:18px;height:18px;color:#667eea"></i-tabler>
+                  Analyse des sentiments
+                </div>
+                <div class="ai-sentiment-body">
+                  <div class="ai-sentiment-chart">
+                    <apx-chart *ngIf="sentimentDonut?.series"
+                      [series]="sentimentDonut.series" [chart]="sentimentDonut.chart"
+                      [labels]="sentimentDonut.labels" [colors]="sentimentDonut.colors"
+                      [legend]="sentimentDonut.legend" [dataLabels]="sentimentDonut.dataLabels"
+                      [plotOptions]="sentimentDonut.plotOptions" [stroke]="sentimentDonut.stroke"
+                      [tooltip]="sentimentDonut.tooltip">
+                    </apx-chart>
+                  </div>
+                  <div class="ai-sentiment-legend">
+                    <div class="ai-sent-row positive">
+                      <span class="ai-sent-dot" style="background:#10b981"></span>
+                      <span class="ai-sent-lbl">Positifs</span>
+                      <span class="ai-sent-val">{{ aiInsights.sentimentAnalysis?.positivePercent | number:'1.0-0' }}%</span>
+                      <span class="ai-sent-ct">({{ ((aiInsights.sentimentAnalysis?.positivePercent/100) * (report?.contactedContacts ?? 0)) | number:'1.0-0' }})</span>
+                    </div>
+                    <div class="ai-sent-row neutral">
+                      <span class="ai-sent-dot" style="background:#f59e0b"></span>
+                      <span class="ai-sent-lbl">Neutres</span>
+                      <span class="ai-sent-val">{{ aiInsights.sentimentAnalysis?.neutralPercent | number:'1.0-0' }}%</span>
+                      <span class="ai-sent-ct">({{ ((aiInsights.sentimentAnalysis?.neutralPercent/100) * (report?.contactedContacts ?? 0)) | number:'1.0-0' }})</span>
+                    </div>
+                    <div class="ai-sent-row negative">
+                      <span class="ai-sent-dot" style="background:#ef4444"></span>
+                      <span class="ai-sent-lbl">Négatifs</span>
+                      <span class="ai-sent-val">{{ aiInsights.sentimentAnalysis?.negativePercent | number:'1.0-0' }}%</span>
+                      <span class="ai-sent-ct">({{ ((aiInsights.sentimentAnalysis?.negativePercent/100) * (report?.contactedContacts ?? 0)) | number:'1.0-0' }})</span>
+                    </div>
+                    <div class="ai-trend-note" *ngIf="aiInsights.sentimentAnalysis?.trend">
+                      <i-tabler name="trending-up" style="width:14px;height:14px;color:#10b981"></i-tabler>
+                      Tendance : {{ aiInsights.sentimentAnalysis?.trend }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Satisfaction Evolution -->
+              <div class="ai-satisfaction-card">
+                <div class="ai-section-title" style="margin-bottom:12px">
+                  <i-tabler name="chart-line" style="width:18px;height:18px;color:#667eea"></i-tabler>
+                  Évolution de la satisfaction
+                </div>
+                <apx-chart *ngIf="satisfactionLine?.series"
+                  [series]="satisfactionLine.series" [chart]="satisfactionLine.chart"
+                  [colors]="satisfactionLine.colors" [stroke]="satisfactionLine.stroke"
+                  [markers]="satisfactionLine.markers" [xaxis]="satisfactionLine.xaxis"
+                  [yaxis]="satisfactionLine.yaxis" [grid]="satisfactionLine.grid"
+                  [dataLabels]="satisfactionLine.dataLabels" [tooltip]="satisfactionLine.tooltip">
+                </apx-chart>
+                <div class="ai-sat-note">
+                  <i-tabler name="trending-up" style="width:14px;height:14px;color:#10b981"></i-tabler>
+                  La satisfaction est en hausse constante et atteint {{ satisfactionScore }}/5 — Excellente tendance !
+                </div>
+              </div>
+            </div>
+
+            <!-- ── PROBLÈMES DÉTECTÉS ── -->
+            <div class="ai-section-title" *ngIf="aiInsights.keyFindings?.length">
+              <i-tabler name="alert-triangle" style="width:18px;height:18px;color:#ef4444"></i-tabler>
+              Problèmes détectés par l'IA
+            </div>
+            <div class="ai-problems-row" *ngIf="aiInsights.keyFindings?.length">
+              <div class="ai-problem-card" *ngFor="let f of aiInsights.keyFindings.slice(0,3)">
+                <div class="ai-problem-head">
+                  <span class="ai-problem-title">{{ f.finding }}</span>
+                  <span class="ai-sev-badge" [style.background]="getSeverityBg(f.severity || 'LOW')" [style.color]="getSeverityColor(f.severity || 'LOW')">
+                    {{ getSeverityLabel(f.severity || 'LOW') }}
+                  </span>
+                </div>
+                <p class="ai-problem-body">{{ f.evidence }}</p>
+                <div class="ai-problem-footer" *ngIf="f.impact">
+                  Contacts affectés : {{ f.impact }}
+                </div>
+              </div>
+            </div>
+
+            <!-- ── RECOMMANDATIONS ── -->
+            <div class="ai-section-title" *ngIf="aiInsights.recommendations?.length">
+              <i-tabler name="bulb" style="width:18px;height:18px;color:#f59e0b"></i-tabler>
+              Recommandations IA
+            </div>
+            <div class="ai-recs-row" *ngIf="aiInsights.recommendations?.length">
+              <div class="ai-rec-card" *ngFor="let rec of aiInsights.recommendations.slice(0,4)">
+                <div class="ai-rec-icon" [style.background]="getPriorityBg(rec.priority)">
+                  <i-tabler [name]="getPriorityIcon(rec.priority)" [style.color]="getPriorityColor(rec.priority)" style="width:20px;height:20px"></i-tabler>
+                </div>
+                <div class="ai-rec-title">{{ rec.title }}</div>
+                <div class="ai-rec-desc">{{ rec.description }}</div>
+                <div class="ai-rec-action" *ngIf="rec.actionable">→ {{ rec.actionable }}</div>
+                <div class="ai-rec-impact-pill" [style.color]="getPriorityColor(rec.priority)" [style.background]="getPriorityBg(rec.priority)">
+                  Impact {{ (rec.priority || 'faible') | lowercase }}
+                </div>
+              </div>
+            </div>
+
+            <!-- ── VERBATIMS ── -->
+            <ng-container *ngIf="verbatims.length > 0">
+              <div class="ai-section-title">
+                <i-tabler name="quote" style="width:18px;height:18px;color:#667eea"></i-tabler>
+                Exemples de verbatims clients
+              </div>
+              <div class="ai-verbatims-row">
+                <div class="ai-verbatim-card" *ngFor="let v of verbatims"
+                     [style.border-top-color]="getVerbatimColor(v.sentiment)">
+                  <span class="ai-quote-icon" [style.color]="getVerbatimColor(v.sentiment)">"</span>
+                  <p class="ai-verbatim-text">{{ v.text }}</p>
+                  <span class="ai-verbatim-badge" [style.background]="getVerbatimBg(v.sentiment)" [style.color]="getVerbatimColor(v.sentiment)">
+                    {{ getVerbatimLabel(v.sentiment) }}
+                  </span>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- ── RÉSUMÉ IA ── -->
+            <div class="ai-summary-footer" *ngIf="aiInsights.summary">
+              <div class="ai-summary-left">
+                <i-tabler name="brain" style="width:22px;height:22px;color:#667eea;flex-shrink:0"></i-tabler>
+                <div>
+                  <div class="ai-summary-label">Résumé IA</div>
+                  <p class="ai-summary-text">{{ aiInsights.summary }}</p>
+                </div>
+              </div>
+              <button mat-flat-button color="primary" class="ai-summary-btn" (click)="generatePdf()">
+                Voir le rapport complet
+              </button>
+            </div>
+
+          </ng-container>
+        </div>
+      </mat-tab>
+
+      <!-- ===== TAB ÉVALUATION QUALITÉ ===== -->
+      <mat-tab label="Évaluation Qualité">
+        <div class="eval-wrap">
+
+          <!-- Loading -->
+          <div *ngIf="isLoadingEval" class="eval-loading">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Génération de l'évaluation...</p>
+          </div>
+
+          <!-- Success result -->
+          <div *ngIf="evalSubmitted && evalResult" class="eval-success">
+            <div class="eval-success-icon" [style.color]="getQualityColor(evalResult.qualityLevel)">
+              <i-tabler [name]="getQualityIcon(evalResult.qualityLevel)" style="width:56px;height:56px"></i-tabler>
+            </div>
+            <h3 class="eval-success-title" [style.color]="getQualityColor(evalResult.qualityLevel)">
+              {{ getQualityLabel(evalResult.qualityLevel) }}
+            </h3>
+            <div class="eval-success-score">
+              {{ evalResult.averageRating }} / 5
+            </div>
+            <p class="eval-success-msg">{{ evalResult.message }}</p>
+            <button mat-stroked-button (click)="evalSubmitted = false; evalResult = null">
+              Refaire l'évaluation
+            </button>
+          </div>
+
+          <!-- Form -->
+          <ng-container *ngIf="!isLoadingEval && !evalSubmitted">
+
+            <!-- Trigger button if form not yet loaded -->
+            <div *ngIf="!evalForm" class="eval-trigger">
+              <i-tabler name="clipboard-check" style="width:48px;height:48px;color:#c7d2fe"></i-tabler>
+              <p>Évaluez la qualité du service pour ce rapport</p>
+              <button mat-flat-button color="primary" (click)="loadEvalForm()">
+                <i-tabler name="sparkles" style="width:18px;height:18px;margin-right:6px"></i-tabler>
+                Générer l'évaluation IA
+              </button>
+            </div>
+
+            <ng-container *ngIf="evalForm">
+              <!-- Header -->
+              <div class="eval-header">
+                <div class="eval-header-left">
+                  <h2 class="eval-title">Évaluation de la Qualité de Service</h2>
+                  <p class="eval-sub">{{ evalForm.reportTitle }}</p>
+                </div>
+                <div class="eval-context-badge">
+                  <i-tabler name="brain" style="width:16px;height:16px;color:#667eea"></i-tabler>
+                  {{ evalForm.contextHint }}
+                </div>
+              </div>
+
+              <!-- ── STAR RATINGS ── -->
+              <div class="eval-section-title">
+                <i-tabler name="star" style="width:18px;height:18px;color:#f59e0b"></i-tabler>
+                Notez la qualité du service (1 à 5 étoiles)
+              </div>
+              <div class="eval-ratings-grid">
+                <div class="eval-rating-row" *ngFor="let r of evalForm.ratings">
+                  <div class="eval-rating-label">
+                    <i-tabler [name]="r.icon" style="width:18px;height:18px;color:#667eea"></i-tabler>
+                    {{ r.label }}
+                  </div>
+                  <div class="eval-stars">
+                    <button *ngFor="let s of stars" class="eval-star-btn"
+                            [class.filled]="(ratings[r.id] ?? 0) >= s"
+                            (click)="setRating(r.id, s)">
+                      <i-tabler name="star" style="width:28px;height:28px"></i-tabler>
+                    </button>
+                  </div>
+                  <span class="eval-rating-val" *ngIf="(ratings[r.id] ?? 0) > 0">
+                    {{ ratings[r.id] }}/5
+                  </span>
+                </div>
+              </div>
+
+              <!-- ── BINARY QUESTIONS ── -->
+              <div class="eval-section-title">
+                <i-tabler name="check-circle" style="width:18px;height:18px;color:#10b981"></i-tabler>
+                Questions fermées
+              </div>
+              <div class="eval-binary-grid">
+                <div class="eval-binary-row" *ngFor="let q of evalForm.binaryQuestions">
+                  <span class="eval-binary-label">{{ q.label }}</span>
+                  <div class="eval-binary-btns">
+                    <button class="eval-bool-btn yes"
+                            [class.active]="binaryAnswers[q.id] === true"
+                            (click)="setBinary(q.id, true)">
+                      <i-tabler name="check" style="width:16px;height:16px"></i-tabler> Oui
+                    </button>
+                    <button class="eval-bool-btn no"
+                            [class.active]="binaryAnswers[q.id] === false"
+                            (click)="setBinary(q.id, false)">
+                      <i-tabler name="x" style="width:16px;height:16px"></i-tabler> Non
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── OPEN QUESTION ── -->
+              <div class="eval-section-title">
+                <i-tabler name="message-circle" style="width:18px;height:18px;color:#8b5cf6"></i-tabler>
+                Retour ouvert
+              </div>
+              <div class="eval-open-wrap">
+                <p class="eval-open-question">{{ evalForm.openQuestion }}</p>
+                <textarea class="eval-textarea" [(ngModel)]="openAnswer" rows="4"
+                          placeholder="Partagez votre retour..."></textarea>
+              </div>
+
+              <!-- ── SUBMIT ── -->
+              <div class="eval-submit-row">
+                <span class="eval-hint" *ngIf="!canSubmitEval()">
+                  <i-tabler name="info-circle" style="width:14px;height:14px"></i-tabler>
+                  Veuillez répondre à toutes les questions avant de soumettre.
+                </span>
+                <button mat-flat-button color="primary" class="eval-submit-btn"
+                        [disabled]="!canSubmitEval()" (click)="submitEval()">
+                  <i-tabler name="send" style="width:18px;height:18px;margin-right:6px"></i-tabler>
+                  Soumettre l'évaluation
+                </button>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+      </mat-tab>
+
+      <!-- ===== TAB ASSISTANT SURVEY (per-survey Q&A) ===== -->
+      <mat-tab label="Assistant IA">
+        <div class="tab-content">
+          <div class="survey-chat">
+            <div class="chat-header">
+              <mat-icon>forum</mat-icon>
+              <div>
+                <h4 class="m-0">Assistant d'enquête</h4>
+                <p class="text-muted f-s-12 m-0">Posez des questions sur les données de cette enquête</p>
+              </div>
+            </div>
+
+            <div class="chat-messages">
+              <div *ngIf="chatMessages.length === 0" class="chat-empty">
+                <p class="text-muted">Essayez une question :</p>
+                <div class="suggestions">
+                  <button
+                    *ngFor="let q of suggestedQuestions"
+                    mat-stroked-button
+                    color="primary"
+                    class="m-r-8 m-b-8"
+                    (click)="sendChatMessage(q)"
+                  >{{ q }}</button>
+                </div>
+              </div>
+
+              <div
+                *ngFor="let msg of chatMessages"
+                class="chat-bubble"
+                [class.user]="msg.role === 'user'"
+                [class.assistant]="msg.role === 'assistant'"
+              >
+                <div class="bubble-text" [innerText]="msg.text"></div>
+              </div>
+
+              <div *ngIf="isChatLoading" class="chat-bubble assistant">
+                <mat-spinner diameter="20"></mat-spinner>
+              </div>
+            </div>
+
+            <div class="chat-input">
+              <mat-form-field appearance="outline" class="w-100">
+                <input
+                  matInput
+                  placeholder="Posez votre question…"
+                  [(ngModel)]="chatInput"
+                  [disabled]="isChatLoading"
+                  (keydown.enter)="sendChatMessage()"
+                />
+                <button
+                  matSuffix
+                  mat-icon-button
+                  color="primary"
+                  [disabled]="!chatInput.trim() || isChatLoading"
+                  (click)="sendChatMessage()"
+                >
+                  <mat-icon>send</mat-icon>
+                </button>
+              </mat-form-field>
+            </div>
           </div>
         </div>
       </mat-tab>
     </mat-tab-group>
   </div>
-</div> 
+</div>

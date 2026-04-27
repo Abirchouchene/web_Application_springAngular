@@ -99,7 +99,7 @@ export class RoleService {
     switch (this.getRole()) {
       case 'ADMIN': return '/dashboards/dashboard1';
       case 'MANAGER': return '/dashboards/dashboard1';
-      case 'AGENT': return '/dashboards/dashboard1';
+      case 'AGENT': return '/apps/agent-dashboard';
       case 'SURVEY_REQUESTER': return '/dashboards/dashboard1';
       default: return '/dashboards/dashboard1';
     }

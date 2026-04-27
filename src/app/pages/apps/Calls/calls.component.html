@@ -358,7 +358,7 @@
             <mat-option value="CLOSED">Terminée</mat-option>
           </mat-select>
         </mat-form-field>
-        <button mat-flat-button color="primary" class="update-status-btn" (click)="updateDetailStatus()">
+        <button mat-flat-button color="primary" class="update-status-btn" (click)="openConfirmStatusDialog()">
           Mettre à jour la Demande
         </button>
       </div>
@@ -416,6 +416,32 @@
     </div>
   </mat-expansion-panel>
 </ng-container>
+
+<!-- ===== CONFIRM STATUS DIALOG ===== -->
+<ng-template #confirmStatusDialog>
+  <div class="confirm-status-dialog">
+    <h2 mat-dialog-title class="confirm-status-title">
+      <i-tabler name="alert-triangle" class="confirm-warn-icon"></i-tabler>
+      Confirmation de Statut
+    </h2>
+    <mat-dialog-content class="confirm-status-content">
+      <div class="confirm-contacts-row">
+        <span class="confirm-contacts-label">Contacts non atteints :</span>
+        <span class="confirm-contacts-value">{{ nonAtteints }} sur {{ totalContacts }}</span>
+      </div>
+      <div class="confirm-ai-warning" *ngIf="nonAtteints > 0">
+        <i-tabler name="info-circle" class="icon-18"></i-tabler>
+        <span>L'analyse IA ne sera exécutée que si tous les contacts ont été atteints.</span>
+      </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Annuler</button>
+      <button mat-flat-button color="primary" (click)="updateDetailStatus()">
+        Marquer comme terminé
+      </button>
+    </mat-dialog-actions>
+  </div>
+</ng-template>
 
 <!-- ===== CALL STATUS DIALOG ===== -->
 <ng-template #callStatusDialog>

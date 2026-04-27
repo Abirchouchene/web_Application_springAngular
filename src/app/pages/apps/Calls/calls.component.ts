@@ -53,6 +53,7 @@ export class CallsComponent implements OnInit, OnDestroy {
   @ViewChild('callStatusDialog') callStatusDialog!: TemplateRef<any>;
   @ViewChild('responseDialog') responseDialog!: TemplateRef<any>;
   @ViewChild('callbackDialog') callbackDialog!: TemplateRef<any>;
+  @ViewChild('confirmStatusDialog') confirmStatusDialog!: TemplateRef<any>;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
   assignedRequests: Request[] = [];
@@ -387,12 +388,26 @@ export class CallsComponent implements OnInit, OnDestroy {
     this.contactDataSource.data = filtered;
   }
 
+  get nonAtteints(): number {
+    return this.callEntries.filter(e => e.contactStatus === 'NOT_CONTACTED').length;
+  }
+
+  openConfirmStatusDialog(): void {
+    if (!this.selectedRequest || !this.newRequestStatus) return;
+    if (this.newRequestStatus === 'RESOLVED' || this.newRequestStatus === 'CLOSED') {
+      this.dialog.open(this.confirmStatusDialog, { width: '480px' });
+    } else {
+      this.updateDetailStatus();
+    }
+  }
+
   updateDetailStatus(): void {
     if (!this.selectedRequest || !this.newRequestStatus) return;
     this.requestService.updateRequestStatus(this.selectedRequest.idR, this.newRequestStatus).subscribe({
       next: () => {
         this.selectedRequest!.status = this.newRequestStatus as any;
         this.snackBar.open('Statut mis à jour', 'OK', { duration: 2000 });
+        this.dialog.closeAll();
         this.loadLogs();
       },
       error: () => this.snackBar.open('Erreur de mise à jour', 'Fermer', { duration: 3000 })
