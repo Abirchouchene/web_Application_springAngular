@@ -518,7 +518,7 @@
                   </div>
                   <div class="eval-stars">
                     <button *ngFor="let s of stars" class="eval-star-btn"
-                            [class.filled]="(ratings[r.id] ?? 0) >= s"
+                            [class.filled]="ratings[r.id] >= s"
                             (click)="setRating(r.id, s)">
                       <i-tabler name="star" style="width:28px;height:28px"></i-tabler>
                     </button>
